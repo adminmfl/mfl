@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { usePathname, useRouter } from 'next/navigation';
 
@@ -11,7 +11,7 @@ import { AppHeader } from '@/components/app/app-header';
 import { MobileBottomTabs } from '@/components/app/mobile-bottom-tabs';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ShieldAlert, LogOut } from 'lucide-react';
 
 
 
@@ -66,6 +66,33 @@ export default function AppLayout({
     router.push(backHref);
   }, [backHref, router]);
 
+  const isAdmin = (session?.user as any)?.platform_role === 'admin';
+  const leagueMatch = pathname?.match(/^\/leagues\/([^/]+)/);
+  const impersonatingLeagueId = isAdmin && leagueMatch ? leagueMatch[1] : null;
+  const [isExiting, setIsExiting] = useState(false);
+
+  const handleExitAdminMode = useCallback(async () => {
+    if (!impersonatingLeagueId) return;
+    setIsExiting(true);
+    try {
+      await fetch(`/api/admin/leagues/${impersonatingLeagueId}/impersonate`, {
+        method: 'DELETE',
+      });
+    } catch (err) {
+      console.error('Error cleaning up impersonation:', err);
+    }
+    router.push('/admin/leagues');
+  }, [impersonatingLeagueId, router]);
+
+  // Auto-cleanup: when admin navigates away from a league page, clean up
+  useEffect(() => {
+    if (!isAdmin || !pathname) return;
+    // If admin is no longer on a league page, run cleanup for any lingering roles
+    if (!pathname.startsWith('/leagues/')) {
+      fetch('/api/admin/impersonate/cleanup', { method: 'POST' }).catch(() => {});
+    }
+  }, [isAdmin, pathname]);
+
   // Redirect unauthenticated users to login
   useEffect(() => {
     if (status === 'loading') return;
@@ -114,6 +141,29 @@ export default function AppLayout({
             {/* Page Content */}
             <main className="flex-1 overflow-auto pb-20 md:pb-0">
               <div className="p-4 lg:p-6">
+                {impersonatingLeagueId && (
+                  <div className="mb-4 flex items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 px-4 py-3">
+                    <ShieldAlert className="size-5 text-amber-600 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
+                        Admin Mode — You are viewing this league as Host
+                      </p>
+                      <p className="text-xs text-amber-600 dark:text-amber-400">
+                        Your access will be removed when you leave this page.
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="shrink-0 border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-600 dark:text-amber-300 dark:hover:bg-amber-900/40"
+                      onClick={handleExitAdminMode}
+                      disabled={isExiting}
+                    >
+                      <LogOut className="size-4 mr-1" />
+                      {isExiting ? 'Exiting...' : 'Exit Admin Mode'}
+                    </Button>
+                  </div>
+                )}
                 {pathname !== '/dashboard'
                   && !/^\/leagues\/[^/]+$/.test(pathname || '')
                   && !/^\/leagues\/[^/]+\/submit$/.test(pathname || '')

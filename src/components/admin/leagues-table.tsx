@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import {
   ChevronLeft,
   ChevronRight,
@@ -17,6 +18,8 @@ import {
   Loader2,
   Globe,
   Lock,
+  LogIn,
+  UserCircle,
 } from "lucide-react";
 import {
   flexRender,
@@ -115,6 +118,8 @@ export function LeaguesTable() {
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [leagueToDelete, setLeagueToDelete] = React.useState<AdminLeague | null>(null);
   const [isDeleting, setIsDeleting] = React.useState(false);
+  const [isImpersonating, setIsImpersonating] = React.useState<string | null>(null);
+  const router = useRouter();
 
   // Fetch leagues with hook
   const { leagues, isLoading, error, createLeague, updateLeague, deleteLeague, refetch } =
@@ -152,6 +157,26 @@ export function LeaguesTable() {
       } else {
         toast.error("Failed to deactivate league");
       }
+    }
+  };
+
+  const handleLoginAsHost = async (league: AdminLeague) => {
+    setIsImpersonating(league.league_id);
+    try {
+      const res = await fetch(`/api/admin/leagues/${league.league_id}/impersonate`, {
+        method: 'POST',
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        toast.success(`Entering "${league.league_name}" as Host`);
+        router.push(json.redirect || `/leagues/${league.league_id}`);
+      } else {
+        toast.error(json.error || 'Failed to impersonate');
+      }
+    } catch (err) {
+      toast.error('Failed to login as host');
+    } finally {
+      setIsImpersonating(null);
     }
   };
 
@@ -282,6 +307,30 @@ export function LeaguesTable() {
       ),
     },
     {
+      accessorKey: "host_name",
+      header: "Host",
+      cell: ({ row }) => {
+        const hostName = row.original.host_name;
+        const hostEmail = row.original.host_email;
+        const hostPhone = row.original.host_phone;
+        if (!hostName) return <span className="text-muted-foreground text-sm">—</span>;
+        return (
+          <div className="min-w-[120px]">
+            <div className="flex items-center gap-1.5">
+              <UserCircle className="size-4 text-muted-foreground shrink-0" />
+              <span className="font-medium text-sm">{hostName}</span>
+            </div>
+            {hostEmail && (
+              <div className="text-xs text-muted-foreground truncate max-w-[180px]">{hostEmail}</div>
+            )}
+            {hostPhone && (
+              <div className="text-xs text-muted-foreground">{hostPhone}</div>
+            )}
+          </div>
+        );
+      },
+    },
+    {
       accessorKey: "num_teams",
       header: "Teams",
       cell: ({ row }) => (
@@ -314,6 +363,18 @@ export function LeaguesTable() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-40">
+            <DropdownMenuItem
+              onClick={() => handleLoginAsHost(row.original)}
+              disabled={isImpersonating === row.original.league_id}
+            >
+              {isImpersonating === row.original.league_id ? (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              ) : (
+                <LogIn className="mr-2 size-4" />
+              )}
+              Login as Host
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => handleEditLeague(row.original)}>
               <Pencil className="mr-2 size-4" />
               Edit

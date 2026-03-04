@@ -72,6 +72,9 @@ export interface AdminLeague {
   // Computed fields
   member_count?: number;
   league_capacity?: number;
+  host_name?: string | null;
+  host_email?: string | null;
+  host_phone?: string | null;
 }
 
 export interface AdminLeagueCreateInput {

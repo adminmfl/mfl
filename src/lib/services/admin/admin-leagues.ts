@@ -83,12 +83,29 @@ export async function getAllLeagues(filters?: AdminLeagueFilters): Promise<Admin
       countMap[m.league_id] = (countMap[m.league_id] || 0) + 1;
     });
 
-    return leagues.map((league) =>
-      mapDbLeagueToAdminLeague({
+    // Get host user info for all leagues
+    const hostIds = [...new Set(leagues.map((l) => l.created_by).filter(Boolean))];
+    const hostMap: Record<string, { username: string; email: string; phone?: string | null }> = {};
+    if (hostIds.length > 0) {
+      const { data: hostUsers } = await supabase
+        .from('users')
+        .select('user_id, username, email, phone')
+        .in('user_id', hostIds);
+      (hostUsers || []).forEach((u: any) => {
+        hostMap[u.user_id] = { username: u.username, email: u.email, phone: u.phone };
+      });
+    }
+
+    return leagues.map((league) => {
+      const host = league.created_by ? hostMap[league.created_by] : null;
+      return mapDbLeagueToAdminLeague({
         ...league,
         member_count: countMap[league.league_id] || 0,
-      })
-    );
+        host_name: host?.username || null,
+        host_email: host?.email || null,
+        host_phone: host?.phone || null,
+      });
+    });
   } catch (err) {
     console.error('Error in getAllLeagues:', err);
     return [];

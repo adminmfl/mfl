@@ -54,6 +54,16 @@ export default function AdminLayout({
     }
   }, [session, status, router]);
 
+  // Auto-cleanup: remove any orphaned impersonation roles when admin visits admin pages
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    const userRole =
+      (session?.user as any)?.platform_role || (session?.user as any)?.role;
+    if (userRole !== "admin") return;
+
+    fetch("/api/admin/impersonate/cleanup", { method: "POST" }).catch(() => {});
+  }, [session, status]);
+
   // Loading state
   if (status === "loading") {
     return (
