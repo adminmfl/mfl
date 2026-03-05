@@ -100,7 +100,7 @@ export default function SubmitActivityPage({
   const { id: leagueId } = React.use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { activeLeague } = useLeague();
+  const { activeLeague, isLoading: leagueLoading } = useLeague();
   const { canSubmitWorkouts } = useRole();
 
   // Fetch user profile for age calculation
@@ -257,13 +257,13 @@ export default function SubmitActivityPage({
   }, [maxActivityDate, yesterday, leagueStartLocal, today]);
 
   // Effect to clamp activityDate into the allowed window (yesterday through maxActivityDate)
+  // NOTE: activityDate is intentionally NOT in the dependency array to prevent infinite loops.
+  // This effect runs only when the allowed window boundaries change.
   React.useEffect(() => {
     if (!maxActivityDate || !minActivityDate) return;
 
     const current = startOfDay(activityDate);
 
-    // If current is wildly out of range vs max, clamp it.
-    // Specially handle the "Trial" case where current might be < start_date but valid.
     if (isAfter(current, maxActivityDate)) {
       setActivityDate(maxActivityDate);
       toast.info(`Date adjusted to latest allowed (${format(maxActivityDate, 'yyyy-MM-dd')})`);
@@ -271,7 +271,8 @@ export default function SubmitActivityPage({
       setActivityDate(minActivityDate);
       toast.info(`Date adjusted to earliest allowed (${format(minActivityDate, 'yyyy-MM-dd')})`);
     }
-  }, [maxActivityDate, minActivityDate, activityDate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [maxActivityDate, minActivityDate]);
 
   // Check for trial mode (before league start)
   const isTrialMode = React.useMemo(() => {
@@ -1013,8 +1014,16 @@ export default function SubmitActivityPage({
     }
   };
 
-  // Access check
+  // Access check — wait for league context to finish loading before denying access
   if (!canSubmitWorkouts) {
+    if (leagueLoading || !activeLeague) {
+      return (
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 p-4 lg:gap-6 lg:p-6">
+          <div className="size-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      );
+    }
     return (
       <div className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
         <Alert variant="destructive">

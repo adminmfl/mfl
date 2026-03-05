@@ -106,15 +106,15 @@ export async function GET(
       .eq('league_id', leagueId)
       .single();
 
-    const { data: governorRole } = await supabase
+    const { data: userRoles } = await supabase
       .from('assignedrolesforleague')
       .select('role_id, roles!inner(role_name)')
       .eq('user_id', userId)
-      .eq('league_id', leagueId)
-      .maybeSingle();
+      .eq('league_id', leagueId);
 
-    const isHost = leagueData?.created_by === userId;
-    const isGovernor = (governorRole?.roles as any)?.role_name === 'governor';
+    const userRoleNames = (userRoles || []).map((r: any) => r.roles?.role_name).filter(Boolean);
+    const isHost = leagueData?.created_by === userId || userRoleNames.includes('host');
+    const isGovernor = userRoleNames.includes('governor');
 
     if (!isCaptain && !isHost && !isGovernor) {
       return NextResponse.json(

@@ -14,6 +14,8 @@ import {
   Flame,
   AlertCircle,
   Star,
+  Moon,
+  XCircle,
 } from 'lucide-react';
 
 import { useLeague } from '@/contexts/league-context';
@@ -72,6 +74,8 @@ export default function MyTeamViewPage({
   const [teamActivityPoints, setTeamActivityPoints] = useState<number | null>(null);
   const [teamChallengePoints, setTeamChallengePoints] = useState<number | null>(null);
   const [teamLogoUrl, setTeamLogoUrl] = useState<string | null>(null);
+  const [teamMissedDays, setTeamMissedDays] = useState<number | null>(null);
+  const [teamRestUsed, setTeamRestUsed] = useState<number | null>(null);
 
   const userTeamId = activeLeague?.team_id;
   const userTeamName = activeLeague?.team_name;
@@ -156,7 +160,7 @@ export default function MyTeamViewPage({
     },
     {
       title: 'Team Members',
-      value: `${members.length}/${teamCapacity}`,
+      value: `${members.length}`,
       description: 'Current roster',
       icon: Users,
     },
@@ -184,6 +188,18 @@ export default function MyTeamViewPage({
       description: 'Bonus points',
       icon: Star,
     },
+    {
+      title: 'Rest Days Used',
+      value: typeof teamRestUsed === 'number' ? teamRestUsed.toLocaleString() : '—',
+      description: 'Team total',
+      icon: Moon,
+    },
+    {
+      title: 'Days Missed',
+      value: typeof teamMissedDays === 'number' ? teamMissedDays.toLocaleString() : '—',
+      description: 'No submission',
+      icon: XCircle,
+    },
   ];
 
   // Fetch leaderboard stats for this team
@@ -210,6 +226,22 @@ export default function MyTeamViewPage({
         const logoJson = await logoRes.json();
         if (logoRes.ok && logoJson?.success && logoJson.data?.logo_url) {
           setTeamLogoUrl(logoJson.data.logo_url);
+        }
+
+        // Fetch team summary (rest days used + missed days)
+        try {
+          const summaryRes = await fetch(`/api/leagues/${leagueId}/my-team/summary`);
+          const summaryJson = await summaryRes.json();
+          if (summaryRes.ok && summaryJson?.success && summaryJson.data) {
+            if (typeof summaryJson.data.restUsed === 'number') {
+              setTeamRestUsed(summaryJson.data.restUsed);
+            }
+            if (typeof summaryJson.data.missedDays === 'number') {
+              setTeamMissedDays(summaryJson.data.missedDays);
+            }
+          }
+        } catch (err) {
+          console.error('Error fetching team summary:', err);
         }
       } catch (err) {
         console.error('Error fetching team leaderboard stats (view):', err);
@@ -294,7 +326,7 @@ export default function MyTeamViewPage({
           )}
           <Badge variant="outline">
             <Users className="size-3 mr-1" />
-            {members.length}/{teamCapacity} Members
+            {members.length} Members
           </Badge>
         </div>
       </div>
@@ -311,7 +343,7 @@ export default function MyTeamViewPage({
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 gap-1 px-4 lg:px-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-1 px-4 lg:px-6">
         {stats.map((stat, index) => {
           const StatIcon = stat.icon;
           return (

@@ -112,11 +112,11 @@ export default function LeagueSettingsPage({
     is_exclusive: true,
     num_teams: '4',
     rest_days: '1',
-    auto_rest_day_enabled: false,
+    auto_rest_day_enabled: true,
     start_date: '',
     end_date: '',
     status: 'draft' as 'draft' | 'launched' | 'active' | 'completed',
-    normalize_points_by_team_size: false,
+    normalize_points_by_team_size: true,
     max_team_capacity: '10',
   });
 
@@ -649,17 +649,14 @@ export default function LeagueSettingsPage({
                   <div className="flex items-center gap-2">
                     <Label className="flex items-center gap-2">
                       <Globe className="size-4 text-muted-foreground" />
-                      Public League
+                      Private League
                     </Label>
-                    <FieldInfoButton text="Public leagues appear in discovery, anyone can find and view the league and join." />
+                    <FieldInfoButton text="Private leagues are not publicly discoverable. Members can only join via invite code." />
                   </div>
                 </div>
                 <Switch
-                  checked={formData.is_public}
-                  onCheckedChange={(checked) =>
-                    setFormData((prev) => ({ ...prev, is_public: checked }))
-                  }
-                  disabled={!canEditStructure}
+                  checked={true}
+                  disabled
                 />
               </div>
 

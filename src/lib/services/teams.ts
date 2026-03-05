@@ -5,6 +5,7 @@
  */
 import { getSupabaseServiceRole } from '@/lib/supabase/client';
 import { generateInviteCode } from './invites';
+import { getUserRoleInLeague } from './leagues';
 
 // ============================================================================
 // Types
@@ -740,14 +741,16 @@ export async function assignGovernor(
       return { success: false, error: 'User is not a member of this league' };
     }
 
-    // Check if user is host (cannot be governor too) - host is the league creator (created_by)
+    // Check if user is host (cannot be governor too)
     const { data: league } = await supabase
       .from('leagues')
       .select('created_by')
       .eq('league_id', leagueId)
       .single();
 
-    if (league?.created_by === userId) {
+    const isCreator = league?.created_by === userId;
+    const userRole = await getUserRoleInLeague(userId, leagueId);
+    if (isCreator || userRole === 'host') {
       return { success: false, error: 'Host cannot be assigned as governor' };
     }
 

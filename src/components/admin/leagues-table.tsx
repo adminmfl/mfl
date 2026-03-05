@@ -168,8 +168,11 @@ export function LeaguesTable() {
       });
       const json = await res.json();
       if (res.ok && json.success) {
+        // Force league context to load this league with host role
+        localStorage.setItem('activeLeagueId', league.league_id);
+        localStorage.setItem(`role_${league.league_id}`, 'host');
         toast.success(`Entering "${league.league_name}" as Host`);
-        router.push(json.redirect || `/leagues/${league.league_id}`);
+        router.push(json.redirect || `/leagues/${league.league_id}/settings`);
       } else {
         toast.error(json.error || 'Failed to impersonate');
       }

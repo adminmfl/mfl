@@ -11,6 +11,29 @@ import { authOptions } from '@/lib/auth/config';
 import { getSupabaseServiceRole } from '@/lib/supabase/client';
 
 // ============================================================================
+// Helper: Check if user is host (creator OR assigned host role)
+// ============================================================================
+
+async function checkIsHost(supabase: any, leagueId: string, userId: string): Promise<boolean> {
+  const { data: league } = await supabase
+    .from('leagues')
+    .select('created_by')
+    .eq('league_id', leagueId)
+    .single();
+
+  if (league?.created_by === userId) return true;
+
+  const { data: roleData } = await supabase
+    .from('assignedrolesforleague')
+    .select('roles(role_name)')
+    .eq('user_id', userId)
+    .eq('league_id', leagueId);
+
+  const roleNames = (roleData || []).map((r: any) => r.roles?.role_name).filter(Boolean);
+  return roleNames.includes('host');
+}
+
+// ============================================================================
 // Types
 // ============================================================================
 
@@ -59,14 +82,9 @@ export async function PATCH(
     const userId = session.user.id;
     const supabase = getSupabaseServiceRole();
 
-    // Check if user is host of this league
-    const { data: league } = await supabase
-      .from('leagues')
-      .select('created_by')
-      .eq('league_id', leagueId)
-      .single();
-
-    if (league?.created_by !== userId) {
+    // Check if user is host of this league (creator or assigned host role)
+    const isHostUser = await checkIsHost(supabase, leagueId, userId);
+    if (!isHostUser) {
       return NextResponse.json(
         { error: 'Only the league host can configure activities' },
         { status: 403 }
@@ -252,16 +270,7 @@ export async function GET(
       .eq('league_id', leagueId)
       .maybeSingle();
 
-    // Also check if user is host
-    const { data: league } = await supabase
-      .from('leagues')
-      .select('created_by')
-      .eq('league_id', leagueId)
-      .single();
-
-    const isHost = league?.created_by === session.user.id;
-
-    // Check if user is Governor in this league
+    // Check user roles in this league
     const { data: roleData } = await supabase
       .from('assignedrolesforleague')
       .select('roles(role_name)')
@@ -269,6 +278,15 @@ export async function GET(
       .eq('league_id', leagueId);
 
     const roleNames = (roleData || []).map((r: any) => r.roles?.role_name).filter(Boolean);
+
+    // Also check if user is league creator
+    const { data: league } = await supabase
+      .from('leagues')
+      .select('created_by')
+      .eq('league_id', leagueId)
+      .single();
+
+    const isHost = league?.created_by === session.user.id || roleNames.includes('host');
     const isGovernor = roleNames.includes('governor');
 
     if (!membership && !isHost && !isGovernor) {
@@ -553,14 +571,9 @@ export async function POST(
     const userId = session.user.id;
     const supabase = getSupabaseServiceRole();
 
-    // Check if user is host of this league
-    const { data: league } = await supabase
-      .from('leagues')
-      .select('created_by')
-      .eq('league_id', leagueId)
-      .single();
-
-    if (league?.created_by !== userId) {
+    // Check if user is host of this league (creator or assigned host role)
+    const isHostUser = await checkIsHost(supabase, leagueId, userId);
+    if (!isHostUser) {
       return NextResponse.json(
         { error: 'Only the league host can configure activities' },
         { status: 403 }
@@ -763,14 +776,9 @@ export async function DELETE(
     const userId = session.user.id;
     const supabase = getSupabaseServiceRole();
 
-    // Check if user is host of this league
-    const { data: league } = await supabase
-      .from('leagues')
-      .select('created_by')
-      .eq('league_id', leagueId)
-      .single();
-
-    if (league?.created_by !== userId) {
+    // Check if user is host of this league (creator or assigned host role)
+    const isHostUser = await checkIsHost(supabase, leagueId, userId);
+    if (!isHostUser) {
       return NextResponse.json(
         { error: 'Only the league host can configure activities' },
         { status: 403 }
