@@ -37,14 +37,20 @@ export async function POST(
       return NextResponse.json({ error: 'League not found' }, { status: 404 });
     }
 
-    // Get host role_id
-    const { data: hostRole, error: roleError } = await supabase
+    // Get host and player role IDs
+    const { data: roles, error: roleError } = await supabase
       .from('roles')
-      .select('role_id')
-      .eq('role_name', 'host')
-      .single();
+      .select('role_id, role_name')
+      .in('role_name', ['host', 'player']);
 
-    if (roleError || !hostRole) {
+    if (roleError || !roles || roles.length === 0) {
+      return NextResponse.json({ error: 'Roles not found' }, { status: 500 });
+    }
+
+    const hostRole = roles.find((r: any) => r.role_name === 'host');
+    const playerRole = roles.find((r: any) => r.role_name === 'player');
+
+    if (!hostRole) {
       return NextResponse.json({ error: 'Host role not found' }, { status: 500 });
     }
 
@@ -92,7 +98,29 @@ export async function POST(
       }
     }
 
-    return NextResponse.json({ success: true, redirect: `/leagues/${leagueId}` });
+    // Also assign player role so admin can access player-facing pages without errors
+    if (playerRole) {
+      const { data: existingPlayerRole } = await supabase
+        .from('assignedrolesforleague')
+        .select('id')
+        .eq('league_id', leagueId)
+        .eq('user_id', adminUserId)
+        .eq('role_id', playerRole.role_id)
+        .maybeSingle();
+
+      if (!existingPlayerRole) {
+        await supabase
+          .from('assignedrolesforleague')
+          .insert({
+            league_id: leagueId,
+            user_id: adminUserId,
+            role_id: playerRole.role_id,
+            created_by: adminUserId,
+          });
+      }
+    }
+
+    return NextResponse.json({ success: true, redirect: `/leagues/${leagueId}/settings` });
   } catch (error) {
     console.error('Error in impersonate POST:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

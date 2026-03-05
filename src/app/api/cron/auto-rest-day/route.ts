@@ -102,13 +102,19 @@ async function getMemberRestDaysRemaining(
   // Calculate total allowed rest days
   const totalAllowed = totalRestDaysLimit;
 
-  // Count approved rest days (auto-calculated from effortentry)
-  const { count: approvedRestDays } = await supabase
+  // Count approved rest days from league start date onwards (exclude practice/trial days)
+  let cronRestQuery = supabase
     .from('effortentry')
     .select('*', { count: 'exact', head: true })
     .eq('league_member_id', leagueMemberId)
     .eq('type', 'rest')
     .eq('status', 'approved');
+
+  if (league.start_date) {
+    cronRestQuery = cronRestQuery.gte('date', league.start_date);
+  }
+
+  const { count: approvedRestDays } = await cronRestQuery;
 
   const autoUsed = approvedRestDays || 0;
 

@@ -50,26 +50,38 @@ export async function GET(
     // Treat rest_days as total allowed rest days (previously per-week)
     const totalAllowedRestDays = league.rest_days ?? 1;
 
-    // Count rest days used (approved only)
-    const { count: approvedRestDays, error: approvedError } = await supabase
+    // Count rest days used (approved only, from league start date onwards)
+    let restDayQuery = supabase
       .from('effortentry')
       .select('*', { count: 'exact', head: true })
       .eq('league_member_id', membership.league_member_id)
       .eq('type', 'rest')
       .eq('status', 'approved');
 
+    if (league.start_date) {
+      restDayQuery = restDayQuery.gte('date', league.start_date);
+    }
+
+    const { count: approvedRestDays, error: approvedError } = await restDayQuery;
+
     if (approvedError) {
       console.error('Error counting approved rest days:', approvedError);
       return NextResponse.json({ error: 'Failed to fetch rest day stats' }, { status: 500 });
     }
 
-    // Count pending rest days (not yet approved)
-    const { count: pendingRestDays, error: pendingError } = await supabase
+    // Count pending rest days (not yet approved, from league start date onwards)
+    let pendingQuery = supabase
       .from('effortentry')
       .select('*', { count: 'exact', head: true })
       .eq('league_member_id', membership.league_member_id)
       .eq('type', 'rest')
       .eq('status', 'pending');
+
+    if (league.start_date) {
+      pendingQuery = pendingQuery.gte('date', league.start_date);
+    }
+
+    const { count: pendingRestDays, error: pendingError } = await pendingQuery;
 
     if (pendingError) {
       console.error('Error counting pending rest days:', pendingError);

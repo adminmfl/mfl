@@ -18,6 +18,8 @@ import {
   FileText,
   LucideIcon,
   BookOpen,
+  HelpCircle,
+  CreditCard,
 } from 'lucide-react';
 
 // ============================================================================
@@ -62,7 +64,21 @@ const baseNavItems: NavItem[] = [
     url: '/leagues/join',
     icon: Search,
   },
-
+  {
+    title: 'Profile Settings',
+    url: '/profile',
+    icon: Settings,
+  },
+  {
+    title: 'Help & Support',
+    url: '/help',
+    icon: HelpCircle,
+  },
+  {
+    title: 'Payments',
+    url: '/payments',
+    icon: CreditCard,
+  },
 ];
 
 // ============================================================================

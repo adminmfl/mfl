@@ -81,6 +81,9 @@ export default function AppLayout({
     } catch (err) {
       console.error('Error cleaning up impersonation:', err);
     }
+    // Clear impersonation state from localStorage
+    localStorage.removeItem('activeLeagueId');
+    localStorage.removeItem(`role_${impersonatingLeagueId}`);
     router.push('/admin/leagues');
   }, [impersonatingLeagueId, router]);
 

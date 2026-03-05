@@ -6,29 +6,17 @@ import { usePathname } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import {
   LogOut,
-  Settings,
-  HelpCircle,
-  ChevronRight,
   MoreVertical,
-  CreditCard,
-  Palette,
 } from 'lucide-react';
 
 import { useLeague } from '@/contexts/league-context';
 import { useRole } from '@/contexts/role-context';
 import { getSidebarNavItems, NavSection } from '@/lib/navigation/sidebar-config';
-import { ThemeDrawer } from '@/components/theme-drawer';
 import { LeagueSwitcher } from './league-switcher';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -72,8 +60,6 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
   const { activeRole, isAlsoPlayer } = useRole();
   const { state, setOpenMobile } = useSidebar();
   const isCollapsed = state === 'collapsed';
-  const [themeDrawerOpen, setThemeDrawerOpen] = React.useState(false);
-
   // Get navigation items based on current context
   const navSections = getSidebarNavItems(
     activeRole,
@@ -171,34 +157,6 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuItem asChild className="cursor-pointer">
-                    <Link href="/profile" onClick={() => setOpenMobile(false)}>
-                      <Settings className="mr-2 size-4" />
-                      Profile Settings
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="cursor-pointer"
-                    onClick={() => setThemeDrawerOpen(true)}
-                  >
-                    <Palette className="mr-2 size-4" />
-                    Customize Theme
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild className="cursor-pointer">
-                    <Link href="/help" onClick={() => setOpenMobile(false)}>
-                      <HelpCircle className="mr-2 size-4" />
-                      Help & Support
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild className="cursor-pointer">
-                    <Link href="/payments" onClick={() => setOpenMobile(false)}>
-                      <CreditCard className="mr-2 size-4" />
-                      Payments
-                    </Link>
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={() => signOut({ callbackUrl: '/' })}
                   className="cursor-pointer text-destructive focus:text-destructive"
@@ -212,8 +170,6 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
         </SidebarMenu>
       </SidebarFooter>
 
-      {/* Theme Customization Drawer */}
-      <ThemeDrawer open={themeDrawerOpen} onOpenChange={setThemeDrawerOpen} />
     </Sidebar>
   );
 }

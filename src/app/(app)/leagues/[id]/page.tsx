@@ -20,7 +20,6 @@ import {
   Lock,
   ArrowRight,
   Zap,
-  Medal,
   Timer,
   TrendingUp,
   RefreshCw,
@@ -200,6 +199,7 @@ export default function LeagueDashboardPage({
     teamRestUsed: number | null;
     teamActivityPoints?: number;
     teamChallengePoints?: number;
+    teamRank?: number | null;
   } | null>(null);
 
   // Sync active league if navigated directly
@@ -617,6 +617,7 @@ export default function LeagueDashboardPage({
         let challengePoints = 0;
         let teamActivityPoints = 0;
         let teamChallengePoints = 0;
+        let teamRank: number | null = null;
 
         try {
           const tzOffsetMinutes = new Date().getTimezoneOffset();
@@ -649,6 +650,16 @@ export default function LeagueDashboardPage({
               // Use team's base points (before challenge bonus) for activity points
               teamActivityPoints = mine && typeof mine.points === 'number' ? Math.max(0, mine.points) : 0;
               teamChallengePoints = mine && typeof mine.challenge_bonus === 'number' ? Math.max(0, mine.challenge_bonus) : 0;
+
+              // Extract team rank
+              if (mine && typeof (mine as any).rank === 'number') {
+                teamRank = (mine as any).rank;
+              } else {
+                // Derive rank from position in sorted array
+                const sortedTeams = [...teams].sort((a, b) => (b.total_points ?? b.points ?? 0) - (a.total_points ?? a.points ?? 0));
+                const idx = sortedTeams.findIndex((t) => String(t.team_id) === String(teamId));
+                teamRank = idx >= 0 ? idx + 1 : null;
+              }
             }
 
             // Individual stats: challenge points are no longer added to individual totals.
@@ -676,6 +687,7 @@ export default function LeagueDashboardPage({
           teamRestUsed,
           teamActivityPoints,
           teamChallengePoints,
+          teamRank,
         };
         setMySummary(summaryData);
 
@@ -1165,7 +1177,7 @@ export default function LeagueDashboardPage({
                 <CardTitle className="text-base">Team Summary</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   <div className="rounded-md border border-primary/20 bg-primary/10 dark:bg-primary/20 px-3 py-2.5 text-center">
                     <div className="text-xs text-muted-foreground">Total Points</div>
                     <div className="text-base font-semibold text-foreground tabular-nums">
@@ -1175,7 +1187,7 @@ export default function LeagueDashboardPage({
                     </div>
                   </div>
                   <div className="rounded-md border border-border/60 bg-muted/40 px-3 py-2.5 text-center">
-                    <div className="text-xs text-muted-foreground">Avg RR</div>
+                    <div className="text-xs text-muted-foreground">Run Rate</div>
                     <div className="text-base font-semibold text-foreground tabular-nums">
                       {typeof mySummary?.teamAvgRR === 'number'
                         ? mySummary.teamAvgRR.toFixed(2)
@@ -1183,34 +1195,10 @@ export default function LeagueDashboardPage({
                     </div>
                   </div>
                   <div className="rounded-md border border-border/60 bg-muted/40 px-3 py-2.5 text-center">
-                    <div className="text-xs text-muted-foreground">Activity Points</div>
+                    <div className="text-xs text-muted-foreground">Team Rank</div>
                     <div className="text-base font-semibold text-foreground tabular-nums">
-                      {typeof mySummary?.teamActivityPoints === 'number'
-                        ? mySummary.teamActivityPoints.toLocaleString()
-                        : '—'}
-                    </div>
-                  </div>
-                  <div className="rounded-md border border-border/60 bg-muted/40 px-3 py-2.5 text-center">
-                    <div className="text-xs text-muted-foreground">Challenge Points</div>
-                    <div className="text-base font-semibold text-foreground tabular-nums">
-                      {typeof mySummary?.teamChallengePoints === 'number'
-                        ? mySummary.teamChallengePoints.toLocaleString()
-                        : '—'}
-                    </div>
-                  </div>
-                  <div className="rounded-md border border-border/60 bg-muted/40 px-3 py-2.5 text-center">
-                    <div className="text-xs text-muted-foreground">Days Missed</div>
-                    <div className="text-sm font-semibold text-foreground tabular-nums">
-                      {typeof mySummary?.teamMissedDays === 'number'
-                        ? mySummary.teamMissedDays.toLocaleString()
-                        : '—'}
-                    </div>
-                  </div>
-                  <div className="rounded-md border border-border/60 bg-muted/40 px-3 py-2.5 text-center">
-                    <div className="text-xs text-muted-foreground">Rest Days Used</div>
-                    <div className="text-sm font-semibold text-foreground tabular-nums">
-                      {typeof mySummary?.teamRestUsed === 'number'
-                        ? mySummary.teamRestUsed.toLocaleString()
+                      {typeof mySummary?.teamRank === 'number'
+                        ? `#${mySummary.teamRank}`
                         : '—'}
                     </div>
                   </div>
@@ -1394,11 +1382,17 @@ export default function LeagueDashboardPage({
         </Link>
       </div>
 
-      {/* Progress Bar (for launched/active leagues) */}
-      {(league.status === 'active' || league.status === 'launched') && (
-        <div className="px-4 lg:px-6">
-          <Card className="bg-gradient-to-r from-primary/5 via-transparent to-primary/5 border-primary/20">
-            <CardContent className="p-4">
+      {/* League Information */}
+      <div className="px-4 lg:px-6">
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold">League Information</h2>
+          <p className="text-sm text-muted-foreground">Configuration and settings overview</p>
+        </div>
+
+        <div className="rounded-lg border">
+          {/* Progress Bar (for launched/active leagues) */}
+          {(league.status === 'active' || league.status === 'launched') && (
+            <div className="p-4 border-b">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Flame className="size-5 text-primary" />
@@ -1417,37 +1411,24 @@ export default function LeagueDashboardPage({
                   <span className="font-semibold text-foreground">{daysRemaining}</span> days remaining
                 </span>
               </div>
-              <div className="flex justify-between mt-2 text-xs text-muted-foreground">
-                <span>{formatDate(league.start_date)} — {formatDate(league.end_date)}</span>
-                <span><span className="font-semibold text-foreground">{league.league_capacity || 0}</span> players</span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+            </div>
+          )}
 
-      {/* League Information - Table Style */}
-      <div className="px-4 lg:px-6">
-        <div className="mb-4">
-          <h2 className="text-lg font-semibold">League Information</h2>
-          <p className="text-sm text-muted-foreground">Configuration and settings overview</p>
-        </div>
-
-        <div className="rounded-lg border">
-          <div className="grid grid-cols-2 md:grid-cols-3 divide-x divide-y md:divide-y-0">
+          {/* Key stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0">
             <div className="p-4 flex flex-col items-center text-center">
               <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
-                <Users className="size-5 text-primary" />
+                <Calendar className="size-5 text-primary" />
               </div>
-              <p className="text-2xl font-bold tabular-nums">{league.num_teams || 0}</p>
-              <p className="text-xs text-muted-foreground">Teams</p>
+              <p className="text-sm font-bold text-primary tabular-nums">{formatDate(league.start_date)}</p>
+              <p className="text-xs text-muted-foreground">Start Date</p>
             </div>
             <div className="p-4 flex flex-col items-center text-center">
               <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
-                <Medal className="size-5 text-primary" />
+                <Calendar className="size-5 text-primary" />
               </div>
-              <p className="text-2xl font-bold tabular-nums">{league.league_capacity || 0}</p>
-              <p className="text-xs text-muted-foreground">Max Capacity</p>
+              <p className="text-sm font-bold text-primary tabular-nums">{formatDate(league.end_date)}</p>
+              <p className="text-xs text-muted-foreground">End Date</p>
             </div>
             <div className="p-4 flex flex-col items-center text-center">
               <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
@@ -1456,10 +1437,24 @@ export default function LeagueDashboardPage({
               <p className="text-2xl font-bold tabular-nums">{totalDays}</p>
               <p className="text-xs text-muted-foreground">Days Total</p>
             </div>
+            <div className="p-4 flex flex-col items-center text-center">
+              <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
+                <Moon className="size-5 text-primary" />
+              </div>
+              <p className="text-2xl font-bold tabular-nums">{league.rest_days}</p>
+              <p className="text-xs text-muted-foreground">Rest Days</p>
+            </div>
           </div>
 
+          {/* Bottom row: Teams, Players, Visibility, Join Type */}
           <div className="border-t p-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="flex flex-col gap-1 md:flex-col md:items-start min-w-0">
+                <span className="text-sm text-muted-foreground">Teams</span>
+                <Badge variant="outline">
+                  {league.num_teams || 0} teams
+                </Badge>
+              </div>
               <div className="flex flex-col gap-1 md:flex-col md:items-start min-w-0">
                 <span className="text-sm text-muted-foreground">Visibility</span>
                 <Badge variant={league.is_public ? 'default' : 'secondary'}>
@@ -1471,25 +1466,9 @@ export default function LeagueDashboardPage({
                 </Badge>
               </div>
               <div className="flex flex-col gap-1 md:flex-col md:items-start min-w-0">
-
                 <span className="text-sm text-muted-foreground">Join Type</span>
                 <Badge variant="outline">
                   {league.is_exclusive ? 'Invite Only' : 'Open'}
-                </Badge>
-              </div>
-              <div className="flex flex-col gap-1 md:flex-col md:items-start min-w-0">
-
-                <span className="text-sm text-muted-foreground">Rest Days</span>
-                <Badge variant="outline">
-                  {league.rest_days} total
-                </Badge>
-              </div>
-              <div className="flex flex-col gap-1 md:flex-col md:items-start min-w-0">
-
-                <span className="text-sm text-muted-foreground">Schedule</span>
-                <Badge variant="outline" className="text-xs max-w-full whitespace-normal break-words text-left leading-tight flex items-center gap-1">
-                  <Calendar className="size-3" />
-                  {formatDate(league.start_date)} - {formatDate(league.end_date)}
                 </Badge>
               </div>
             </div>

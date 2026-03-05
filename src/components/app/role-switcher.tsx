@@ -66,6 +66,7 @@ const roleConfigs: Record<Role, RoleConfig> = {
 // ============================================================================
 
 export function RoleSwitcher() {
+  const { data: session } = useSession();
   const { activeRole, availableRoles, setActiveRole, isLoading } = useRole();
   const { activeLeague } = useLeague();
   const router = useRouter();

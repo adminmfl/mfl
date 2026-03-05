@@ -179,7 +179,7 @@ export function LeagueProvider({ children }: LeagueProviderProps) {
         // Always land in player/captain view when available
         const nextRole = preferredRole || highestAvailableRole;
 
-        if (savedRole && selectedLeague.roles.includes(savedRole as LeagueRole) && (savedRole === 'player' || savedRole === 'captain')) {
+        if (savedRole && selectedLeague.roles.includes(savedRole as LeagueRole)) {
           setCurrentRoleState(savedRole as LeagueRole);
         } else if (nextRole) {
           setCurrentRoleState(nextRole);
@@ -219,7 +219,7 @@ export function LeagueProvider({ children }: LeagueProviderProps) {
 
       const nextRole = preferredRole || highestAvailableRole;
 
-      if (savedRole && league.roles.includes(savedRole as LeagueRole) && (savedRole === 'player' || savedRole === 'captain')) {
+      if (savedRole && league.roles.includes(savedRole as LeagueRole)) {
         setCurrentRoleState(savedRole as LeagueRole);
       } else if (nextRole) {
         setCurrentRoleState(nextRole);
