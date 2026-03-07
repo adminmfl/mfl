@@ -92,7 +92,7 @@ export default function LeagueActivitiesPage({
   const [openDescriptionId, setOpenDescriptionId] = React.useState<string | null>(null);
 
   // Track pending changes before saving
-  const [pendingChanges, setPendingChanges] = React.useState<Map<string, { enabled?: boolean; frequency?: number | null; frequency_type?: 'weekly' | 'monthly' | null; minimums?: { min_value: number | null; age_group_overrides: Record<string, any> } }>>(new Map());
+  const [pendingChanges, setPendingChanges] = React.useState<Map<string, { enabled?: boolean; frequency?: number | null; frequency_type?: 'weekly' | 'monthly' | null; minimums?: { min_value: number | null; age_group_overrides: Record<string, any> }; proof_requirement?: 'not_required' | 'optional' | 'mandatory'; notes_requirement?: 'not_required' | 'optional' | 'mandatory'; points_per_session?: number; outcome_config?: { label: string; points: number }[] | null }>>(new Map());
 
   const hasChanges = pendingChanges.size > 0;
   const toggleLoading = null;
@@ -332,6 +332,20 @@ export default function LeagueActivitiesPage({
     }
   };
 
+  const handleActivityConfigChange = (config: { activity_id: string; proof_requirement: 'not_required' | 'optional' | 'mandatory'; notes_requirement: 'not_required' | 'optional' | 'mandatory'; points_per_session: number }) => {
+    setPendingChanges((prev) => {
+      const next = new Map(prev);
+      const change = next.get(config.activity_id) || {};
+      next.set(config.activity_id, {
+        ...change,
+        proof_requirement: config.proof_requirement,
+        notes_requirement: config.notes_requirement,
+        points_per_session: config.points_per_session,
+      });
+      return next;
+    });
+  };
+
   const handleMinimumChange = (config: { activity_id: string; min_value: number | null; age_group_overrides: Record<string, any> }) => {
     setPendingChanges((prev) => {
       const next = new Map(prev);
@@ -352,39 +366,60 @@ export default function LeagueActivitiesPage({
 
     setIsSaving(true);
     try {
-      let successCount = 0;
-      let errorCount = 0;
+      // Build all promises in parallel, one set per activity
+      const promises: Promise<{ ok: boolean }>[] = [];
 
       for (const [activityId, change] of pendingChanges) {
-        try {
+        // Enable/disable must run first (sequentially per activity) since
+        // removing an activity means we skip its other updates.
+        // But different activities can run in parallel.
+        const activityPromise = (async (): Promise<{ ok: boolean }> => {
+          const results: boolean[] = [];
+
           if (change.enabled !== undefined) {
             const success = change.enabled
               ? await addActivities([activityId])
               : await removeActivity(activityId);
-            if (success) successCount++;
-            else errorCount++;
-            // If activity was removed, skip frequency/minimum updates
-            if (change.enabled === false) continue;
+            results.push(success);
+            if (change.enabled === false) return { ok: results.every(Boolean) };
           }
 
-          if (change.frequency !== undefined || change.frequency_type !== undefined) {
-            const nextFrequency = change.frequency !== undefined
-              ? change.frequency
-              : enabledActivityMap.get(activityId)?.frequency ?? null;
-            const nextFrequencyType = change.frequency_type !== undefined
-              ? change.frequency_type
-              : frequencyTypeDrafts[activityId]
-              ?? enabledActivityMap.get(activityId)?.frequency_type
-              ?? 'weekly';
+          // Fire PATCH and minimums in parallel for this activity
+          const subPromises: Promise<boolean>[] = [];
 
-            const success = await updateFrequency(activityId, nextFrequency, nextFrequencyType);
-            if (success) successCount++;
-            else errorCount++;
+          if (change.frequency !== undefined || change.frequency_type !== undefined
+              || change.proof_requirement !== undefined || change.notes_requirement !== undefined
+              || change.points_per_session !== undefined || change.outcome_config !== undefined) {
+            const patchBody: Record<string, any> = { activity_id: activityId };
+
+            if (change.frequency !== undefined || change.frequency_type !== undefined) {
+              patchBody.frequency = change.frequency !== undefined
+                ? change.frequency
+                : enabledActivityMap.get(activityId)?.frequency ?? null;
+              patchBody.frequency_type = change.frequency_type !== undefined
+                ? change.frequency_type
+                : frequencyTypeDrafts[activityId]
+                ?? enabledActivityMap.get(activityId)?.frequency_type
+                ?? 'weekly';
+            }
+
+            if (change.proof_requirement !== undefined) patchBody.proof_requirement = change.proof_requirement;
+            if (change.notes_requirement !== undefined) patchBody.notes_requirement = change.notes_requirement;
+            if (change.points_per_session !== undefined) patchBody.points_per_session = change.points_per_session;
+            if (change.outcome_config !== undefined) patchBody.outcome_config = change.outcome_config;
+
+            subPromises.push(
+              fetch(`/api/leagues/${leagueId}/activities`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(patchBody),
+              }).then(r => r.ok).catch(() => false)
+            );
           }
 
           if (change.minimums !== undefined) {
-            try {
-              const response = await fetch('/api/leagues/activity-minimums', {
+            subPromises.push(
+              fetch('/api/leagues/activity-minimums', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -394,20 +429,24 @@ export default function LeagueActivitiesPage({
                   min_value: change.minimums.min_value,
                   age_group_overrides: change.minimums.age_group_overrides,
                 }),
-              });
-              if (response.ok) successCount++;
-              else errorCount++;
-            } catch (err) {
-              errorCount++;
-            }
+              }).then(r => r.ok).catch(() => false)
+            );
           }
-        } catch (err) {
-          errorCount++;
-        }
+
+          const subResults = await Promise.all(subPromises);
+          results.push(...subResults);
+          return { ok: results.every(Boolean) };
+        })();
+
+        promises.push(activityPromise);
       }
 
+      const results = await Promise.all(promises);
+      const successCount = results.filter(r => r.ok).length;
+      const errorCount = results.filter(r => !r.ok).length;
+
       if (errorCount === 0) {
-        toast.success(`All ${successCount} changes saved successfully`);
+        toast.success(successCount === 1 ? 'Changes saved' : `All ${successCount} activities updated`);
         setPendingChanges(new Map());
       } else if (successCount > 0) {
         toast.error(`Saved ${successCount} changes, but ${errorCount} failed`);
@@ -783,6 +822,10 @@ export default function LeagueActivitiesPage({
                               onFrequencyChange={handleFrequencyChange}
                               onFrequencyTypeChange={handleFrequencyTypeChange}
                               onFrequencyBlur={handleFrequencyBlur}
+                              proofRequirement={enabledActivityMap.get(activity.activity_id)?.proof_requirement ?? 'mandatory'}
+                              notesRequirement={enabledActivityMap.get(activity.activity_id)?.notes_requirement ?? 'optional'}
+                              pointsPerSession={enabledActivityMap.get(activity.activity_id)?.points_per_session ?? 1}
+                              onActivityConfigChange={handleActivityConfigChange}
                             />
                           </div>
                         )}

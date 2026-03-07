@@ -279,7 +279,7 @@ export async function GET(
     // =========================================================================
     let entriesQuery = supabase
       .from('effortentry')
-      .select('id, league_member_id, date, type, rr_value, status')
+      .select('id, league_member_id, date, type, workout_type, outcome, rr_value, status')
       .in('league_member_id', memberIds);
 
     // Apply start bound:
@@ -295,12 +295,73 @@ export async function GET(
     // Always apply the delayed end bound.
     entriesQuery = entriesQuery.lte('date', effectiveEndDate);
 
-    const { data: entries, error: entriesError } = await entriesQuery;
+    let { data: entries, error: entriesError } = await entriesQuery;
+
+    // Fallback if 'outcome' or 'workout_type' columns don't exist yet
+    if (entriesError && typeof entriesError?.message === 'string' && entriesError.message.toLowerCase().includes('column')) {
+      const fallbackQuery = supabase
+        .from('effortentry')
+        .select('id, league_member_id, date, type, rr_value, status')
+        .in('league_member_id', memberIds);
+      if (startDate) fallbackQuery.gte('date', startDate);
+      else fallbackQuery.gte('date', league.start_date);
+      fallbackQuery.lte('date', effectiveEndDate);
+      const fallback = await fallbackQuery;
+      entries = fallback.data;
+      entriesError = fallback.error;
+    }
 
     if (entriesError) {
       console.error('Error fetching entries:', entriesError);
       return NextResponse.json({ error: 'Failed to fetch entries' }, { status: 500 });
     }
+
+    // =========================================================================
+    // Fetch activity points configuration for this league
+    // =========================================================================
+    let activityConfigRows: any[] | null = null;
+    const configResult = await supabase
+      .from('leagueactivities')
+      .select('activity_id, custom_activity_id, points_per_session, outcome_config, activities(activity_name)')
+      .eq('league_id', leagueId);
+    if (!configResult.error) {
+      activityConfigRows = configResult.data;
+    } else {
+      // Fallback if points_per_session/outcome_config columns don't exist yet (pre-migration)
+      const fallback = await supabase
+        .from('leagueactivities')
+        .select('activity_id, custom_activity_id, activities(activity_name)')
+        .eq('league_id', leagueId);
+      activityConfigRows = fallback.data;
+    }
+
+    // Build lookup maps: activity_name -> config, custom_activity_id -> config
+    const activityPointsMap = new Map<string, { points_per_session: number; outcome_config: any[] | null }>();
+    for (const row of (activityConfigRows || [])) {
+      const config = {
+        points_per_session: (row as any).points_per_session ?? 1,
+        outcome_config: (row as any).outcome_config ?? null,
+      };
+      if ((row as any).activities?.activity_name) {
+        activityPointsMap.set((row as any).activities.activity_name, config);
+      }
+      if (row.custom_activity_id) {
+        activityPointsMap.set(row.custom_activity_id, config);
+      }
+    }
+
+    // Helper to resolve points for an entry
+    const getEntryPoints = (entry: any): number => {
+      if (!entry.workout_type) return 1;
+      const config = activityPointsMap.get(entry.workout_type);
+      if (!config) return 1;
+      // If outcome_config exists and entry has an outcome, use outcome-specific points
+      if (config.outcome_config && Array.isArray(config.outcome_config) && entry.outcome) {
+        const outcomeMatch = config.outcome_config.find((o: any) => o.label === entry.outcome);
+        if (outcomeMatch) return outcomeMatch.points;
+      }
+      return config.points_per_session;
+    };
 
     // =========================================================================
     // Fetch pending-window effort entries (today/yesterday), excluded from main due to delay
@@ -617,7 +678,7 @@ export async function GET(
         const unique = uniqueEntriesMap.get(key);
         // Only count if THIS entry is the unique one (by ID)
         if (unique && unique.id === entry.id) {
-          teamStat.points++;
+          teamStat.points += getEntryPoints(entry);
 
           if (entry.rr_value && entry.rr_value > 0) {
             teamStat.total_rr += entry.rr_value;
@@ -687,7 +748,7 @@ export async function GET(
 
         const teamDateMap = pointsByTeamDate.get(teamId);
         if (!teamDateMap) continue;
-        teamDateMap.set(entry.date, (teamDateMap.get(entry.date) || 0) + 1);
+        teamDateMap.set(entry.date, (teamDateMap.get(entry.date) || 0) + getEntryPoints(entry));
 
         if (entry.rr_value && entry.rr_value > 0) {
           const agg = rrAggByTeam.get(teamId) || { total_rr: 0, rr_count: 0 };
@@ -777,7 +838,7 @@ export async function GET(
         const unique = uniqueEntriesMap.get(key);
 
         if (unique && unique.id === entry.id) {
-          individualStat.points++;
+          individualStat.points += getEntryPoints(entry);
 
           if (entry.rr_value && entry.rr_value > 0) {
             individualStat.total_rr += entry.rr_value;

@@ -61,6 +61,11 @@ export interface LeagueActivity {
   custom_activity_id?: string;
   requires_proof?: boolean;
   requires_notes?: boolean;
+  // Per-league activity configuration
+  proof_requirement?: 'not_required' | 'optional' | 'mandatory';
+  notes_requirement?: 'not_required' | 'optional' | 'mandatory';
+  points_per_session?: number;
+  outcome_config?: { label: string; points: number }[] | null;
 }
 
 // ============================================================================
@@ -92,10 +97,14 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { activity_id, frequency, frequency_type } = body as {
+    const { activity_id, frequency, frequency_type, proof_requirement, notes_requirement, points_per_session, outcome_config } = body as {
       activity_id?: string;
       frequency?: number | null;
       frequency_type?: 'weekly' | 'monthly' | null;
+      proof_requirement?: 'not_required' | 'optional' | 'mandatory';
+      notes_requirement?: 'not_required' | 'optional' | 'mandatory';
+      points_per_session?: number;
+      outcome_config?: { label: string; points: number }[] | null;
     };
 
     if (!activity_id) {
@@ -107,10 +116,14 @@ export async function PATCH(
 
     const hasFrequency = Object.prototype.hasOwnProperty.call(body, 'frequency');
     const hasFrequencyType = Object.prototype.hasOwnProperty.call(body, 'frequency_type');
+    const hasProofRequirement = Object.prototype.hasOwnProperty.call(body, 'proof_requirement');
+    const hasNotesRequirement = Object.prototype.hasOwnProperty.call(body, 'notes_requirement');
+    const hasPointsPerSession = Object.prototype.hasOwnProperty.call(body, 'points_per_session');
+    const hasOutcomeConfig = Object.prototype.hasOwnProperty.call(body, 'outcome_config');
 
-    if (!hasFrequency && !hasFrequencyType) {
+    if (!hasFrequency && !hasFrequencyType && !hasProofRequirement && !hasNotesRequirement && !hasPointsPerSession && !hasOutcomeConfig) {
       return NextResponse.json(
-        { error: 'frequency or frequency_type is required' },
+        { error: 'At least one field to update is required' },
         { status: 400 }
       );
     }
@@ -184,6 +197,71 @@ export async function PATCH(
 
     if (hasFrequencyType) {
       updatePayload.frequency_type = normalizedFrequencyType ?? 'weekly';
+    }
+
+    // Handle proof_requirement
+    if (hasProofRequirement) {
+      const validValues = ['not_required', 'optional', 'mandatory'];
+      if (!validValues.includes(proof_requirement as string)) {
+        return NextResponse.json(
+          { error: 'proof_requirement must be not_required, optional, or mandatory' },
+          { status: 400 }
+        );
+      }
+      updatePayload.proof_requirement = proof_requirement;
+    }
+
+    // Handle notes_requirement
+    if (hasNotesRequirement) {
+      const validValues = ['not_required', 'optional', 'mandatory'];
+      if (!validValues.includes(notes_requirement as string)) {
+        return NextResponse.json(
+          { error: 'notes_requirement must be not_required, optional, or mandatory' },
+          { status: 400 }
+        );
+      }
+      updatePayload.notes_requirement = notes_requirement;
+    }
+
+    // Handle points_per_session
+    if (hasPointsPerSession) {
+      const pts = Number(points_per_session);
+      if (!Number.isFinite(pts) || pts < 0) {
+        return NextResponse.json(
+          { error: 'points_per_session must be a non-negative number' },
+          { status: 400 }
+        );
+      }
+      updatePayload.points_per_session = pts;
+    }
+
+    // Handle outcome_config
+    if (hasOutcomeConfig) {
+      if (outcome_config === null) {
+        updatePayload.outcome_config = null;
+      } else if (Array.isArray(outcome_config)) {
+        // Validate each outcome entry
+        for (const item of outcome_config) {
+          if (!item.label || typeof item.label !== 'string') {
+            return NextResponse.json(
+              { error: 'Each outcome must have a label string' },
+              { status: 400 }
+            );
+          }
+          if (typeof item.points !== 'number' || !Number.isFinite(item.points)) {
+            return NextResponse.json(
+              { error: 'Each outcome must have a numeric points value' },
+              { status: 400 }
+            );
+          }
+        }
+        updatePayload.outcome_config = outcome_config;
+      } else {
+        return NextResponse.json(
+          { error: 'outcome_config must be an array or null' },
+          { status: 400 }
+        );
+      }
     }
 
     const { data: updated, error: updateError } = await supabase
@@ -310,9 +388,13 @@ export async function GET(
         frequency_type,
         min_value,
         age_group_overrides,
+        proof_requirement,
+        notes_requirement,
+        points_per_session,
+        outcome_config,
         activities(
-          activity_id, 
-          activity_name, 
+          activity_id,
+          activity_name,
           description,
           category_id,
           measurement_type,
@@ -334,7 +416,38 @@ export async function GET(
     leagueActivities = withFrequency.data as any[] | null;
     activitiesError = withFrequency.error;
 
-    // Fallback if frequency/frequency_type columns are not present yet
+    // Fallback if new columns are not present yet (pre-migration)
+    if (activitiesError && typeof activitiesError?.message === 'string') {
+      const msg = activitiesError.message.toLowerCase();
+
+      // Fallback: if proof_requirement/notes_requirement/points_per_session/outcome_config columns don't exist
+      if ((msg.includes('proof_requirement') || msg.includes('notes_requirement') || msg.includes('points_per_session') || msg.includes('outcome_config')) && msg.includes('column')) {
+        const withoutNewCols = await supabase
+          .from('leagueactivities')
+          .select(`
+            activity_id,
+            custom_activity_id,
+            frequency,
+            frequency_type,
+            min_value,
+            age_group_overrides,
+            activities(
+              activity_id, activity_name, description, category_id, measurement_type, settings, admin_info,
+              activity_categories(category_id, category_name, display_name)
+            ),
+            custom_activities(
+              custom_activity_id, activity_name, description, measurement_type, requires_proof, requires_notes
+            )
+          `)
+          .eq('league_id', leagueId);
+
+        leagueActivities = withoutNewCols.data as any[] | null;
+        activitiesError = withoutNewCols.error;
+      }
+
+    }
+
+    // Further fallback for frequency columns (may happen after new-column fallback or independently)
     if (activitiesError && typeof activitiesError?.message === 'string') {
       const msg = activitiesError.message.toLowerCase();
       if (msg.includes('frequency_type') && msg.includes('column')) {
@@ -437,6 +550,10 @@ export async function GET(
             is_custom: true,
             requires_proof: customAct.requires_proof,
             requires_notes: customAct.requires_notes,
+            proof_requirement: (la as any).proof_requirement ?? 'mandatory',
+            notes_requirement: (la as any).notes_requirement ?? 'optional',
+            points_per_session: (la as any).points_per_session ?? 1,
+            outcome_config: (la as any).outcome_config ?? null,
           };
         }
 
@@ -457,6 +574,10 @@ export async function GET(
           settings: activity.settings,
           admin_info: activity.admin_info,
           is_custom: false,
+          proof_requirement: (la as any).proof_requirement ?? 'mandatory',
+          notes_requirement: (la as any).notes_requirement ?? 'optional',
+          points_per_session: (la as any).points_per_session ?? 1,
+          outcome_config: (la as any).outcome_config ?? null,
         };
       });
 

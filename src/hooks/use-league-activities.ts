@@ -36,6 +36,11 @@ export interface LeagueActivity {
   custom_activity_id?: string;
   requires_proof?: boolean;
   requires_notes?: boolean;
+  // Per-league activity configuration
+  proof_requirement?: 'not_required' | 'optional' | 'mandatory';
+  notes_requirement?: 'not_required' | 'optional' | 'mandatory';
+  points_per_session?: number;
+  outcome_config?: { label: string; points: number }[] | null;
 }
 
 export interface LeagueActivitiesData {

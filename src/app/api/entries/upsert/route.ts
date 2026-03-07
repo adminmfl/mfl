@@ -26,6 +26,7 @@ interface EntryPayload {
   rr_value?: number;
   proof_url?: string;
   notes?: string;
+  outcome?: string | null;
   status: 'pending' | 'approved' | 'rejected';
   created_by: string;
   reupload_of?: string | null;
@@ -58,6 +59,7 @@ export async function POST(req: NextRequest) {
       proof_url,
       notes,
       reupload_of,
+      outcome, // Selected outcome label for multi-outcome activities (e.g., "Win", "Loss")
       timezone_offset, // Legacy: sign-inverted offset (e.g., +330 for IST = UTC+5:30)
       tzOffsetMinutes, // Preferred: same value as `new Date().getTimezoneOffset()` (e.g., -330 for IST)
       ianaTimezone, // Preferred IANA tz (e.g., 'America/Los_Angeles')
@@ -363,16 +365,80 @@ export async function POST(req: NextRequest) {
     const hasNonRejected = (existingRows ?? []).some((r: any) => r?.status && r.status !== 'rejected');
     const canReplaceRejected = !!existing && !hasNonRejected;
 
-    // Proof screenshot is mandatory for workout entries.
-    // Allow updates without a new proof_url only if an existing proof_url is already present.
-    if (type === 'workout' && !proof_url && !(canReplaceRejected && existing?.proof_url)) {
+    // Look up per-activity proof/notes/points configuration from leagueactivities
+    let activityProofRequirement: 'not_required' | 'optional' | 'mandatory' = 'mandatory';
+    let activityNotesRequirement: 'not_required' | 'optional' | 'mandatory' = 'optional';
+    let activityPointsPerSession: number = 1;
+    let activityOutcomeConfig: { label: string; points: number }[] | null = null;
+
+    if (type === 'workout' && workout_type) {
+      const isUuidWorkoutType = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(workout_type);
+
+      let activityConfigRow: any = null;
+
+      if (isUuidWorkoutType) {
+        // Custom activity — lookup by custom_activity_id
+        const { data, error } = await supabase
+          .from('leagueactivities')
+          .select('proof_requirement, notes_requirement, points_per_session, outcome_config')
+          .eq('league_id', league_id)
+          .eq('custom_activity_id', workout_type)
+          .maybeSingle();
+        // If new columns don't exist yet (pre-migration), ignore the error and use defaults
+        if (!error) activityConfigRow = data;
+      }
+
+      if (!activityConfigRow) {
+        // Global activity — lookup by activity name via join
+        const { data, error } = await supabase
+          .from('leagueactivities')
+          .select('proof_requirement, notes_requirement, points_per_session, outcome_config, activities!inner(activity_name)')
+          .eq('league_id', league_id)
+          .eq('activities.activity_name', workout_type)
+          .maybeSingle();
+        if (!error) activityConfigRow = data;
+      }
+
+      if (activityConfigRow) {
+        activityProofRequirement = activityConfigRow.proof_requirement ?? 'mandatory';
+        activityNotesRequirement = activityConfigRow.notes_requirement ?? 'optional';
+        activityPointsPerSession = activityConfigRow.points_per_session ?? 1;
+        activityOutcomeConfig = activityConfigRow.outcome_config ?? null;
+      }
+    }
+
+    // Proof validation: respect per-activity proof_requirement config
+    if (type === 'workout' && activityProofRequirement === 'mandatory' && !proof_url && !(canReplaceRejected && existing?.proof_url)) {
       return NextResponse.json(
         { error: 'proof_url is required for workout entries' },
         { status: 400 }
       );
     }
 
-    // Reupload count removed from system; we only link to the original via reupload_of.
+    // Notes validation: respect per-activity notes_requirement config
+    if (type === 'workout' && activityNotesRequirement === 'mandatory' && !notes) {
+      return NextResponse.json(
+        { error: 'Notes are required for this activity' },
+        { status: 400 }
+      );
+    }
+
+    // Validate outcome if activity has outcome_config
+    if (type === 'workout' && activityOutcomeConfig && activityOutcomeConfig.length > 0) {
+      if (!outcome) {
+        return NextResponse.json(
+          { error: 'An outcome selection is required for this activity' },
+          { status: 400 }
+        );
+      }
+      const validLabels = activityOutcomeConfig.map((o: any) => o.label);
+      if (!validLabels.includes(outcome)) {
+        return NextResponse.json(
+          { error: `Invalid outcome. Must be one of: ${validLabels.join(', ')}` },
+          { status: 400 }
+        );
+      }
+    }
 
     // Build entry payload
     const payload: EntryPayload = {
@@ -386,6 +452,7 @@ export async function POST(req: NextRequest) {
       holes: holes || null,
       proof_url: proof_url || null,
       notes: notes || null,
+      outcome: outcome || null,
       status: 'approved',
       created_by: userId,
       reupload_of: reupload_of || null,
