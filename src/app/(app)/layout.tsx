@@ -9,6 +9,7 @@ import { RoleProvider } from '@/contexts/role-context';
 import { AppSidebar } from '@/components/app/app-sidebar';
 import { AppHeader } from '@/components/app/app-header';
 import { MobileBottomTabs } from '@/components/app/mobile-bottom-tabs';
+import { GuidedTour } from '@/components/onboarding/guided-tour';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ShieldAlert, LogOut } from 'lucide-react';
@@ -183,6 +184,9 @@ export default function AppLayout({
 
           {/* Mobile Bottom Tabs */}
           <MobileBottomTabs />
+
+          {/* Guided Tour (first-time users) */}
+          <GuidedTour />
         </SidebarProvider>
       </RoleProvider>
     </LeagueProvider>

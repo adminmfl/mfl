@@ -20,6 +20,7 @@ import {
   BookOpen,
   HelpCircle,
   CreditCard,
+  MessageCircle,
 } from 'lucide-react';
 
 // ============================================================================
@@ -150,6 +151,11 @@ export function getSidebarNavItems(
         url: leagueUrl('/rules'),
         icon: BookOpen,
       },
+      {
+        title: 'Team Chat',
+        url: leagueUrl('/messages'),
+        icon: MessageCircle,
+      },
     ];
 
     sections.push({
@@ -204,6 +210,11 @@ export function getSidebarNavItems(
         title: 'Approve Donations',
         url: leagueUrl('/rest-day-donations'),
         icon: HeartHandshake,
+      },
+      {
+        title: 'Team Chat',
+        url: leagueUrl('/messages'),
+        icon: MessageCircle,
       },
     ];
 

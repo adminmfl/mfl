@@ -12,6 +12,7 @@ import {
 import { useLeague } from '@/contexts/league-context';
 import { useRole } from '@/contexts/role-context';
 import { getSidebarNavItems, NavSection } from '@/lib/navigation/sidebar-config';
+import { MessageBadge } from '@/components/messaging/message-badge';
 import { LeagueSwitcher } from './league-switcher';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -224,6 +225,9 @@ function NavSectionGroup({
                 <Link href={item.url} onClick={() => setOpenMobile(false)}>
                   <item.icon className="size-4" />
                   <span>{item.title}</span>
+                  {item.title === 'Team Chat' && leagueId && (
+                    <MessageBadge leagueId={leagueId} className="ml-auto" />
+                  )}
                   {item.badge && (
                     <span className="ml-auto text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
                       {item.badge}
