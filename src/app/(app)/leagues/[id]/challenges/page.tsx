@@ -32,6 +32,7 @@ type Challenge = {
   start_date: string | null;
   end_date: string | null;
   doc_url: string | null;
+  is_unique_workout?: boolean;
   my_submission: ChallengeSubmission | null;
 };
 
@@ -115,6 +116,14 @@ export default function ChallengesPage({ params }: { params: Promise<{ id: strin
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = React.useState(false);
 
+  // Unique workout dialog state
+  const [uniqueWorkoutOpen, setUniqueWorkoutOpen] = React.useState(false);
+  const [uniqueWorkoutChallenge, setUniqueWorkoutChallenge] = React.useState<Challenge | null>(null);
+  const [approvedWorkouts, setApprovedWorkouts] = React.useState<any[]>([]);
+  const [loadingWorkouts, setLoadingWorkouts] = React.useState(false);
+  const [selectedEntryId, setSelectedEntryId] = React.useState<string | null>(null);
+  const [submittingUnique, setSubmittingUnique] = React.useState(false);
+
   // View Proof dialog
   const [viewProofOpen, setViewProofOpen] = React.useState(false);
   const [viewProofUrl, setViewProofUrl] = React.useState<string | null>(null);
@@ -167,10 +176,74 @@ export default function ChallengesPage({ params }: { params: Promise<{ id: strin
   const totalChallenges = challenges.length;
 
   const handleOpenSubmit = (challenge: Challenge) => {
+    if (challenge.is_unique_workout) {
+      handleOpenUniqueWorkout(challenge);
+      return;
+    }
     setSubmitChallenge(challenge);
     setSelectedFile(null);
     setSubmitOpen(true);
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleOpenUniqueWorkout = async (challenge: Challenge) => {
+    setUniqueWorkoutChallenge(challenge);
+    setSelectedEntryId(null);
+    setUniqueWorkoutOpen(true);
+    setLoadingWorkouts(true);
+
+    try {
+      // Fetch approved workouts within the challenge period
+      const params = new URLSearchParams();
+      if (challenge.start_date) params.set('startDate', challenge.start_date);
+      if (challenge.end_date) params.set('endDate', challenge.end_date);
+
+      const res = await fetch(`/api/leagues/${leagueId}/my-submissions?${params}`);
+      const json = await res.json();
+
+      if (res.ok && json.success) {
+        // Filter to only approved workouts (not rest days)
+        const workouts = (json.data?.submissions || []).filter(
+          (s: any) => s.type === 'workout' && s.status === 'approved'
+        );
+        setApprovedWorkouts(workouts);
+      } else {
+        setApprovedWorkouts([]);
+      }
+    } catch {
+      setApprovedWorkouts([]);
+    } finally {
+      setLoadingWorkouts(false);
+    }
+  };
+
+  const handleSubmitUniqueWorkout = async () => {
+    if (!uniqueWorkoutChallenge || !selectedEntryId) return;
+
+    setSubmittingUnique(true);
+    try {
+      const res = await fetch(
+        `/api/leagues/${leagueId}/challenges/${uniqueWorkoutChallenge.id}/submissions`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ workoutEntryId: selectedEntryId }),
+        }
+      );
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || 'Failed to submit');
+      }
+
+      toast.success('Unique workout submitted and approved!');
+      setUniqueWorkoutOpen(false);
+      fetchChallenges();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to submit');
+    } finally {
+      setSubmittingUnique(false);
+    }
   };
 
   const handleUploadAndSubmit = async () => {
@@ -463,6 +536,60 @@ export default function ChallengesPage({ params }: { params: Promise<{ id: strin
               <img src={viewProofUrl} alt="Proof" className="max-h-[70vh] object-contain rounded-lg" />
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Unique Workout Day Dialog */}
+      <Dialog open={uniqueWorkoutOpen} onOpenChange={setUniqueWorkoutOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Select Your Unique Workout</DialogTitle>
+            <DialogDescription>
+              Pick a workout you did for the FIRST TIME ever in this league.
+              The system will verify it's truly unique.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 max-h-[50vh] overflow-y-auto">
+            {loadingWorkouts && <p className="text-sm text-muted-foreground">Loading workouts...</p>}
+            {!loadingWorkouts && approvedWorkouts.length === 0 && (
+              <p className="text-sm text-muted-foreground">No approved workouts found in the challenge period.</p>
+            )}
+            {approvedWorkouts.map((w: any) => (
+              <div
+                key={w.id}
+                onClick={() => setSelectedEntryId(w.id)}
+                className={cn(
+                  'flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all',
+                  selectedEntryId === w.id
+                    ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                    : 'hover:border-primary/50'
+                )}
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm">{w.workout_type || 'Workout'}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {w.date ? format(parseISO(w.date), 'MMM d, yyyy') : 'Unknown date'}
+                    {w.duration ? ` · ${w.duration} min` : ''}
+                    {w.distance ? ` · ${w.distance} km` : ''}
+                  </p>
+                </div>
+                {selectedEntryId === w.id && (
+                  <CheckCircle2 className="size-5 text-primary shrink-0" />
+                )}
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUniqueWorkoutOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmitUniqueWorkout}
+              disabled={!selectedEntryId || submittingUnique}
+            >
+              {submittingUnique ? 'Submitting...' : 'Submit'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

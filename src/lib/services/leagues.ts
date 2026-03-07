@@ -289,10 +289,17 @@ export async function getLeagueById(leagueId: string): Promise<League | null> {
       creatorName = creatorData?.username ?? null;
     }
 
+    // Count league members
+    const { count: memberCount } = await supabase
+      .from('leaguemembers')
+      .select('*', { count: 'exact', head: true })
+      .eq('league_id', leagueId);
+
     const leagueWithCapacity = {
       ...data,
       league_capacity: leagueCapacity,
       creator_name: creatorName,
+      member_count: memberCount ?? 0,
     };
 
     // Derive the status for UI and persist completion back to DB when needed.

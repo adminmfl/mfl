@@ -125,6 +125,7 @@ interface LeagueDetails {
   invite_code: string | null;
   created_by?: string;
   creator_name?: string;
+  member_count?: number;
 }
 
 interface LeagueStats {
@@ -1415,7 +1416,7 @@ export default function LeagueDashboardPage({
           )}
 
           {/* Key stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0">
+          <div className="grid grid-cols-2 md:grid-cols-3 divide-x divide-y md:divide-y-0">
             <div className="p-4 flex flex-col items-center text-center">
               <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
                 <Calendar className="size-5 text-primary" />
@@ -1437,6 +1438,23 @@ export default function LeagueDashboardPage({
               <p className="text-2xl font-bold tabular-nums">{totalDays}</p>
               <p className="text-xs text-muted-foreground">Days Total</p>
             </div>
+          </div>
+
+          <div className="grid grid-cols-3 divide-x border-t">
+            <div className="p-4 flex flex-col items-center text-center">
+              <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
+                <Users className="size-5 text-primary" />
+              </div>
+              <p className="text-2xl font-bold tabular-nums">{league.member_count ?? 0}</p>
+              <p className="text-xs text-muted-foreground">Players</p>
+            </div>
+            <div className="p-4 flex flex-col items-center text-center">
+              <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
+                <Shield className="size-5 text-primary" />
+              </div>
+              <p className="text-2xl font-bold tabular-nums">{league.num_teams || 0}</p>
+              <p className="text-xs text-muted-foreground">Teams</p>
+            </div>
             <div className="p-4 flex flex-col items-center text-center">
               <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
                 <Moon className="size-5 text-primary" />
@@ -1446,15 +1464,9 @@ export default function LeagueDashboardPage({
             </div>
           </div>
 
-          {/* Bottom row: Teams, Players, Visibility, Join Type */}
+          {/* Bottom row: Visibility, Join Type */}
           <div className="border-t p-4">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <div className="flex flex-col gap-1 md:flex-col md:items-start min-w-0">
-                <span className="text-sm text-muted-foreground">Teams</span>
-                <Badge variant="outline">
-                  {league.num_teams || 0} teams
-                </Badge>
-              </div>
+            <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-1 md:flex-col md:items-start min-w-0">
                 <span className="text-sm text-muted-foreground">Visibility</span>
                 <Badge variant={league.is_public ? 'default' : 'secondary'}>

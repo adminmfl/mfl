@@ -118,6 +118,7 @@ export async function GET(
         challenge_type,
         total_points,
         is_custom,
+        is_unique_workout,
         payment_id,
         doc_url,
         start_date,
@@ -243,6 +244,7 @@ export async function GET(
           challenge_type: c.challenge_type,
           total_points: Number(c.total_points || template?.total_points || 0),
           is_custom: !!c.is_custom,
+          is_unique_workout: !!(c as any).is_unique_workout,
           payment_id: c.payment_id,
           doc_url: c.doc_url || template?.doc_url || null,
           start_date: c.start_date,
@@ -340,6 +342,7 @@ export async function POST(
       docUrl,
       templateId,
       isCustom = false,
+      isUniqueWorkout = false,
       status = defaultChallengeStatus,
       pricingId: incomingPricingId,
     } = body;
@@ -370,6 +373,7 @@ export async function POST(
       doc_url: docUrl,
       challenge_id: templateId ?? null,
       is_custom: isCustom,
+      is_unique_workout: isUniqueWorkout,
       payment_id: null, // Would be set after payment succeeds
       status: normalizedStatus,
       pricing_id: resolvedPricingId,

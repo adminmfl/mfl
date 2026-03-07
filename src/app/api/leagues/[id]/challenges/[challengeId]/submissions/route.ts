@@ -260,21 +260,30 @@ export async function POST(
     }
 
     const body = await req.json();
-    const { proofUrl } = body;
-
-    if (!proofUrl) {
-      return buildError('proofUrl is required', 400);
-    }
+    const { proofUrl, workoutEntryId } = body;
 
     // Fetch challenge details to know challenge type and get member's team/subteam
     const { data: challengeData, error: challengeError } = await supabase
       .from('leagueschallenges')
-      .select('id, challenge_type, league_id, end_date')
+      .select('id, challenge_type, league_id, end_date, is_unique_workout')
       .eq('id', challengeId)
       .single();
 
     if (challengeError || !challengeData) {
       return buildError('Failed to fetch challenge details', 500);
+    }
+
+    const isUniqueWorkout = !!(challengeData as any).is_unique_workout;
+
+    // Validate input: unique workout challenges need workoutEntryId, others need proofUrl
+    if (isUniqueWorkout) {
+      if (!workoutEntryId) {
+        return buildError('workoutEntryId is required for unique workout challenges', 400);
+      }
+    } else {
+      if (!proofUrl) {
+        return buildError('proofUrl is required', 400);
+      }
     }
 
     // Strict cutoff: cannot submit after end_date UNLESS it is a resubmission
@@ -317,14 +326,75 @@ export async function POST(
       return buildError('You must belong to a team in this league to submit for this challenge', 400);
     }
 
+    // For unique workout challenges: validate the selected workout entry
+    let uniqueWorkoutDate: string | null = null;
+    let uniqueWorkoutProofUrl: string | null = null;
+
+    if (isUniqueWorkout && workoutEntryId) {
+      // 1. Fetch the workout entry and verify it belongs to this player
+      const { data: entry, error: entryError } = await supabase
+        .from('effortentry')
+        .select('id, league_member_id, date, type, workout_type, status, proof_url')
+        .eq('id', workoutEntryId)
+        .maybeSingle();
+
+      if (entryError || !entry) {
+        return buildError('Workout entry not found', 404);
+      }
+
+      if (String(entry.league_member_id) !== String(membership.leagueMemberId)) {
+        return buildError('You can only select your own workouts', 403);
+      }
+
+      if (entry.type !== 'workout' || entry.status !== 'approved') {
+        return buildError('Only approved workout entries can be selected', 400);
+      }
+
+      // 2. Validate the workout date falls within the challenge period
+      const entryDate = String(entry.date).slice(0, 10);
+      if (challengeData.end_date && entryDate > String(challengeData.end_date)) {
+        return buildError('This workout is outside the challenge period', 400);
+      }
+      const challengeStart = (challenge as any)?.start_date;
+      if (challengeStart && entryDate < String(challengeStart)) {
+        return buildError('This workout is outside the challenge period', 400);
+      }
+
+      // 3. Check uniqueness: has this player EVER done this workout_type before in this league?
+      const { data: priorEntries, error: priorError } = await supabase
+        .from('effortentry')
+        .select('id, date')
+        .eq('league_member_id', membership.leagueMemberId)
+        .eq('workout_type', entry.workout_type)
+        .eq('type', 'workout')
+        .eq('status', 'approved')
+        .neq('id', workoutEntryId) // exclude this entry itself
+        .limit(1);
+
+      if (priorError) {
+        return buildError('Failed to validate workout uniqueness', 500);
+      }
+
+      if (priorEntries && priorEntries.length > 0) {
+        return buildError(
+          'This activity is not unique — you have done it before in this league. Pick an activity you have never done before.',
+          400
+        );
+      }
+
+      uniqueWorkoutDate = entryDate;
+      uniqueWorkoutProofUrl = entry.proof_url || null;
+    }
+
     // Build submission payload with team/subteam based on challenge type
     const submissionPayload: Record<string, any> = {
       league_challenge_id: challengeId,
       league_member_id: membership.leagueMemberId,
-      proof_url: proofUrl,
-      status: 'pending',
-      // Points are awarded by host/governor during review
-      awarded_points: null,
+      proof_url: isUniqueWorkout ? uniqueWorkoutProofUrl : proofUrl,
+      status: isUniqueWorkout ? 'approved' : 'pending',
+      awarded_points: isUniqueWorkout ? (Number(challengeData.total_points) || 1) : null,
+      workout_entry_id: isUniqueWorkout ? workoutEntryId : null,
+      submission_date: uniqueWorkoutDate,
       team_id: null,
       sub_team_id: null,
       reviewed_by: null,

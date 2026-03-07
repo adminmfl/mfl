@@ -145,6 +145,9 @@ export default function ConfigureChallengesPage({ params }: { params: Promise<{ 
         challengeType: 'individual' as Challenge['challenge_type'],
         totalPoints: '' as string | number,
         docUrl: '',
+        startDate: '',
+        endDate: '',
+        isUniqueWorkout: false,
     });
     const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
 
@@ -169,6 +172,7 @@ export default function ConfigureChallengesPage({ params }: { params: Promise<{ 
         totalPoints: '' as string | number,
         startDate: '',
         endDate: '',
+        isUniqueWorkout: false,
     });
 
     // View Proof dialog state
@@ -272,7 +276,7 @@ export default function ConfigureChallengesPage({ params }: { params: Promise<{ 
         const preset = presets.find((p) => p.id === selectedPresetId);
         if (preset) {
             setSelectedPreset(preset);
-            setActivateForm({ totalPoints: '', startDate: '', endDate: '' });
+            setActivateForm({ totalPoints: '', startDate: '', endDate: '', isUniqueWorkout: false });
             setActivateOpen(true);
         }
     };
@@ -290,6 +294,7 @@ export default function ConfigureChallengesPage({ params }: { params: Promise<{ 
                 docUrl: selectedPreset.doc_url || null,
                 templateId: selectedPreset.id,
                 isCustom: false,
+                isUniqueWorkout: activateForm.isUniqueWorkout,
                 status: 'active',
             };
 
@@ -343,7 +348,10 @@ export default function ConfigureChallengesPage({ params }: { params: Promise<{ 
                 challengeType: createForm.challengeType,
                 totalPoints: Number(createForm.totalPoints) || 0,
                 docUrl,
+                startDate: createForm.startDate || null,
+                endDate: createForm.endDate || null,
                 isCustom: true,
+                isUniqueWorkout: createForm.isUniqueWorkout,
             };
 
             const res = await fetch(`/api/leagues/${leagueId}/challenges`, {
@@ -360,7 +368,7 @@ export default function ConfigureChallengesPage({ params }: { params: Promise<{ 
             toast.success('Challenge created');
             setCreateOpen(false);
             setSelectedFile(null);
-            setCreateForm({ name: '', description: '', challengeType: 'individual', totalPoints: '', docUrl: '' });
+            setCreateForm({ name: '', description: '', challengeType: 'individual', totalPoints: '', docUrl: '', startDate: '', endDate: '', isUniqueWorkout: false });
             fetchChallenges();
         } catch (err) {
             toast.error(err instanceof Error ? err.message : 'Failed to create challenge');
@@ -1008,6 +1016,24 @@ export default function ConfigureChallengesPage({ params }: { params: Promise<{ 
                                 />
                             </div>
                         </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-2">
+                                <Label>Start Date</Label>
+                                <Input
+                                    type="date"
+                                    value={createForm.startDate}
+                                    onChange={(e) => setCreateForm((p) => ({ ...p, startDate: e.target.value }))}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>End Date</Label>
+                                <Input
+                                    type="date"
+                                    value={createForm.endDate}
+                                    onChange={(e) => setCreateForm((p) => ({ ...p, endDate: e.target.value }))}
+                                />
+                            </div>
+                        </div>
                         <div className="space-y-2">
                             <Label htmlFor="doc-upload">Rules Document (Optional)</Label>
                             <Input
@@ -1016,6 +1042,21 @@ export default function ConfigureChallengesPage({ params }: { params: Promise<{ 
                                 accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.webp"
                                 onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                             />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="checkbox"
+                                id="is-unique-workout"
+                                checked={createForm.isUniqueWorkout}
+                                onChange={(e) => setCreateForm((p) => ({ ...p, isUniqueWorkout: e.target.checked }))}
+                                className="size-4 rounded border-gray-300"
+                            />
+                            <Label htmlFor="is-unique-workout" className="text-sm font-normal cursor-pointer">
+                                Unique Workout Day challenge
+                                <span className="block text-xs text-muted-foreground">
+                                    Players pick a workout with an activity they've never done before. Auto-approved.
+                                </span>
+                            </Label>
                         </div>
                         <DialogFooter>
                             <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
@@ -1067,6 +1108,21 @@ export default function ConfigureChallengesPage({ params }: { params: Promise<{ 
                                         onChange={(e) => setActivateForm((p) => ({ ...p, endDate: e.target.value }))}
                                     />
                                 </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    id="activate-unique-workout"
+                                    checked={activateForm.isUniqueWorkout}
+                                    onChange={(e) => setActivateForm((p) => ({ ...p, isUniqueWorkout: e.target.checked }))}
+                                    className="size-4 rounded border-gray-300"
+                                />
+                                <Label htmlFor="activate-unique-workout" className="text-sm font-normal cursor-pointer">
+                                    Unique Workout Day challenge
+                                    <span className="block text-xs text-muted-foreground">
+                                        Players pick a workout with an activity they&apos;ve never done before. Auto-approved.
+                                    </span>
+                                </Label>
                             </div>
                         </div>
                     )}
