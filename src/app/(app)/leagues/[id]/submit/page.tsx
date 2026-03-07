@@ -158,6 +158,7 @@ export default function SubmitActivityPage({
     steps: '',
     holes: '',
     notes: '',
+    outcome: '',
   });
 
   // Submission type tab state
@@ -361,6 +362,7 @@ export default function SubmitActivityPage({
         steps: stepsParam || '',
         holes: holesParam || '',
         notes: notesParam || '',
+        outcome: '',
       });
 
       toast.info('Resubmitting rejected workout. Update as needed.');
@@ -805,17 +807,23 @@ export default function SubmitActivityPage({
       }
     }
 
-    if (!selectedFile && !overwrite && !resubmitId) {
-      // If overwriting and proof_url exists on previous entry, backend might allow skipping upload?
-      // Logic in backend: "if type=workout and !proof_url and !(canReplaceRejected && existing.proof_url)..."
-      // If we are overwriting an APPROVED entry, does backend require new proof?
-      // Check backend: "if (type === 'workout' && !proof_url && !(canReplaceRejected && existing?.proof_url))"
-      // It seems it allows reuse ONLY if canReplaceRejected.
-      // So if overwriting an APPROVED entry, we might need a new proof OR allow existing.
-      // Current backend logic seems to demand proof_url unless replacing rejected.
-      // Let's demand proof for now to be safe, unless user explicitly didn't change it?
-      // For now, simplify: Always require proof for new submissions.
+    // Proof validation: respect per-activity proof_requirement
+    const proofReq = selectedActivity?.proof_requirement ?? 'mandatory';
+    if (proofReq === 'mandatory' && !selectedFile && !overwrite && !resubmitId) {
       toast.error('Proof screenshot is required');
+      return;
+    }
+
+    // Notes validation: respect per-activity notes_requirement
+    const notesReq = selectedActivity?.notes_requirement ?? 'optional';
+    if (notesReq === 'mandatory' && !formData.notes.trim()) {
+      toast.error('Notes are required for this activity');
+      return;
+    }
+
+    // Outcome validation: required when activity has outcome_config
+    if (selectedActivity?.outcome_config && selectedActivity.outcome_config.length > 0 && !formData.outcome) {
+      toast.error('Please select an outcome');
       return;
     }
 
@@ -880,6 +888,11 @@ export default function SubmitActivityPage({
       // Add notes if provided
       if (formData.notes) {
         payload.notes = formData.notes;
+      }
+
+      // Add outcome if selected
+      if (formData.outcome) {
+        payload.outcome = formData.outcome;
       }
 
       // Add reupload_of if this is a resubmission
@@ -1115,6 +1128,7 @@ export default function SubmitActivityPage({
       steps: '',
       holes: '',
       notes: '',
+      outcome: '',
     });
     setSelectedFile(null);
     setImagePreview(null);
@@ -1315,9 +1329,12 @@ export default function SubmitActivityPage({
                 </div>
               </div>
 
-              {/* Photo Upload */}
+              {/* Photo Upload — hidden when proof_requirement is 'not_required' */}
+              {(selectedActivity?.proof_requirement ?? 'mandatory') !== 'not_required' && (
               <div className="space-y-2">
-                <Label htmlFor="proof-file">Upload Proof (Required for approval) *</Label>
+                <Label htmlFor="proof-file">
+                  Upload Proof{(selectedActivity?.proof_requirement ?? 'mandatory') === 'mandatory' ? ' *' : ' (Optional)'}
+                </Label>
                 <input
                   id="proof-file"
                   ref={fileInputRef}
@@ -1360,13 +1377,39 @@ export default function SubmitActivityPage({
                   </div>
                 )}
               </div>
+              )}
 
-              {/* Notes */}
+              {/* Outcome picker — shown when activity has outcome_config */}
+              {selectedActivity?.outcome_config && selectedActivity.outcome_config.length > 0 && (
               <div className="space-y-2">
-                <Label htmlFor="notes">Notes (Optional)</Label>
+                <Label>Outcome *</Label>
+                <Select
+                  value={formData.outcome || ''}
+                  onValueChange={(v) => setFormData((prev) => ({ ...prev, outcome: v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select outcome" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {selectedActivity.outcome_config.map((o) => (
+                      <SelectItem key={o.label} value={o.label}>
+                        {o.label} ({o.points} pt{o.points !== 1 ? 's' : ''})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              )}
+
+              {/* Notes — hidden when notes_requirement is 'not_required' */}
+              {(selectedActivity?.notes_requirement ?? 'optional') !== 'not_required' && (
+              <div className="space-y-2">
+                <Label htmlFor="notes">
+                  Notes{(selectedActivity?.notes_requirement) === 'mandatory' ? ' *' : ' (Optional)'}
+                </Label>
                 <Textarea
                   id="notes"
-                  placeholder="Share a quick note (optional)"
+                  placeholder={selectedActivity?.notes_requirement === 'mandatory' ? 'Notes are required for this activity' : 'Share a quick note (optional)'}
                   rows={2}
                   value={formData.notes}
                   onChange={(e) =>
@@ -1374,6 +1417,7 @@ export default function SubmitActivityPage({
                   }
                 />
               </div>
+              )}
 
               {/* Summary and Submit */}
               <div className="pt-4 border-t space-y-4">
@@ -1396,7 +1440,7 @@ export default function SubmitActivityPage({
                   <Button
                     type="submit"
                     className="flex-1"
-                    disabled={loading || uploadingImage || !formData.activity_type || !selectedFile}
+                    disabled={loading || uploadingImage || !formData.activity_type || ((selectedActivity?.proof_requirement ?? 'mandatory') === 'mandatory' && !selectedFile)}
                   >
                     {loading || uploadingImage ? (
                       <>

@@ -58,6 +58,9 @@ interface ActivityMinimumProps {
     max_value: number | null;
     age_group_overrides: Record<string, any>;
   };
+  proofRequirement?: 'not_required' | 'optional' | 'mandatory';
+  notesRequirement?: 'not_required' | 'optional' | 'mandatory';
+  pointsPerSession?: number;
   onMinimumChange?: (config: {
     activity_id: string;
     min_value: number | null;
@@ -66,6 +69,12 @@ interface ActivityMinimumProps {
   onFrequencyChange?: (activityId: string, frequency: string) => void;
   onFrequencyTypeChange?: (activityId: string, frequencyType: 'weekly' | 'monthly') => void;
   onFrequencyBlur?: (activityId: string) => void;
+  onActivityConfigChange?: (config: {
+    activity_id: string;
+    proof_requirement: 'not_required' | 'optional' | 'mandatory';
+    notes_requirement: 'not_required' | 'optional' | 'mandatory';
+    points_per_session: number;
+  }) => void;
 }
 
 export function ActivityMinimumDropdown({
@@ -77,13 +86,17 @@ export function ActivityMinimumDropdown({
   frequencyType,
   supportsFrequency = true,
   initialConfig,
+  proofRequirement = 'mandatory',
+  notesRequirement = 'optional',
+  pointsPerSession = 1,
   onMinimumChange,
   onFrequencyChange,
   onFrequencyTypeChange,
+  onActivityConfigChange,
 }: ActivityMinimumProps) {
   const unit = getUnitLabel(measurementType);
   const [isExpanded, setIsExpanded] = useState(false);
-  
+
   const [baseMin, setBaseMin] = useState<number | null>(initialConfig?.min_value ?? null);
   const [ageOverrides, setAgeOverrides] = useState<AgeOverride[]>(
     parseAgeOverrides(initialConfig?.age_group_overrides || {})
@@ -94,6 +107,9 @@ export function ActivityMinimumDropdown({
   const [frequencyTypeDraft, setFrequencyTypeDraft] = useState<'weekly' | 'monthly'>(
     frequencyType ?? 'weekly'
   );
+  const [proofDraft, setProofDraft] = useState<'not_required' | 'optional' | 'mandatory'>(proofRequirement);
+  const [notesDraft, setNotesDraft] = useState<'not_required' | 'optional' | 'mandatory'>(notesRequirement);
+  const [pointsDraft, setPointsDraft] = useState<number>(pointsPerSession);
 
   // Sync state with initialConfig when it changes
   useEffect(() => {
@@ -111,6 +127,10 @@ export function ActivityMinimumDropdown({
   useEffect(() => {
     setFrequencyTypeDraft(frequencyType ?? 'weekly');
   }, [frequencyType]);
+
+  useEffect(() => { setProofDraft(proofRequirement); }, [proofRequirement]);
+  useEffect(() => { setNotesDraft(notesRequirement); }, [notesRequirement]);
+  useEffect(() => { setPointsDraft(pointsPerSession); }, [pointsPerSession]);
 
   useEffect(() => {
     if (frequencyDraft === '') return;
@@ -190,6 +210,14 @@ export function ActivityMinimumDropdown({
         activity_id: activityId,
         min_value: baseMin,
         age_group_overrides: buildAgeGroupOverrides(),
+      });
+    }
+    if (onActivityConfigChange) {
+      onActivityConfigChange({
+        activity_id: activityId,
+        proof_requirement: proofDraft,
+        notes_requirement: notesDraft,
+        points_per_session: pointsDraft,
       });
     }
     setIsExpanded(false);
@@ -380,6 +408,50 @@ export function ActivityMinimumDropdown({
                 ))}
               </div>
             )}
+          </div>
+
+          {/* Proof, Notes & Points */}
+          <div className="space-y-2 border-t pt-3">
+            <h4 className="text-xs font-semibold">Submission Settings</h4>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-[10px] text-muted-foreground uppercase">Proof</Label>
+                <Select value={proofDraft} onValueChange={(v) => setProofDraft(v as any)}>
+                  <SelectTrigger className="h-7 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="mandatory">Required</SelectItem>
+                    <SelectItem value="optional">Optional</SelectItem>
+                    <SelectItem value="not_required">Not needed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-[10px] text-muted-foreground uppercase">Notes</Label>
+                <Select value={notesDraft} onValueChange={(v) => setNotesDraft(v as any)}>
+                  <SelectTrigger className="h-7 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="mandatory">Required</SelectItem>
+                    <SelectItem value="optional">Optional</SelectItem>
+                    <SelectItem value="not_required">Not needed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <Label className="text-[10px] text-muted-foreground uppercase">Points per session</Label>
+              <Input
+                type="number"
+                min={0}
+                step={0.5}
+                className="h-7 text-xs"
+                value={pointsDraft}
+                onChange={(e) => setPointsDraft(e.target.value === '' ? 0 : Number(e.target.value))}
+              />
+            </div>
           </div>
 
           {/* Save button */}
