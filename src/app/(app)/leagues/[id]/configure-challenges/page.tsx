@@ -49,6 +49,7 @@ type Challenge = {
     end_date: string | null;
     doc_url: string | null;
     is_custom: boolean;
+    is_unique_workout?: boolean;
     template_id: string | null;
     pricing_id?: string | null;
     stats: { pending: number; approved: number; rejected: number } | null;
@@ -163,6 +164,7 @@ export default function ConfigureChallengesPage({ params }: { params: Promise<{ 
         docUrl: '',
         startDate: '',
         endDate: '',
+        isUniqueWorkout: false,
     });
 
     // Activate preset dialog state
@@ -386,6 +388,7 @@ export default function ConfigureChallengesPage({ params }: { params: Promise<{ 
             docUrl: challenge.doc_url || '',
             startDate: challenge.start_date ? challenge.start_date.split('T')[0] : '',
             endDate: challenge.end_date ? challenge.end_date.split('T')[0] : '',
+            isUniqueWorkout: !!challenge.is_unique_workout,
         });
         setSelectedFile(null);
         setEditOpen(true);
@@ -421,6 +424,7 @@ export default function ConfigureChallengesPage({ params }: { params: Promise<{ 
                 docUrl,
                 startDate: editForm.startDate || null,
                 endDate: editForm.endDate || null,
+                isUniqueWorkout: editForm.isUniqueWorkout,
             };
 
             const res = await fetch(`/api/leagues/${leagueId}/challenges/${editChallenge.id}`, {
@@ -1489,6 +1493,20 @@ export default function ConfigureChallengesPage({ params }: { params: Promise<{ 
                                 onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                             />
                         </div>
+                        {editForm.challengeType === 'individual' && (
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    id="edit-unique-workout"
+                                    checked={editForm.isUniqueWorkout}
+                                    onChange={(e) => setEditForm((p) => ({ ...p, isUniqueWorkout: e.target.checked }))}
+                                    className="size-4 rounded border-gray-300"
+                                />
+                                <Label htmlFor="edit-unique-workout" className="text-sm font-normal cursor-pointer">
+                                    Unique Workout Challenge (players link a workout entry instead of uploading proof)
+                                </Label>
+                            </div>
+                        )}
                         <DialogFooter>
                             <Button type="button" variant="outline" onClick={() => setEditOpen(false)} disabled={editLoading}>Cancel</Button>
                             <Button type="submit" disabled={editLoading}>

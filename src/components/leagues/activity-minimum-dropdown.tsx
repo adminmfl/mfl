@@ -61,6 +61,7 @@ interface ActivityMinimumProps {
   proofRequirement?: 'not_required' | 'optional' | 'mandatory';
   notesRequirement?: 'not_required' | 'optional' | 'mandatory';
   pointsPerSession?: number;
+  outcomeConfig?: { label: string; points: number }[] | null;
   onMinimumChange?: (config: {
     activity_id: string;
     min_value: number | null;
@@ -74,6 +75,7 @@ interface ActivityMinimumProps {
     proof_requirement: 'not_required' | 'optional' | 'mandatory';
     notes_requirement: 'not_required' | 'optional' | 'mandatory';
     points_per_session: number;
+    outcome_config?: { label: string; points: number }[] | null;
   }) => void;
 }
 
@@ -89,6 +91,7 @@ export function ActivityMinimumDropdown({
   proofRequirement = 'mandatory',
   notesRequirement = 'optional',
   pointsPerSession = 1,
+  outcomeConfig,
   onMinimumChange,
   onFrequencyChange,
   onFrequencyTypeChange,
@@ -110,6 +113,9 @@ export function ActivityMinimumDropdown({
   const [proofDraft, setProofDraft] = useState<'not_required' | 'optional' | 'mandatory'>(proofRequirement);
   const [notesDraft, setNotesDraft] = useState<'not_required' | 'optional' | 'mandatory'>(notesRequirement);
   const [pointsDraft, setPointsDraft] = useState<number>(pointsPerSession);
+  const [outcomeDraft, setOutcomeDraft] = useState<{ label: string; points: number }[]>(
+    outcomeConfig && outcomeConfig.length > 0 ? outcomeConfig : []
+  );
 
   // Sync state with initialConfig when it changes
   useEffect(() => {
@@ -131,6 +137,9 @@ export function ActivityMinimumDropdown({
   useEffect(() => { setProofDraft(proofRequirement); }, [proofRequirement]);
   useEffect(() => { setNotesDraft(notesRequirement); }, [notesRequirement]);
   useEffect(() => { setPointsDraft(pointsPerSession); }, [pointsPerSession]);
+  useEffect(() => {
+    setOutcomeDraft(outcomeConfig && outcomeConfig.length > 0 ? outcomeConfig : []);
+  }, [outcomeConfig]);
 
   useEffect(() => {
     if (frequencyDraft === '') return;
@@ -218,6 +227,7 @@ export function ActivityMinimumDropdown({
         proof_requirement: proofDraft,
         notes_requirement: notesDraft,
         points_per_session: pointsDraft,
+        outcome_config: outcomeDraft.length > 0 ? outcomeDraft.filter(o => o.label.trim()) : null,
       });
     }
     setIsExpanded(false);
@@ -452,6 +462,68 @@ export function ActivityMinimumDropdown({
                 onChange={(e) => setPointsDraft(e.target.value === '' ? 0 : Number(e.target.value))}
               />
             </div>
+          </div>
+
+          {/* Multi-Outcome */}
+          <div className="space-y-2 border-t pt-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-semibold">Outcome Options</h4>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setOutcomeDraft((prev) => [...prev, { label: '', points: 1 }])}
+                className="h-6 px-2 text-xs gap-1"
+              >
+                <Plus className="size-3" />
+                Add
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Add outcomes like Win/Loss/Draw with different point values. Leave empty for single-outcome activities.
+            </p>
+            {outcomeDraft.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                No outcomes configured. Default points per session applies.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {outcomeDraft.map((outcome, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <Input
+                      placeholder="e.g. Win"
+                      value={outcome.label}
+                      onChange={(e) => {
+                        setOutcomeDraft((prev) =>
+                          prev.map((o, i) => (i === idx ? { ...o, label: e.target.value } : o))
+                        );
+                      }}
+                      className="h-7 text-xs flex-1"
+                    />
+                    <Input
+                      type="number"
+                      min={0}
+                      step={0.5}
+                      value={outcome.points}
+                      onChange={(e) => {
+                        setOutcomeDraft((prev) =>
+                          prev.map((o, i) => (i === idx ? { ...o, points: e.target.value === '' ? 0 : Number(e.target.value) } : o))
+                        );
+                      }}
+                      className="h-7 text-xs w-16"
+                    />
+                    <span className="text-[10px] text-muted-foreground">pts</span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setOutcomeDraft((prev) => prev.filter((_, i) => i !== idx))}
+                      className="h-6 w-6 p-0"
+                    >
+                      <Trash2 className="size-3 text-red-600" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Save button */}

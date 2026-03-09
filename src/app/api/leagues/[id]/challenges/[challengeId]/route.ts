@@ -174,7 +174,8 @@ export async function PATCH(
       totalPoints,
       docUrl,
       startDate,
-      endDate
+      endDate,
+      isUniqueWorkout,
     } = body;
 
     const updates: Record<string, any> = {};
@@ -184,6 +185,7 @@ export async function PATCH(
     if (challengeType !== undefined) updates.challenge_type = challengeType;
     if (totalPoints !== undefined) updates.total_points = totalPoints;
     if (docUrl !== undefined) updates.doc_url = docUrl;
+    if (isUniqueWorkout !== undefined) updates.is_unique_workout = !!isUniqueWorkout;
 
     // Handle dates and status derivation if dates are provided
     if (startDate !== undefined) updates.start_date = startDate;
