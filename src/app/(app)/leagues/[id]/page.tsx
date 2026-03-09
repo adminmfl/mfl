@@ -534,14 +534,22 @@ export default function LeagueDashboardPage({
           const approvedSubs = subs.filter((s) => isApproved(s));
           console.log('[MySummary] Approved submissions:', approvedSubs);
 
-          // User-facing definitions for the dashboard:
-          // - Points: approved workouts count (1 point per approved workout)
-          // - Avg RR: total approved RR divided by the number of approved workout-days (points)
-          // BACKEND PARITY: All approved entries (workouts + rest) count as 1 point.
-          points = approvedSubs.length;
-          restUsed = approvedSubs.filter((s) => String(s.type).toLowerCase() === 'rest').length;
+          // Deduplicate: only one approved entry per date counts (matches leaderboard logic).
+          // If multiple approved entries exist on the same date (e.g. reupload), keep the one with RR.
+          const uniqueByDate = new Map<string, (typeof approvedSubs)[number]>();
+          approvedSubs.forEach((s) => {
+            const dateKey = String(s.date).slice(0, 10);
+            const existing = uniqueByDate.get(dateKey);
+            if (!existing || (!existing.rr_value && s.rr_value)) {
+              uniqueByDate.set(dateKey, s);
+            }
+          });
+          const dedupedApproved = Array.from(uniqueByDate.values());
 
-          const totalRR = approvedSubs
+          points = dedupedApproved.length;
+          restUsed = dedupedApproved.filter((s) => String(s.type).toLowerCase() === 'rest').length;
+
+          const totalRR = dedupedApproved
             .map((s) => {
               // User Rule: Rest days give 1 RR
               if (String(s.type).toLowerCase() === 'rest') return 1;
@@ -1415,8 +1423,8 @@ export default function LeagueDashboardPage({
             </div>
           )}
 
-          {/* Key stats */}
-          <div className="grid grid-cols-2 md:grid-cols-3 divide-x divide-y md:divide-y-0">
+          {/* Key stats — mobile: 3 rows × 2 cols, tablet/desktop: 2 rows × 3 cols */}
+          <div className="grid grid-cols-2 md:grid-cols-3 divide-x border-b">
             <div className="p-4 flex flex-col items-center text-center">
               <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
                 <Calendar className="size-5 text-primary" />
@@ -1424,43 +1432,40 @@ export default function LeagueDashboardPage({
               <p className="text-sm font-bold text-primary tabular-nums">{formatDate(league.start_date)}</p>
               <p className="text-xs text-muted-foreground">Start Date</p>
             </div>
-            <div className="p-4 flex flex-col items-center text-center">
+            <div className="p-4 flex flex-col items-center text-center border-b md:border-b-0">
               <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
                 <Calendar className="size-5 text-primary" />
               </div>
               <p className="text-sm font-bold text-primary tabular-nums">{formatDate(league.end_date)}</p>
               <p className="text-xs text-muted-foreground">End Date</p>
             </div>
-            <div className="p-4 flex flex-col items-center text-center">
+            <div className="p-4 flex flex-col items-center text-center border-b md:border-b-0">
               <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
                 <Timer className="size-5 text-primary" />
               </div>
               <p className="text-2xl font-bold tabular-nums">{totalDays}</p>
               <p className="text-xs text-muted-foreground">Days Total</p>
             </div>
-          </div>
-
-          <div className="grid grid-cols-3 divide-x border-t">
-            <div className="p-4 flex flex-col items-center text-center">
+            <div className="p-4 flex flex-col items-center text-center md:border-t">
+              <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
+                <Moon className="size-5 text-primary" />
+              </div>
+              <p className="text-2xl font-bold tabular-nums">{league.rest_days}</p>
+              <p className="text-xs text-muted-foreground">Rest Days</p>
+            </div>
+            <div className="p-4 flex flex-col items-center text-center border-t">
               <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
                 <Users className="size-5 text-primary" />
               </div>
               <p className="text-2xl font-bold tabular-nums">{league.member_count ?? 0}</p>
               <p className="text-xs text-muted-foreground">Players</p>
             </div>
-            <div className="p-4 flex flex-col items-center text-center">
+            <div className="p-4 flex flex-col items-center text-center border-t">
               <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
                 <Shield className="size-5 text-primary" />
               </div>
               <p className="text-2xl font-bold tabular-nums">{league.num_teams || 0}</p>
               <p className="text-xs text-muted-foreground">Teams</p>
-            </div>
-            <div className="p-4 flex flex-col items-center text-center">
-              <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
-                <Moon className="size-5 text-primary" />
-              </div>
-              <p className="text-2xl font-bold tabular-nums">{league.rest_days}</p>
-              <p className="text-xs text-muted-foreground">Rest Days</p>
             </div>
           </div>
 

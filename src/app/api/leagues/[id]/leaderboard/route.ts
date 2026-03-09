@@ -277,38 +277,64 @@ export async function GET(
     // =========================================================================
     // Get all effort entries within date range
     // =========================================================================
-    let entriesQuery = supabase
-      .from('effortentry')
-      .select('id, league_member_id, date, type, workout_type, outcome, rr_value, status')
-      .in('league_member_id', memberIds);
+    // Supabase JS client defaults to 1000 rows. For leagues with many members
+    // this can silently truncate results, causing incorrect point totals.
+    // We paginate in chunks of 1000 to fetch ALL entries.
+    const PAGE_SIZE = 1000;
+    let entries: any[] = [];
+    let entriesError: any = null;
 
-    // Apply start bound:
-    // 1. If user provided a startDate in params, use that.
-    // 2. Otherwise (default view), use league.start_date to EXCLUDE trial submissions (dates < start_date).
-    if (startDate) {
-      entriesQuery = entriesQuery.gte('date', startDate);
-    } else {
-      // DEFAULT: Filter out entries before league start date
-      entriesQuery = entriesQuery.gte('date', league.start_date);
+    {
+      let page = 0;
+      let hasMore = true;
+      while (hasMore) {
+        let entriesQuery = supabase
+          .from('effortentry')
+          .select('id, league_member_id, date, type, workout_type, outcome, rr_value, status')
+          .in('league_member_id', memberIds);
+
+        if (startDate) {
+          entriesQuery = entriesQuery.gte('date', startDate);
+        } else {
+          entriesQuery = entriesQuery.gte('date', league.start_date);
+        }
+
+        entriesQuery = entriesQuery
+          .lte('date', effectiveEndDate)
+          .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+
+        const { data, error } = await entriesQuery;
+        if (error) {
+          entriesError = error;
+          break;
+        }
+        entries = entries.concat(data || []);
+        hasMore = (data?.length || 0) === PAGE_SIZE;
+        page++;
+      }
     }
-
-    // Always apply the delayed end bound.
-    entriesQuery = entriesQuery.lte('date', effectiveEndDate);
-
-    let { data: entries, error: entriesError } = await entriesQuery;
 
     // Fallback if 'outcome' or 'workout_type' columns don't exist yet
     if (entriesError && typeof entriesError?.message === 'string' && entriesError.message.toLowerCase().includes('column')) {
-      const fallbackQuery = supabase
-        .from('effortentry')
-        .select('id, league_member_id, date, type, rr_value, status')
-        .in('league_member_id', memberIds);
-      if (startDate) fallbackQuery.gte('date', startDate);
-      else fallbackQuery.gte('date', league.start_date);
-      fallbackQuery.lte('date', effectiveEndDate);
-      const fallback = await fallbackQuery;
-      entries = fallback.data;
-      entriesError = fallback.error;
+      entries = [];
+      entriesError = null;
+      let page = 0;
+      let hasMore = true;
+      while (hasMore) {
+        const fallbackQuery = supabase
+          .from('effortentry')
+          .select('id, league_member_id, date, type, rr_value, status')
+          .in('league_member_id', memberIds);
+        if (startDate) fallbackQuery.gte('date', startDate);
+        else fallbackQuery.gte('date', league.start_date);
+        fallbackQuery.lte('date', effectiveEndDate);
+        fallbackQuery.range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+        const fallback = await fallbackQuery;
+        if (fallback.error) { entriesError = fallback.error; break; }
+        entries = entries.concat(fallback.data || []);
+        hasMore = (fallback.data?.length || 0) === PAGE_SIZE;
+        page++;
+      }
     }
 
     if (entriesError) {
