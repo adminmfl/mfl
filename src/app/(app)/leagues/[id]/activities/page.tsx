@@ -332,7 +332,7 @@ export default function LeagueActivitiesPage({
     }
   };
 
-  const handleActivityConfigChange = (config: { activity_id: string; proof_requirement: 'not_required' | 'optional' | 'mandatory'; notes_requirement: 'not_required' | 'optional' | 'mandatory'; points_per_session: number }) => {
+  const handleActivityConfigChange = (config: { activity_id: string; proof_requirement: 'not_required' | 'optional' | 'mandatory'; notes_requirement: 'not_required' | 'optional' | 'mandatory'; points_per_session: number; outcome_config?: { label: string; points: number }[] | null }) => {
     setPendingChanges((prev) => {
       const next = new Map(prev);
       const change = next.get(config.activity_id) || {};
@@ -341,6 +341,7 @@ export default function LeagueActivitiesPage({
         proof_requirement: config.proof_requirement,
         notes_requirement: config.notes_requirement,
         points_per_session: config.points_per_session,
+        outcome_config: config.outcome_config,
       });
       return next;
     });
@@ -375,11 +376,13 @@ export default function LeagueActivitiesPage({
         // But different activities can run in parallel.
         const activityPromise = (async (): Promise<{ ok: boolean }> => {
           const results: boolean[] = [];
+          const activityInfo = data?.allActivities?.find((a) => a.activity_id === activityId);
+          const isCustom = !!activityInfo?.is_custom;
 
           if (change.enabled !== undefined) {
             const success = change.enabled
-              ? await addActivities([activityId])
-              : await removeActivity(activityId);
+              ? await addActivities([activityId], isCustom)
+              : await removeActivity(activityId, isCustom);
             results.push(success);
             if (change.enabled === false) return { ok: results.every(Boolean) };
           }
@@ -825,6 +828,7 @@ export default function LeagueActivitiesPage({
                               proofRequirement={enabledActivityMap.get(activity.activity_id)?.proof_requirement ?? 'mandatory'}
                               notesRequirement={enabledActivityMap.get(activity.activity_id)?.notes_requirement ?? 'optional'}
                               pointsPerSession={enabledActivityMap.get(activity.activity_id)?.points_per_session ?? 1}
+                              outcomeConfig={enabledActivityMap.get(activity.activity_id)?.outcome_config ?? null}
                               onActivityConfigChange={handleActivityConfigChange}
                             />
                           </div>
