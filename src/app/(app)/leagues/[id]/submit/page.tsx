@@ -1645,11 +1645,9 @@ export default function SubmitActivityPage({
                   <span className="font-medium">{confirmActivityLabel}</span>
                 </div>
 
-                <div>
-                  <span className="text-muted-foreground block text-xs">Measurement</span>
-                  {confirmMeasurementType === 'none' ? (
-                    <span className="font-medium">None required</span>
-                  ) : confirmMetrics.length > 0 ? (
+                {confirmMeasurementType !== 'none' && confirmMetrics.length > 0 && (
+                  <div>
+                    <span className="text-muted-foreground block text-xs">Measurement</span>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-1">
                       {confirmMetrics.map((metric) => (
                         <div key={metric.label}>
@@ -1658,29 +1656,33 @@ export default function SubmitActivityPage({
                         </div>
                       ))}
                     </div>
-                  ) : (
-                    <span className="font-medium">Not provided</span>
-                  )}
-                </div>
+                  </div>
+                )}
 
-                <div>
-                  <span className="text-muted-foreground block text-xs">Notes</span>
-                  <span className="font-medium">{confirmNotes}</span>
-                </div>
+                {(selectedActivity?.notes_requirement ?? 'optional') !== 'not_required' && confirmNotes !== '—' && (
+                  <div>
+                    <span className="text-muted-foreground block text-xs">Notes</span>
+                    <span className="font-medium">{confirmNotes}</span>
+                  </div>
+                )}
 
-                <div>
-                  <span className="text-muted-foreground block text-xs">Upload Proof (Required for approval)</span>
-                  {imagePreview ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={imagePreview}
-                      alt="Proof screenshot preview"
-                      className="mt-2 h-28 w-full rounded-md border object-contain bg-muted"
-                    />
-                  ) : (
-                    <span className="font-medium">{confirmProof}</span>
-                  )}
-                </div>
+                {(selectedActivity?.proof_requirement ?? 'mandatory') !== 'not_required' && (
+                  <div>
+                    <span className="text-muted-foreground block text-xs">
+                      Upload Proof{(selectedActivity?.proof_requirement ?? 'mandatory') === 'mandatory' ? ' (Required)' : ' (Optional)'}
+                    </span>
+                    {imagePreview ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={imagePreview}
+                        alt="Proof screenshot preview"
+                        className="mt-2 h-28 w-full rounded-md border object-contain bg-muted"
+                      />
+                    ) : (
+                      <span className="font-medium">{confirmProof}</span>
+                    )}
+                  </div>
+                )}
 
                 <div>
                   <span className="text-muted-foreground block text-xs">Estimated RR</span>

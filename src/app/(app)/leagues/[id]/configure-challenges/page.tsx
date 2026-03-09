@@ -1043,6 +1043,7 @@ export default function ConfigureChallengesPage({ params }: { params: Promise<{ 
                                 onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                             />
                         </div>
+                        {createForm.challengeType === 'individual' && (
                         <div className="flex items-center gap-2">
                             <input
                                 type="checkbox"
@@ -1058,6 +1059,7 @@ export default function ConfigureChallengesPage({ params }: { params: Promise<{ 
                                 </span>
                             </Label>
                         </div>
+                        )}
                         <DialogFooter>
                             <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
                             <Button type="submit">Save</Button>
@@ -1109,6 +1111,7 @@ export default function ConfigureChallengesPage({ params }: { params: Promise<{ 
                                     />
                                 </div>
                             </div>
+                            {selectedPreset?.challenge_type === 'individual' && (
                             <div className="flex items-center gap-2">
                                 <input
                                     type="checkbox"
@@ -1124,6 +1127,7 @@ export default function ConfigureChallengesPage({ params }: { params: Promise<{ 
                                     </span>
                                 </Label>
                             </div>
+                            )}
                         </div>
                     )}
                     <DialogFooter>
