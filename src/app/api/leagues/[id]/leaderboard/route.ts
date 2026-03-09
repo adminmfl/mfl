@@ -547,17 +547,14 @@ export async function GET(
           teamChallengePoints.set(teamKey, teamCurrent + internalContribution);
         }
       } else if (challenge.challenge_type === 'individual') {
-        // Individual challenges: Points count for the individual AND their team
-        // Challenge points are added immediately without 2-day delay
-        // Aggregate individual challenge points to team through member's team membership
+        // Individual challenges: Each player earns their awarded_points independently.
+        // Team score = sum of all members' individual challenge points (no per-member cap).
+        // Challenge points are added immediately without 2-day delay.
         const memberInfo = memberToUser.get(sub.league_member_id as string);
         if (memberInfo?.team_id && validTeamIds.has(memberInfo.team_id)) {
-          const size = Math.max(1, teamSizes.get(memberInfo.team_id) || 1);
-          const internalCap = size > 0 ? Number(challenge.total_points || 0) / size : points;
-          const internalContribution = Math.min(points, internalCap);
           const teamKey = memberInfo.team_id;
           const teamCurrent = teamChallengePoints.get(teamKey) || 0;
-          teamChallengePoints.set(teamKey, teamCurrent + internalContribution);
+          teamChallengePoints.set(teamKey, teamCurrent + points);
         }
       }
     });
