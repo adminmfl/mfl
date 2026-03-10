@@ -85,6 +85,13 @@ export async function POST(req: NextRequest) {
       legacyTimezoneOffset: typeof timezone_offset === 'number' && Number.isFinite(timezone_offset) ? timezone_offset : null,
     });
 
+    // Calculate yesterday in user's local timezone for allowing yesterday submissions
+    const yesterdayYmd = (() => {
+      const d = new Date(todayYmd + 'T00:00:00');
+      d.setDate(d.getDate() - 1);
+      return d.toISOString().split('T')[0];
+    })();
+
     // Block submissions entirely if the league has completed
     const { data: leagueRow, error: leagueRowError } = await supabase
       .from('leagues')
@@ -129,12 +136,12 @@ export async function POST(req: NextRequest) {
       // Exception: Allow submitting for League End Date if within grace period
       // If the submission is for the league end date, and we are within the grace period (checked above), it's allowed.
       // We only throw the "today only" error if it's NOT a reupload AND NOT a valid late submission for end date.
-      if (!reupload_of && normalizedDate !== todayYmd) {
+      if (!reupload_of && normalizedDate !== todayYmd && normalizedDate !== yesterdayYmd) {
         const isValidLateSubmission = normalizedDate === dateStr; // dateStr is leagueEnd (YYYY-MM-DD)
 
         if (!isValidLateSubmission) {
           return NextResponse.json(
-            { error: 'You can only submit for today. Use the resubmit flow for rejected entries.' },
+            { error: 'You can only submit for today or yesterday.' },
             { status: 400 }
           );
         }
@@ -151,9 +158,9 @@ export async function POST(req: NextRequest) {
       }
     } else {
       // No league end date, standard check
-      if (!reupload_of && normalizedDate !== todayYmd) {
+      if (!reupload_of && normalizedDate !== todayYmd && normalizedDate !== yesterdayYmd) {
         return NextResponse.json(
-          { error: 'You can only submit for today. Use the resubmit flow for rejected entries.' },
+          { error: 'You can only submit for today or yesterday.' },
           { status: 400 }
         );
       }
@@ -314,7 +321,8 @@ export async function POST(req: NextRequest) {
       if (original.league_member_id !== membership.league_member_id) {
         return NextResponse.json({ error: 'You can only resubmit your own rejected submissions' }, { status: 403 });
       }
-      if (original.status !== 'rejected') {
+      const resubmittableStatuses = ['rejected', 'rejected_resubmit'];
+      if (!resubmittableStatuses.includes(original.status)) {
         return NextResponse.json({ error: 'Only rejected submissions can be resubmitted' }, { status: 400 });
       }
 
