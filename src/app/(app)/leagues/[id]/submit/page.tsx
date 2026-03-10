@@ -841,8 +841,36 @@ export default function SubmitActivityPage({
       let proofUrl: string | null = null;
       if (selectedFile) {
         setUploadingImage(true);
+
+        // Compress image client-side if it's too large (> 3MB) to avoid Vercel's body size limit
+        let fileToUpload: File | Blob = selectedFile;
+        if (selectedFile.size > 3 * 1024 * 1024 && selectedFile.type.startsWith('image/')) {
+          try {
+            const bitmap = await createImageBitmap(selectedFile);
+            const canvas = document.createElement('canvas');
+            // Scale down if very large
+            const maxDim = 1920;
+            let { width, height } = bitmap;
+            if (width > maxDim || height > maxDim) {
+              const scale = maxDim / Math.max(width, height);
+              width = Math.round(width * scale);
+              height = Math.round(height * scale);
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx?.drawImage(bitmap, 0, 0, width, height);
+            const blob = await new Promise<Blob>((resolve) =>
+              canvas.toBlob((b) => resolve(b || selectedFile), 'image/jpeg', 0.8)
+            );
+            fileToUpload = blob;
+          } catch {
+            // If compression fails, try with original file
+          }
+        }
+
         const uploadFormData = new FormData();
-        uploadFormData.append('file', selectedFile);
+        uploadFormData.append('file', fileToUpload, selectedFile.name);
         uploadFormData.append('league_id', leagueId);
 
         const uploadResponse = await fetch('/api/upload/proof', {
@@ -850,7 +878,15 @@ export default function SubmitActivityPage({
           body: uploadFormData,
         });
 
-        const uploadResult = await uploadResponse.json();
+        // Handle non-JSON responses (e.g. Vercel's "Request Entity Too Large")
+        let uploadResult: any;
+        const contentType = uploadResponse.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          uploadResult = await uploadResponse.json();
+        } else {
+          const text = await uploadResponse.text();
+          throw new Error(text.includes('Entity Too Large') ? 'Image is too large. Please use a smaller image.' : text || 'Upload failed');
+        }
 
         if (!uploadResponse.ok) {
           throw new Error(uploadResult.error || 'Failed to upload proof image');
@@ -906,7 +942,15 @@ export default function SubmitActivityPage({
         body: JSON.stringify(payload),
       });
 
-      const result = await response.json();
+      // Handle non-JSON responses gracefully
+      let result: any;
+      const ct = response.headers.get('content-type') || '';
+      if (ct.includes('application/json')) {
+        result = await response.json();
+      } else {
+        const text = await response.text();
+        throw new Error(text || 'Submission failed');
+      }
 
       if (!response.ok) {
         if (response.status === 409 && result.existing) {
@@ -979,7 +1023,15 @@ export default function SubmitActivityPage({
         body: JSON.stringify(payload),
       });
 
-      const result = await response.json();
+      // Handle non-JSON responses gracefully
+      let result: any;
+      const ctRest = response.headers.get('content-type') || '';
+      if (ctRest.includes('application/json')) {
+        result = await response.json();
+      } else {
+        const text = await response.text();
+        throw new Error(text || 'Submission failed');
+      }
 
       if (!response.ok) {
         throw new Error(result.error || 'Failed to submit rest day');
@@ -1325,7 +1377,20 @@ export default function SubmitActivityPage({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Activity Date</Label>
-                  <p className="text-xs text-muted-foreground">Today ({format(today, 'MMM d, yyyy')})</p>
+                  <Select
+                    value={isTodaySelected ? 'today' : 'yesterday'}
+                    onValueChange={(value) =>
+                      setActivityDate(value === 'today' ? today : yesterday)
+                    }
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="today">Today ({format(today, 'MMM d, yyyy')})</SelectItem>
+                      <SelectItem value="yesterday">Yesterday ({format(yesterday, 'MMM d, yyyy')})</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
