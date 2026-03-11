@@ -97,7 +97,7 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { activity_id, frequency, frequency_type, proof_requirement, notes_requirement, points_per_session, outcome_config } = body as {
+    const { activity_id, frequency, frequency_type, proof_requirement, notes_requirement, points_per_session, outcome_config, max_images, custom_field_label } = body as {
       activity_id?: string;
       frequency?: number | null;
       frequency_type?: 'weekly' | 'monthly' | null;
@@ -105,6 +105,8 @@ export async function PATCH(
       notes_requirement?: 'not_required' | 'optional' | 'mandatory';
       points_per_session?: number;
       outcome_config?: { label: string; points: number }[] | null;
+      max_images?: number;
+      custom_field_label?: string | null;
     };
 
     if (!activity_id) {
@@ -120,8 +122,10 @@ export async function PATCH(
     const hasNotesRequirement = Object.prototype.hasOwnProperty.call(body, 'notes_requirement');
     const hasPointsPerSession = Object.prototype.hasOwnProperty.call(body, 'points_per_session');
     const hasOutcomeConfig = Object.prototype.hasOwnProperty.call(body, 'outcome_config');
+    const hasMaxImages = Object.prototype.hasOwnProperty.call(body, 'max_images');
+    const hasCustomFieldLabel = Object.prototype.hasOwnProperty.call(body, 'custom_field_label');
 
-    if (!hasFrequency && !hasFrequencyType && !hasProofRequirement && !hasNotesRequirement && !hasPointsPerSession && !hasOutcomeConfig) {
+    if (!hasFrequency && !hasFrequencyType && !hasProofRequirement && !hasNotesRequirement && !hasPointsPerSession && !hasOutcomeConfig && !hasMaxImages && !hasCustomFieldLabel) {
       return NextResponse.json(
         { error: 'At least one field to update is required' },
         { status: 400 }
@@ -262,6 +266,23 @@ export async function PATCH(
           { status: 400 }
         );
       }
+    }
+
+    // Handle max_images
+    if (hasMaxImages) {
+      const imgs = Number(max_images);
+      if (!Number.isFinite(imgs) || imgs < 1 || imgs > 5) {
+        return NextResponse.json(
+          { error: 'max_images must be between 1 and 5' },
+          { status: 400 }
+        );
+      }
+      updatePayload.max_images = imgs;
+    }
+
+    // Handle custom_field_label
+    if (hasCustomFieldLabel) {
+      updatePayload.custom_field_label = custom_field_label ? String(custom_field_label).trim() : null;
     }
 
     const { data: updated, error: updateError } = await supabase
@@ -554,6 +575,8 @@ export async function GET(
             notes_requirement: (la as any).notes_requirement ?? 'optional',
             points_per_session: (la as any).points_per_session ?? 1,
             outcome_config: (la as any).outcome_config ?? null,
+            max_images: (la as any).max_images ?? 1,
+            custom_field_label: (la as any).custom_field_label ?? null,
           };
         }
 

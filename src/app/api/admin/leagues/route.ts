@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
       num_teams: num_teams || 4,
       tier_id: tier_id || undefined,
       rest_days: rest_days || 1,
-      auto_rest_day_enabled: auto_rest_day_enabled ?? false,
+      auto_rest_day_enabled: auto_rest_day_enabled ?? true,
       is_public: is_public || false,
       is_exclusive: is_exclusive ?? true,
     };

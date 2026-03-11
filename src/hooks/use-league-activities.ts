@@ -41,6 +41,8 @@ export interface LeagueActivity {
   notes_requirement?: 'not_required' | 'optional' | 'mandatory';
   points_per_session?: number;
   outcome_config?: { label: string; points: number }[] | null;
+  max_images?: number;
+  custom_field_label?: string | null;
 }
 
 export interface LeagueActivitiesData {

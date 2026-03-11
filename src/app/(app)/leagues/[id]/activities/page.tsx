@@ -332,7 +332,7 @@ export default function LeagueActivitiesPage({
     }
   };
 
-  const handleActivityConfigChange = (config: { activity_id: string; proof_requirement: 'not_required' | 'optional' | 'mandatory'; notes_requirement: 'not_required' | 'optional' | 'mandatory'; points_per_session: number; outcome_config?: { label: string; points: number }[] | null }) => {
+  const handleActivityConfigChange = (config: { activity_id: string; proof_requirement: 'not_required' | 'optional' | 'mandatory'; notes_requirement: 'not_required' | 'optional' | 'mandatory'; points_per_session: number; outcome_config?: { label: string; points: number }[] | null; max_images?: number; custom_field_label?: string | null }) => {
     setPendingChanges((prev) => {
       const next = new Map(prev);
       const change = next.get(config.activity_id) || {};
@@ -342,6 +342,8 @@ export default function LeagueActivitiesPage({
         notes_requirement: config.notes_requirement,
         points_per_session: config.points_per_session,
         outcome_config: config.outcome_config,
+        max_images: config.max_images,
+        custom_field_label: config.custom_field_label,
       });
       return next;
     });
@@ -392,7 +394,8 @@ export default function LeagueActivitiesPage({
 
           if (change.frequency !== undefined || change.frequency_type !== undefined
               || change.proof_requirement !== undefined || change.notes_requirement !== undefined
-              || change.points_per_session !== undefined || change.outcome_config !== undefined) {
+              || change.points_per_session !== undefined || change.outcome_config !== undefined
+              || change.max_images !== undefined || change.custom_field_label !== undefined) {
             const patchBody: Record<string, any> = { activity_id: activityId };
 
             if (change.frequency !== undefined || change.frequency_type !== undefined) {
@@ -410,6 +413,8 @@ export default function LeagueActivitiesPage({
             if (change.notes_requirement !== undefined) patchBody.notes_requirement = change.notes_requirement;
             if (change.points_per_session !== undefined) patchBody.points_per_session = change.points_per_session;
             if (change.outcome_config !== undefined) patchBody.outcome_config = change.outcome_config;
+            if (change.max_images !== undefined) patchBody.max_images = change.max_images;
+            if (change.custom_field_label !== undefined) patchBody.custom_field_label = change.custom_field_label;
 
             subPromises.push(
               fetch(`/api/leagues/${leagueId}/activities`, {
@@ -829,6 +834,8 @@ export default function LeagueActivitiesPage({
                               notesRequirement={enabledActivityMap.get(activity.activity_id)?.notes_requirement ?? 'optional'}
                               pointsPerSession={enabledActivityMap.get(activity.activity_id)?.points_per_session ?? 1}
                               outcomeConfig={enabledActivityMap.get(activity.activity_id)?.outcome_config ?? null}
+                              maxImages={enabledActivityMap.get(activity.activity_id)?.max_images ?? 1}
+                              customFieldLabel={enabledActivityMap.get(activity.activity_id)?.custom_field_label ?? null}
                               onActivityConfigChange={handleActivityConfigChange}
                             />
                           </div>
