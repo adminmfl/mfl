@@ -369,11 +369,17 @@ export default function SubmitActivityPage({
     }
   }, [resubmitId, searchParams]);
 
-  // Image upload state - store file in memory until submission
+  // Image upload state - store file(s) in memory until submission
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [imagePreview, setImagePreview] = React.useState<string | null>(null);
+  const [selectedFile2, setSelectedFile2] = React.useState<File | null>(null);
+  const [imagePreview2, setImagePreview2] = React.useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const fileInputRef2 = React.useRef<HTMLInputElement>(null);
+
+  // Custom field state
+  const [customFieldValue, setCustomFieldValue] = React.useState('');
 
   // OCR state
   const [ocrProcessing, setOcrProcessing] = React.useState(false);
@@ -673,6 +679,32 @@ export default function SubmitActivityPage({
     }
   };
 
+  // Second image handlers
+  const handleFileUpload2 = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Invalid file type. Allowed: JPG, PNG, GIF, WebP');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File too large. Maximum size is 10MB');
+      return;
+    }
+    setSelectedFile2(file);
+    const reader = new FileReader();
+    reader.onload = (event) => { setImagePreview2(event.target?.result as string); };
+    reader.readAsDataURL(file);
+    toast.success('Second image selected.');
+  };
+
+  const removeImage2 = () => {
+    setSelectedFile2(null);
+    setImagePreview2(null);
+    if (fileInputRef2.current) { fileInputRef2.current.value = ''; }
+  };
+
   // ============================================================================
   // Overwrite Confirmation State
   // ============================================================================
@@ -827,6 +859,12 @@ export default function SubmitActivityPage({
       return;
     }
 
+    // Custom field validation: required when activity has custom_field_label
+    if (selectedActivity?.custom_field_label && !customFieldValue.trim()) {
+      toast.error(`"${selectedActivity.custom_field_label}" is required`);
+      return;
+    }
+
     // Check for overwrite need
     if (!overwrite && existingEntry && !resubmitId) {
       // If existing entry is found, prompt user
@@ -895,11 +933,48 @@ export default function SubmitActivityPage({
         proofUrl = uploadResult.data.url;
         setUploadingImage(false);
       } else if (overwrite && existingEntry?.proof_url) {
-        // If overwriting and no new file, theoretically could use old URL?
-        // But currently backend might block if we don't send proof_url?
-        // Backend: "proof_url: proof_url || null". Destructured from body.
-        // If we send proof_url: existingEntry.proof_url, it should work.
         proofUrl = existingEntry.proof_url;
+      }
+
+      // Upload second image if present
+      let proofUrl2: string | null = null;
+      if (selectedFile2) {
+        let fileToUpload2: File | Blob = selectedFile2;
+        if (selectedFile2.size > 3 * 1024 * 1024 && selectedFile2.type.startsWith('image/')) {
+          try {
+            const bitmap = await createImageBitmap(selectedFile2);
+            const canvas = document.createElement('canvas');
+            const maxDim = 1920;
+            let { width, height } = bitmap;
+            if (width > maxDim || height > maxDim) {
+              const scale = maxDim / Math.max(width, height);
+              width = Math.round(width * scale);
+              height = Math.round(height * scale);
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx?.drawImage(bitmap, 0, 0, width, height);
+            const blob = await new Promise<Blob>((resolve) =>
+              canvas.toBlob((b) => resolve(b || selectedFile2), 'image/jpeg', 0.8)
+            );
+            fileToUpload2 = blob;
+          } catch { /* use original */ }
+        }
+        const uploadFormData2 = new FormData();
+        uploadFormData2.append('file', fileToUpload2, selectedFile2.name);
+        uploadFormData2.append('league_id', leagueId);
+        const uploadResponse2 = await fetch('/api/upload/proof', { method: 'POST', body: uploadFormData2 });
+        const ct2 = uploadResponse2.headers.get('content-type') || '';
+        let uploadResult2: any;
+        if (ct2.includes('application/json')) {
+          uploadResult2 = await uploadResponse2.json();
+        } else {
+          const text = await uploadResponse2.text();
+          throw new Error(text.includes('Entity Too Large') ? 'Second image is too large. Please use a smaller image.' : text || 'Upload failed');
+        }
+        if (!uploadResponse2.ok) throw new Error(uploadResult2.error || 'Failed to upload second image');
+        proofUrl2 = uploadResult2.data.url;
       }
 
       // Step 2: Submit the activity entry
@@ -909,6 +984,7 @@ export default function SubmitActivityPage({
         type: 'workout',
         workout_type: formData.activity_type,
         proof_url: proofUrl,
+        proof_url_2: proofUrl2,
         tzOffsetMinutes: new Date().getTimezoneOffset(),
         ianaTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone || null,
         overwrite: overwrite
@@ -929,6 +1005,11 @@ export default function SubmitActivityPage({
       // Add outcome if selected
       if (formData.outcome) {
         payload.outcome = formData.outcome;
+      }
+
+      // Add custom field value if provided
+      if (customFieldValue.trim()) {
+        payload.custom_field_value = customFieldValue.trim();
       }
 
       // Add reupload_of if this is a resubmission
@@ -1377,20 +1458,27 @@ export default function SubmitActivityPage({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Activity Date</Label>
-                  <Select
-                    value={isTodaySelected ? 'today' : 'yesterday'}
-                    onValueChange={(value) =>
-                      setActivityDate(value === 'today' ? today : yesterday)
-                    }
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="today">Today ({format(today, 'MMM d, yyyy')})</SelectItem>
-                      <SelectItem value="yesterday">Yesterday ({format(yesterday, 'MMM d, yyyy')})</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  {isResubmission ? (
+                    <div className="flex items-center gap-2 h-10 px-3 rounded-md border bg-muted text-sm">
+                      <span>{format(activityDate, 'MMM d, yyyy')}</span>
+                      <Badge variant="secondary" className="text-xs">Locked to original date</Badge>
+                    </div>
+                  ) : (
+                    <Select
+                      value={isTodaySelected ? 'today' : 'yesterday'}
+                      onValueChange={(value) =>
+                        setActivityDate(value === 'today' ? today : yesterday)
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="today">Today ({format(today, 'MMM d, yyyy')})</SelectItem>
+                        <SelectItem value="yesterday">Yesterday ({format(yesterday, 'MMM d, yyyy')})</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
               </div>
 
@@ -1444,6 +1532,46 @@ export default function SubmitActivityPage({
               </div>
               )}
 
+              {/* Second Photo Upload — shown when max_images >= 2 */}
+              {(selectedActivity?.max_images ?? 1) >= 2 && (selectedActivity?.proof_requirement ?? 'mandatory') !== 'not_required' && (
+              <div className="space-y-2">
+                <Label>Upload Second Image (Optional)</Label>
+                <input
+                  ref={fileInputRef2}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileUpload2}
+                  className="hidden"
+                />
+                {imagePreview2 ? (
+                  <div className="relative">
+                    <img
+                      src={imagePreview2}
+                      alt="Second proof"
+                      className="w-full h-20 object-contain rounded-lg border bg-muted"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2"
+                      onClick={removeImage2}
+                    >
+                      <X className="size-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => fileInputRef2.current?.click()}
+                    className="border-2 border-dashed rounded-lg p-2 text-center hover:border-primary/50 transition-colors cursor-pointer"
+                  >
+                    <ImageIcon className="size-4 mx-auto text-muted-foreground mb-1" />
+                    <p className="text-[11px] text-muted-foreground">Click to upload second image</p>
+                  </div>
+                )}
+              </div>
+              )}
+
               {/* Outcome picker — shown when activity has outcome_config */}
               {selectedActivity?.outcome_config && selectedActivity.outcome_config.length > 0 && (
               <div className="space-y-2">
@@ -1480,6 +1608,22 @@ export default function SubmitActivityPage({
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, notes: e.target.value }))
                   }
+                />
+              </div>
+              )}
+
+              {/* Custom field — shown when activity has custom_field_label */}
+              {selectedActivity?.custom_field_label && (
+              <div className="space-y-2">
+                <Label htmlFor="custom-field">
+                  {selectedActivity.custom_field_label} *
+                </Label>
+                <Textarea
+                  id="custom-field"
+                  placeholder={selectedActivity.custom_field_label}
+                  rows={2}
+                  value={customFieldValue}
+                  onChange={(e) => setCustomFieldValue(e.target.value)}
                 />
               </div>
               )}
@@ -1593,20 +1737,27 @@ export default function SubmitActivityPage({
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>Rest Day Date</Label>
-                  <Select
-                    value={isTodaySelected ? 'today' : 'yesterday'}
-                    onValueChange={(value) =>
-                      setActivityDate(value === 'today' ? today : yesterday)
-                    }
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="today">Today ({format(today, 'MMM d, yyyy')})</SelectItem>
-                      <SelectItem value="yesterday">Yesterday ({format(yesterday, 'MMM d, yyyy')})</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  {isResubmission ? (
+                    <div className="flex items-center gap-2 h-10 px-3 rounded-md border bg-muted text-sm">
+                      <span>{format(activityDate, 'MMM d, yyyy')}</span>
+                      <Badge variant="secondary" className="text-xs">Locked to original date</Badge>
+                    </div>
+                  ) : (
+                    <Select
+                      value={isTodaySelected ? 'today' : 'yesterday'}
+                      onValueChange={(value) =>
+                        setActivityDate(value === 'today' ? today : yesterday)
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="today">Today ({format(today, 'MMM d, yyyy')})</SelectItem>
+                        <SelectItem value="yesterday">Yesterday ({format(yesterday, 'MMM d, yyyy')})</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -1693,7 +1844,7 @@ export default function SubmitActivityPage({
                 <div>
                   <span className="text-muted-foreground block text-xs">Type</span>
                   <span className="font-medium">
-                    {confirmSubmitType === 'rest' ? 'Rest Day' : 'Workout'}
+                    {confirmSubmitType === 'rest' ? 'Rest Day' : 'Activity'}
                   </span>
                 </div>
                 <div>
@@ -1826,7 +1977,9 @@ export default function SubmitActivityPage({
                         <span className="text-muted-foreground block text-xs">Activity Type</span>
                         <span className="font-medium capitalize">
                           {existingEntry.type === 'workout'
-                            ? (existingEntry.workout_type?.replace(/_/g, ' ') || 'Workout')
+                            ? (activitiesData?.activities?.find(a => a.value === existingEntry.workout_type)?.activity_name
+                              || existingEntry.workout_type?.replace(/_/g, ' ')
+                              || 'Activity')
                             : 'Rest Day'}
                         </span>
                       </div>

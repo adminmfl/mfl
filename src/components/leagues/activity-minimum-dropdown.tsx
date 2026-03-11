@@ -62,6 +62,8 @@ interface ActivityMinimumProps {
   notesRequirement?: 'not_required' | 'optional' | 'mandatory';
   pointsPerSession?: number;
   outcomeConfig?: { label: string; points: number }[] | null;
+  maxImages?: number;
+  customFieldLabel?: string | null;
   onMinimumChange?: (config: {
     activity_id: string;
     min_value: number | null;
@@ -76,6 +78,8 @@ interface ActivityMinimumProps {
     notes_requirement: 'not_required' | 'optional' | 'mandatory';
     points_per_session: number;
     outcome_config?: { label: string; points: number }[] | null;
+    max_images?: number;
+    custom_field_label?: string | null;
   }) => void;
 }
 
@@ -92,6 +96,8 @@ export function ActivityMinimumDropdown({
   notesRequirement = 'optional',
   pointsPerSession = 1,
   outcomeConfig,
+  maxImages = 1,
+  customFieldLabel = null,
   onMinimumChange,
   onFrequencyChange,
   onFrequencyTypeChange,
@@ -116,6 +122,8 @@ export function ActivityMinimumDropdown({
   const [outcomeDraft, setOutcomeDraft] = useState<{ label: string; points: number }[]>(
     outcomeConfig && outcomeConfig.length > 0 ? outcomeConfig : []
   );
+  const [maxImagesDraft, setMaxImagesDraft] = useState<number>(maxImages);
+  const [customFieldLabelDraft, setCustomFieldLabelDraft] = useState<string>(customFieldLabel || '');
 
   // Sync state with initialConfig when it changes
   useEffect(() => {
@@ -140,6 +148,8 @@ export function ActivityMinimumDropdown({
   useEffect(() => {
     setOutcomeDraft(outcomeConfig && outcomeConfig.length > 0 ? outcomeConfig : []);
   }, [outcomeConfig]);
+  useEffect(() => { setMaxImagesDraft(maxImages); }, [maxImages]);
+  useEffect(() => { setCustomFieldLabelDraft(customFieldLabel || ''); }, [customFieldLabel]);
 
   useEffect(() => {
     if (frequencyDraft === '') return;
@@ -228,6 +238,8 @@ export function ActivityMinimumDropdown({
         notes_requirement: notesDraft,
         points_per_session: pointsDraft,
         outcome_config: outcomeDraft.length > 0 ? outcomeDraft.filter(o => o.label.trim()) : null,
+        max_images: maxImagesDraft,
+        custom_field_label: customFieldLabelDraft.trim() || null,
       });
     }
     setIsExpanded(false);
@@ -462,6 +474,32 @@ export function ActivityMinimumDropdown({
                 onChange={(e) => setPointsDraft(e.target.value === '' ? 0 : Number(e.target.value))}
               />
             </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-[10px] text-muted-foreground uppercase">Max Images</Label>
+                <Select value={String(maxImagesDraft)} onValueChange={(v) => setMaxImagesDraft(Number(v))}>
+                  <SelectTrigger className="h-7 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1</SelectItem>
+                    <SelectItem value="2">2</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-[10px] text-muted-foreground uppercase">Custom Field Label</Label>
+                <Input
+                  placeholder="e.g. How do you feel?"
+                  className="h-7 text-xs"
+                  value={customFieldLabelDraft}
+                  onChange={(e) => setCustomFieldLabelDraft(e.target.value)}
+                />
+              </div>
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              Custom field adds a mandatory text input with your label on the player submission form.
+            </p>
           </div>
 
           {/* Multi-Outcome */}

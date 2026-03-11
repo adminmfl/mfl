@@ -158,7 +158,15 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  onClick={() => signOut({ callbackUrl: '/' })}
+                  onClick={async () => {
+                    try {
+                      localStorage.removeItem('activeLeagueId');
+                      Object.keys(localStorage).filter(k => k.startsWith('role_')).forEach(k => localStorage.removeItem(k));
+                      const cacheKeys = await caches.keys();
+                      await Promise.all(cacheKeys.map(k => caches.delete(k)));
+                    } catch { /* ignore */ }
+                    signOut({ callbackUrl: '/' });
+                  }}
                   className="cursor-pointer text-destructive focus:text-destructive"
                 >
                   <LogOut className="mr-2 size-4" />

@@ -25,8 +25,10 @@ interface EntryPayload {
   holes?: number;
   rr_value?: number;
   proof_url?: string;
+  proof_url_2?: string | null;
   notes?: string;
   outcome?: string | null;
+  custom_field_value?: string | null;
   status: 'pending' | 'approved' | 'rejected';
   created_by: string;
   reupload_of?: string | null;
@@ -57,9 +59,11 @@ export async function POST(req: NextRequest) {
       steps,
       holes,
       proof_url,
+      proof_url_2,
       notes,
       reupload_of,
       outcome, // Selected outcome label for multi-outcome activities (e.g., "Win", "Loss")
+      custom_field_value, // Custom field value from host-configured custom_field_label
       timezone_offset, // Legacy: sign-inverted offset (e.g., +330 for IST = UTC+5:30)
       tzOffsetMinutes, // Preferred: same value as `new Date().getTimezoneOffset()` (e.g., -330 for IST)
       ianaTimezone, // Preferred IANA tz (e.g., 'America/Los_Angeles')
@@ -459,8 +463,10 @@ export async function POST(req: NextRequest) {
       steps: steps || null,
       holes: holes || null,
       proof_url: proof_url || null,
+      ...(proof_url_2 ? { proof_url_2 } : {}),
       notes: notes || null,
       outcome: outcome || null,
+      ...(custom_field_value ? { custom_field_value } : {}),
       status: 'approved',
       created_by: userId,
       reupload_of: reupload_of || null,

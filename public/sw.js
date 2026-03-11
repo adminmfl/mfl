@@ -70,23 +70,11 @@ self.addEventListener('fetch', (event) => {
     // ignore
   }
 
-  // Navigations: network-first with timeout → cache → offline
+  // Navigations: network-only (never cache HTML pages to prevent cross-session data leaks)
   if (req.mode === 'navigate') {
-    event.respondWith((async () => {
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 3000);
-      try {
-        const network = await fetch(req, { signal: ctrl.signal });
-        const cache = await caches.open(CACHE_PAGES);
-        cache.put(req, network.clone());
-        clearTimeout(t);
-        return network;
-      } catch (e) {
-        const cache = await caches.open(CACHE_PAGES);
-        const cached = await cache.match(req);
-        return cached || caches.match('/offline');
-      }
-    })());
+    event.respondWith(
+      fetch(req).catch(() => caches.match('/offline') || new Response('Offline', { status: 503 }))
+    );
     return;
   }
 
