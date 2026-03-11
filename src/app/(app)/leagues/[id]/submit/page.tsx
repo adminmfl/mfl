@@ -1844,7 +1844,7 @@ export default function SubmitActivityPage({
                 <div>
                   <span className="text-muted-foreground block text-xs">Type</span>
                   <span className="font-medium">
-                    {confirmSubmitType === 'rest' ? 'Rest Day' : 'Workout'}
+                    {confirmSubmitType === 'rest' ? 'Rest Day' : 'Activity'}
                   </span>
                 </div>
                 <div>
@@ -1977,7 +1977,9 @@ export default function SubmitActivityPage({
                         <span className="text-muted-foreground block text-xs">Activity Type</span>
                         <span className="font-medium capitalize">
                           {existingEntry.type === 'workout'
-                            ? (existingEntry.workout_type?.replace(/_/g, ' ') || 'Workout')
+                            ? (activitiesData?.activities?.find(a => a.value === existingEntry.workout_type)?.activity_name
+                              || existingEntry.workout_type?.replace(/_/g, ' ')
+                              || 'Activity')
                             : 'Rest Day'}
                         </span>
                       </div>

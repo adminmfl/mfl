@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Dumbbell, Trophy, Users, BookOpen, User, Menu, X, LogOut, Flag } from 'lucide-react'
 import { signOut, useSession } from 'next-auth/react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { getTeamNameForUser } from '@/lib/services/teams'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
@@ -25,6 +25,16 @@ export function Navbar({ navLinks }: { navLinks?: typeof navItems }) {
   const role = (session?.user as any)?.role as 'player' | 'leader' | 'governor' | undefined
   const [mobileOpen, setMobileOpen] = useState(false)
   const [teamName, setTeamName] = useState<string | null>(null)
+
+  const handleSignOut = useCallback(async () => {
+    try {
+      localStorage.removeItem('activeLeagueId');
+      Object.keys(localStorage).filter(k => k.startsWith('role_')).forEach(k => localStorage.removeItem(k));
+      const cacheKeys = await caches.keys();
+      await Promise.all(cacheKeys.map(k => caches.delete(k)));
+    } catch { /* ignore */ }
+    handleSignOut();
+  }, [])
 
   // Fetch team name (single optimized query)
   useEffect(() => {
@@ -82,7 +92,7 @@ export function Navbar({ navLinks }: { navLinks?: typeof navItems }) {
             <div className="hidden md:flex items-center gap-3">
               {name ? (
                 <>
-                  <Button onClick={() => signOut({ callbackUrl: '/' })} variant="outline" size="sm" className="text-primary border-white hover:bg-white hover:text-primary flex items-center">
+                  <Button onClick={() => handleSignOut()} variant="outline" size="sm" className="text-primary border-white hover:bg-white hover:text-primary flex items-center">
                     <LogOut className="w-4 h-4 mr-1" />
                     Sign Out
                   </Button>
@@ -120,7 +130,7 @@ export function Navbar({ navLinks }: { navLinks?: typeof navItems }) {
                   <>
                     <button
                       className="w-full text-left px-3 py-2 rounded-md bg-white text-primary font-medium flex items-center gap-2"
-                      onClick={() => { setMobileOpen(false); signOut({ callbackUrl: '/' }); }}
+                      onClick={() => { setMobileOpen(false); handleSignOut(); }}
                     >
                       <LogOut className="w-4 h-4" />
                       Sign Out
@@ -192,7 +202,7 @@ export function Navbar({ navLinks }: { navLinks?: typeof navItems }) {
             {/* Desktop-only auth actions */}
             <div className="hidden md:flex items-center space-x-3">
               {name ? (
-                <Button onClick={() => signOut({ callbackUrl: '/' })} variant="outline" size="sm" className="text-primary border-white hover:bg-white hover:text-primary flex items-center">
+                <Button onClick={() => handleSignOut()} variant="outline" size="sm" className="text-primary border-white hover:bg-white hover:text-primary flex items-center">
                   <LogOut className="w-4 h-4 mr-1" />
                   Sign Out
                 </Button>
@@ -257,7 +267,7 @@ export function Navbar({ navLinks }: { navLinks?: typeof navItems }) {
               {name ? (
                 <button
                   className="w-full text-left px-3 py-2 rounded-md bg-white text-primary font-medium flex items-center gap-2"
-                  onClick={() => { setMobileOpen(false); signOut({ callbackUrl: '/' }) }}
+                  onClick={() => { setMobileOpen(false); handleSignOut() }}
                 >
                   <LogOut className="w-4 h-4" />
                   Sign Out

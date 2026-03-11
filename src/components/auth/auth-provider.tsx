@@ -36,7 +36,7 @@ export default function AuthProvider({ children, session }: { children: React.Re
   }, []);
   return (
     // Disable client-side session polling to avoid repeated /api/auth/session calls
-    <SessionProvider session={session} refetchInterval={0} refetchOnWindowFocus={false}>
+    <SessionProvider session={session} refetchInterval={0} refetchOnWindowFocus={true}>
       {children}
     </SessionProvider>
   )

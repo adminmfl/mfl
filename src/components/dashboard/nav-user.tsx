@@ -75,7 +75,16 @@ function getInitials(name: string): string {
 export function NavUser({ user }: NavUserProps) {
   const { isMobile } = useSidebar();
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
+    // Clear all client-side caches to prevent data leaking across sessions
+    try {
+      localStorage.removeItem('activeLeagueId');
+      // Clear all role_* keys
+      Object.keys(localStorage).filter(k => k.startsWith('role_')).forEach(k => localStorage.removeItem(k));
+      // Clear service worker page cache
+      const cacheKeys = await caches.keys();
+      await Promise.all(cacheKeys.map(k => caches.delete(k)));
+    } catch { /* ignore */ }
     signOut({ callbackUrl: "/" });
   };
 
