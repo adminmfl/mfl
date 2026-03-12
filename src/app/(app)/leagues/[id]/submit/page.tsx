@@ -1649,7 +1649,7 @@ export default function SubmitActivityPage({
                   <Button
                     type="submit"
                     className="flex-1"
-                    disabled={loading || uploadingImage || !formData.activity_type || ((selectedActivity?.proof_requirement ?? 'mandatory') === 'mandatory' && !selectedFile)}
+                    disabled={loading || uploadingImage || !formData.activity_type || ((selectedActivity?.proof_requirement ?? 'mandatory') === 'mandatory' && !selectedFile && !resubmitId)}
                   >
                     {loading || uploadingImage ? (
                       <>
