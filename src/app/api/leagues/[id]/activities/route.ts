@@ -413,6 +413,8 @@ export async function GET(
         notes_requirement,
         points_per_session,
         outcome_config,
+        max_images,
+        custom_field_label,
         activities(
           activity_id,
           activity_name,
@@ -442,7 +444,7 @@ export async function GET(
       const msg = activitiesError.message.toLowerCase();
 
       // Fallback: if proof_requirement/notes_requirement/points_per_session/outcome_config columns don't exist
-      if ((msg.includes('proof_requirement') || msg.includes('notes_requirement') || msg.includes('points_per_session') || msg.includes('outcome_config')) && msg.includes('column')) {
+      if ((msg.includes('proof_requirement') || msg.includes('notes_requirement') || msg.includes('points_per_session') || msg.includes('outcome_config') || msg.includes('max_images') || msg.includes('custom_field_label')) && msg.includes('column')) {
         const withoutNewCols = await supabase
           .from('leagueactivities')
           .select(`
@@ -601,6 +603,8 @@ export async function GET(
           notes_requirement: (la as any).notes_requirement ?? 'optional',
           points_per_session: (la as any).points_per_session ?? 1,
           outcome_config: (la as any).outcome_config ?? null,
+          max_images: (la as any).max_images ?? 1,
+          custom_field_label: (la as any).custom_field_label ?? null,
         };
       });
 
