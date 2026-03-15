@@ -67,7 +67,7 @@ export interface CannedMessage {
   updated_at: string;
 }
 
-export type MessageFilter = 'all' | 'announcements' | 'important';
+export type MessageFilter = 'all' | 'announcements' | 'important' | 'host_messages' | 'captains_only';
 
 export interface GetMessagesOptions {
   cursor?: string; // created_at timestamp for pagination
@@ -302,6 +302,19 @@ export async function getMessagesForUser(
       query = query.eq('message_type', 'announcement');
     } else if (filter === 'important') {
       query = query.eq('is_important', true);
+    } else if (filter === 'host_messages') {
+      // Messages sent by host or governor
+      const { data: leaders } = await supabase
+        .from('leaguemembers')
+        .select('user_id')
+        .eq('league_id', leagueId)
+        .in('role', ['host', 'governor']);
+      const leaderIds = (leaders || []).map((l: any) => l.user_id);
+      if (leaderIds.length > 0) {
+        query = query.in('sender_id', leaderIds);
+      }
+    } else if (filter === 'captains_only') {
+      query = query.eq('visibility', 'captains_only');
     }
 
     // Apply role-based visibility filters
@@ -538,10 +551,16 @@ export async function sendMessage(
       return null;
     }
 
+    // Players and captains must always send to a team — only host/governor can broadcast
+    const isHostOrGovernor = role === 'host' || role === 'governor';
+    if (!teamId && !isHostOrGovernor) {
+      console.error('Only host/governor can send league-wide messages');
+      return null;
+    }
+
     // Validate team membership if sending to a team
     if (teamId) {
       const senderTeamId = await getUserTeamInLeague(senderId, leagueId);
-      const isHostOrGovernor = role === 'host' || role === 'governor';
 
       // Host/Governor can send to any team; others must be on the team
       if (!isHostOrGovernor && senderTeamId !== teamId) {
@@ -549,9 +568,6 @@ export async function sendMessage(
         return null;
       }
     }
-
-    // Players can send captains_only as DM to captain (visible to captain + host/governor)
-    // No restriction needed — all roles can use captains_only visibility
 
     // Only host/governor can send announcements
     if (messageType === 'announcement' && role !== 'host' && role !== 'governor') {

@@ -18,11 +18,13 @@ import { MessageInput } from './message-input';
 const PAGE_LIMIT = 50;
 const FALLBACK_POLL_INTERVAL = 30_000; // 30s fallback if realtime fails
 
-type MessageFilter = 'all' | 'announcements' | 'important';
+type MessageFilter = 'all' | 'announcements' | 'important' | 'host_messages' | 'captains_only';
 
 const FILTER_OPTIONS: { value: MessageFilter; label: string }[] = [
   { value: 'all', label: 'All' },
   { value: 'announcements', label: 'Announcements' },
+  { value: 'host_messages', label: 'Host' },
+  { value: 'captains_only', label: 'Captains Only' },
   { value: 'important', label: 'Important' },
 ];
 

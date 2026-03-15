@@ -16,7 +16,9 @@ import {
   Star,
   Moon,
   XCircle,
+  MessageCircle,
 } from 'lucide-react';
+import Link from 'next/link';
 
 import { useLeague } from '@/contexts/league-context';
 import { useRole } from '@/contexts/role-context';
@@ -328,6 +330,13 @@ export default function MyTeamViewPage({
             <Users className="size-3 mr-1" />
             {members.length} Members
           </Badge>
+          <Link
+            href={`/leagues/${leagueId}/messages`}
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            <MessageCircle className="size-3" />
+            Team Chat
+          </Link>
         </div>
       </div>
 

@@ -142,6 +142,11 @@ export function getSidebarNavItems(
         icon: Users,
       },
       {
+        title: 'Team Chat',
+        url: leagueUrl('/messages'),
+        icon: MessageCircle,
+      },
+      {
         title: 'Leaderboard',
         url: leagueUrl('/leaderboard'),
         icon: BarChart3,
@@ -150,11 +155,6 @@ export function getSidebarNavItems(
         title: 'Rules',
         url: leagueUrl('/rules'),
         icon: BookOpen,
-      },
-      {
-        title: 'Team Chat',
-        url: leagueUrl('/messages'),
-        icon: MessageCircle,
       },
     ];
 
