@@ -1,6 +1,8 @@
 /**
  * Team Messages Page
  * - Host/Governor: sidebar with team list + "All Teams" broadcast view
+ *   By default they see only broadcasts + captain-only messages.
+ *   "Admin View" toggle lets them see all team messages.
  * - Captain/Player: shows their team's chat directly
  */
 'use client';
@@ -12,6 +14,7 @@ import {
   Megaphone,
   Loader2,
   PanelLeftOpen,
+  ShieldAlert,
 } from 'lucide-react';
 import { useLeague } from '@/contexts/league-context';
 import useLeagueTeams from '@/hooks/use-league-teams';
@@ -19,6 +22,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { ChatWindow } from '@/components/messaging/chat-window';
 
@@ -74,13 +78,14 @@ function LeaderMessagesView({ leagueId }: { leagueId: string }) {
 
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [adminView, setAdminView] = useState(false);
 
   const selectedTeam = teams.find((t: any) => t.team_id === selectedTeamId) ?? null;
   const chatLabel = selectedTeam ? selectedTeam.team_name : 'All Teams (Broadcast)';
 
   const selectTeam = (teamId: string | null) => {
     setSelectedTeamId(teamId);
-    setMobileSidebarOpen(false); // close only on mobile
+    setMobileSidebarOpen(false);
   };
 
   return (
@@ -89,6 +94,23 @@ function LeaderMessagesView({ leagueId }: { leagueId: string }) {
       <div className="flex items-center gap-2 px-4 py-3 border-b shrink-0">
         <MessageCircle className="size-5 text-primary" />
         <h1 className="text-lg font-semibold">Team Messages</h1>
+
+        {/* Admin view toggle — only shown when a team is selected */}
+        {selectedTeamId && (
+          <div className="hidden md:flex items-center gap-2 ml-4">
+            <ShieldAlert className="size-3.5 text-amber-600" />
+            <label htmlFor="admin-view" className="text-xs text-muted-foreground cursor-pointer select-none">
+              Admin View
+            </label>
+            <Switch
+              id="admin-view"
+              checked={adminView}
+              onCheckedChange={setAdminView}
+              className="scale-75"
+            />
+          </div>
+        )}
+
         {/* Mobile toggle */}
         <Button
           variant="outline"
@@ -106,7 +128,6 @@ function LeaderMessagesView({ leagueId }: { leagueId: string }) {
         <div
           className={cn(
             'border-r bg-muted/30 shrink-0 flex flex-col w-56',
-            // Desktop: always visible
             'hidden md:flex',
           )}
         >
@@ -132,6 +153,21 @@ function LeaderMessagesView({ leagueId }: { leagueId: string }) {
                 selectedTeamId={selectedTeamId}
                 onSelect={selectTeam}
               />
+              {/* Mobile admin view toggle */}
+              {selectedTeamId && (
+                <div className="flex items-center gap-2 px-3 py-2 border-t">
+                  <ShieldAlert className="size-3.5 text-amber-600" />
+                  <label htmlFor="admin-view-mobile" className="text-xs text-muted-foreground flex-1">
+                    Admin View
+                  </label>
+                  <Switch
+                    id="admin-view-mobile"
+                    checked={adminView}
+                    onCheckedChange={setAdminView}
+                    className="scale-75"
+                  />
+                </div>
+              )}
             </div>
           </>
         )}
@@ -139,10 +175,11 @@ function LeaderMessagesView({ leagueId }: { leagueId: string }) {
         {/* ----- Chat area ----- */}
         <div className="flex-1 overflow-hidden">
           <ChatWindow
-            key={selectedTeamId ?? '__all__'}
+            key={`${selectedTeamId ?? '__all__'}-${adminView}`}
             leagueId={leagueId}
             teamId={selectedTeamId}
             teamName={chatLabel}
+            adminView={adminView}
           />
         </div>
       </div>

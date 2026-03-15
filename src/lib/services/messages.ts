@@ -28,11 +28,23 @@ export interface Message {
   deleted_at: string | null;
 }
 
+export interface MessageReaction {
+  emoji: string;
+  user_ids: string[];
+}
+
+export interface ParentMessagePreview {
+  content: string;
+  sender_username: string;
+}
+
 export interface MessageWithSender extends Message {
   sender_name: string | null;
   sender_username: string;
   sender_role: string | null;
   is_read: boolean;
+  reactions: MessageReaction[];
+  parent_message: ParentMessagePreview | null;
 }
 
 export interface ReadReceipt {
@@ -55,10 +67,14 @@ export interface CannedMessage {
   updated_at: string;
 }
 
+export type MessageFilter = 'all' | 'announcements' | 'important';
+
 export interface GetMessagesOptions {
   cursor?: string; // created_at timestamp for pagination
   limit?: number;
   teamId?: string;
+  filter?: MessageFilter;
+  adminView?: boolean; // host/governor opt-in to see all team messages
 }
 
 export interface SendMessageData {
@@ -250,7 +266,7 @@ export async function getMessagesForUser(
 ): Promise<MessageWithSender[]> {
   try {
     const supabase = getSupabaseServiceRole();
-    const { cursor, limit = 50, teamId } = options;
+    const { cursor, limit = 50, teamId, filter, adminView } = options;
 
     // Get user's role and team
     const [role, userTeamId] = await Promise.all([
@@ -281,12 +297,28 @@ export async function getMessagesForUser(
       query = query.lt('created_at', cursor);
     }
 
+    // Apply message type/importance filter
+    if (filter === 'announcements') {
+      query = query.eq('message_type', 'announcement');
+    } else if (filter === 'important') {
+      query = query.eq('is_important', true);
+    }
+
     // Apply role-based visibility filters
     if (isHostOrGovernor) {
-      // Host/Governor see all messages - no additional filters
-      // If teamId is specified, filter to that team + broadcasts
       if (teamId) {
-        query = query.or(`team_id.eq.${teamId},team_id.is.null`);
+        if (adminView) {
+          // Admin view enabled: see all messages for this team + broadcasts
+          query = query.or(`team_id.eq.${teamId},team_id.is.null`);
+        } else {
+          // Default: only broadcasts + captain-only messages for this team (not player chat)
+          query = query.or(
+            `team_id.is.null,and(team_id.eq.${teamId},visibility.eq.captains_only)`
+          );
+        }
+      } else {
+        // All Teams view: show only broadcasts
+        query = query.is('team_id', null);
       }
     } else if (isCaptain) {
       // Captains see all visibility in their team + league-wide broadcasts
@@ -409,6 +441,47 @@ export async function getMessagesForUser(
       }
     }
 
+    // Fetch reactions for all messages
+    const reactionsMap = new Map<string, { emoji: string; user_ids: string[] }[]>();
+    if (messageIds.length > 0) {
+      const { data: reactionsData } = await supabase
+        .from('message_reactions')
+        .select('message_id, emoji, user_id')
+        .in('message_id', messageIds);
+
+      if (reactionsData) {
+        for (const r of reactionsData as any[]) {
+          const existing = reactionsMap.get(r.message_id) || [];
+          const emojiEntry = existing.find((e) => e.emoji === r.emoji);
+          if (emojiEntry) {
+            emojiEntry.user_ids.push(r.user_id);
+          } else {
+            existing.push({ emoji: r.emoji, user_ids: [r.user_id] });
+          }
+          reactionsMap.set(r.message_id, existing);
+        }
+      }
+    }
+
+    // Fetch parent message content for replies
+    const parentIds = [...new Set(messages.filter((m: any) => m.parent_message_id).map((m: any) => m.parent_message_id))];
+    const parentMap = new Map<string, { content: string; sender_username: string }>();
+    if (parentIds.length > 0) {
+      const { data: parents } = await supabase
+        .from('messages')
+        .select('message_id, content, sender_id, users:sender_id(username)')
+        .in('message_id', parentIds);
+
+      if (parents) {
+        for (const p of parents as any[]) {
+          parentMap.set(p.message_id, {
+            content: p.content?.substring(0, 100) || '',
+            sender_username: p.users?.username || 'Unknown',
+          });
+        }
+      }
+    }
+
     return messages.map((m: any) => ({
       message_id: m.message_id,
       league_id: m.league_id,
@@ -419,6 +492,7 @@ export async function getMessagesForUser(
       visibility: m.visibility,
       is_important: m.is_important,
       parent_message_id: m.parent_message_id,
+      parent_message: m.parent_message_id ? parentMap.get(m.parent_message_id) || null : null,
       deep_link: m.deep_link,
       created_at: m.created_at,
       edited_at: m.edited_at,
@@ -427,6 +501,7 @@ export async function getMessagesForUser(
       sender_username: m.users?.username || 'Unknown',
       sender_role: senderRoles.get(m.sender_id) || null,
       is_read: readSet.has(m.message_id),
+      reactions: reactionsMap.get(m.message_id) || [],
     }));
   } catch (err) {
     console.error('Error in getMessagesForUser:', err);
@@ -917,4 +992,43 @@ export async function deleteCannedMessage(
     console.error('Error in deleteCannedMessage:', err);
     return false;
   }
+}
+
+// ============================================================================
+// Reactions
+// ============================================================================
+
+/**
+ * Toggle a reaction on a message.
+ * If the user already reacted with this emoji, remove it. Otherwise, add it.
+ */
+export async function toggleReaction(
+  messageId: string,
+  userId: string,
+  emoji: string
+): Promise<{ action: 'added' | 'removed' }> {
+  const supabase = getSupabaseServiceRole();
+
+  // Check if reaction already exists
+  const { data: existing } = await supabase
+    .from('message_reactions')
+    .select('reaction_id')
+    .eq('message_id', messageId)
+    .eq('user_id', userId)
+    .eq('emoji', emoji)
+    .maybeSingle();
+
+  if (existing) {
+    await supabase
+      .from('message_reactions')
+      .delete()
+      .eq('reaction_id', existing.reaction_id);
+    return { action: 'removed' };
+  }
+
+  await supabase
+    .from('message_reactions')
+    .insert({ message_id: messageId, user_id: userId, emoji });
+
+  return { action: 'added' };
 }

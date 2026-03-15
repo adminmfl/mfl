@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth/config';
-import { getMessagesForUser, sendMessage } from '@/lib/services/messages';
+import { getMessagesForUser, sendMessage, type MessageFilter } from '@/lib/services/messages';
 
 // ============================================================================
 // GET Handler - Fetch messages
@@ -28,11 +28,15 @@ export async function GET(
     const cursor = searchParams.get('cursor') || undefined;
     const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '50', 10) || 50, 1), 100);
     const teamId = searchParams.get('team_id') || undefined;
+    const filter = (searchParams.get('filter') as MessageFilter) || undefined;
+    const adminView = searchParams.get('admin_view') === 'true';
 
     const messages = await getMessagesForUser(leagueId, userId, {
       cursor,
       limit,
       teamId,
+      filter,
+      adminView,
     });
 
     return NextResponse.json({
@@ -69,7 +73,7 @@ export async function POST(
 
     const userId = session.user.id;
     const body = await request.json();
-    const { content, team_id, message_type, visibility, is_important, deep_link } = body;
+    const { content, team_id, message_type, visibility, is_important, deep_link, parent_message_id } = body;
 
     if (!content || typeof content !== 'string' || content.trim().length === 0) {
       return NextResponse.json(
@@ -84,6 +88,7 @@ export async function POST(
       messageType: message_type,
       visibility,
       isImportant: is_important,
+      parentMessageId: parent_message_id,
       deepLink: deep_link,
     });
 

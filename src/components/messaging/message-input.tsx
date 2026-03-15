@@ -9,6 +9,8 @@ import {
   Shield,
   Globe,
   Megaphone,
+  X,
+  Reply,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLeague } from '@/contexts/league-context';
@@ -23,6 +25,7 @@ import {
 import { cn } from '@/lib/utils';
 import { CannedMessagePicker } from './canned-message-picker';
 import { MentionDropdown, type MentionMember } from './mention-dropdown';
+import type { Message } from './message-bubble';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -33,6 +36,8 @@ type Visibility = 'all' | 'captains_only';
 interface MessageInputProps {
   leagueId: string;
   teamId?: string | null;
+  replyTo?: Message | null;
+  onCancelReply?: () => void;
   onMessageSent: () => void;
 }
 
@@ -43,6 +48,8 @@ interface MessageInputProps {
 export function MessageInput({
   leagueId,
   teamId,
+  replyTo,
+  onCancelReply,
   onMessageSent,
 }: MessageInputProps) {
   const { data: session } = useSession();
@@ -143,6 +150,7 @@ export function MessageInput({
         message_type: isAnnouncement ? 'announcement' : 'chat',
       };
       if (teamId) body.team_id = teamId;
+      if (replyTo) body.parent_message_id = replyTo.message_id;
 
       const res = await fetch(`/api/leagues/${leagueId}/messages`, {
         method: 'POST',
@@ -167,7 +175,7 @@ export function MessageInput({
     } finally {
       setSending(false);
     }
-  }, [content, sending, visibility, isImportant, isAnnouncement, teamId, leagueId, onMessageSent]);
+  }, [content, sending, visibility, isImportant, isAnnouncement, teamId, leagueId, replyTo, onMessageSent]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // If mention dropdown is visible, let it handle Enter/Tab/Arrow keys
@@ -190,6 +198,28 @@ export function MessageInput({
 
   return (
     <div className="border-t bg-background px-3 py-2 sm:px-4 sm:py-3">
+      {/* Reply preview */}
+      {replyTo && (
+        <div className="flex items-center gap-2 mb-2 px-2 py-1.5 rounded-lg bg-muted/50 border-l-2 border-blue-400">
+          <Reply className="size-3.5 text-blue-500 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <span className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 block">
+              {replyTo.sender_name || replyTo.sender_username || 'Unknown'}
+            </span>
+            <span className="text-[11px] text-muted-foreground line-clamp-1 block">
+              {replyTo.content}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={onCancelReply}
+            className="p-0.5 rounded hover:bg-accent text-muted-foreground"
+          >
+            <X className="size-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* Active modifiers */}
       {(visibility === 'captains_only' || isImportant || isAnnouncement) && (
         <div className="flex flex-wrap items-center gap-1.5 mb-2">

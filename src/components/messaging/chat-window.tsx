@@ -2,9 +2,12 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
-import { Loader2, MessageCircle } from 'lucide-react';
+import { Loader2, MessageCircle, Filter } from 'lucide-react';
+import { toast } from 'sonner';
 import { getSupabase } from '@/lib/supabase/client';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { MessageBubble, type Message } from './message-bubble';
 import { MessageInput } from './message-input';
 
@@ -15,6 +18,14 @@ import { MessageInput } from './message-input';
 const PAGE_LIMIT = 50;
 const FALLBACK_POLL_INTERVAL = 30_000; // 30s fallback if realtime fails
 
+type MessageFilter = 'all' | 'announcements' | 'important';
+
+const FILTER_OPTIONS: { value: MessageFilter; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'announcements', label: 'Announcements' },
+  { value: 'important', label: 'Important' },
+];
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -23,21 +34,26 @@ interface ChatWindowProps {
   leagueId: string;
   teamId?: string | null;
   teamName?: string;
+  adminView?: boolean;
 }
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-export function ChatWindow({ leagueId, teamId, teamName }: ChatWindowProps) {
+export function ChatWindow({ leagueId, teamId, teamName, adminView }: ChatWindowProps) {
   const { data: session } = useSession();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [realtimeActive, setRealtimeActive] = useState(false);
+  const [filter, setFilter] = useState<MessageFilter>('all');
+  const [replyTo, setReplyTo] = useState<Message | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const latestFetchRef = useRef(0);
+
+  const currentUserId = session?.user?.id;
 
   // -----------------------------------------------------------------------
   // Fetch messages (full reload from API)
@@ -51,6 +67,8 @@ export function ChatWindow({ leagueId, teamId, teamName }: ChatWindowProps) {
       try {
         const params = new URLSearchParams({ limit: String(PAGE_LIMIT) });
         if (teamId) params.set('team_id', teamId);
+        if (filter !== 'all') params.set('filter', filter);
+        if (adminView) params.set('admin_view', 'true');
 
         const res = await fetch(
           `/api/leagues/${leagueId}/messages?${params.toString()}`
@@ -68,7 +86,7 @@ export function ChatWindow({ leagueId, teamId, teamName }: ChatWindowProps) {
 
         // Mark unread messages as read
         const unread = incoming
-          .filter((m) => !m.is_read && m.sender_id !== session?.user?.id)
+          .filter((m) => !m.is_read && m.sender_id !== currentUserId)
           .map((m) => m.message_id);
 
         if (unread.length > 0) {
@@ -93,7 +111,7 @@ export function ChatWindow({ leagueId, teamId, teamName }: ChatWindowProps) {
         }
       }
     },
-    [leagueId, teamId, session?.user?.id]
+    [leagueId, teamId, currentUserId, filter, adminView]
   );
 
   // Initial fetch
@@ -176,15 +194,33 @@ export function ChatWindow({ leagueId, teamId, teamName }: ChatWindowProps) {
   // -----------------------------------------------------------------------
 
   const handleMessageSent = useCallback(() => {
+    setReplyTo(null);
     // Refetch immediately after sending (realtime will also catch it)
     fetchMessages(false);
   }, [fetchMessages]);
 
+  const handleReply = useCallback((msg: Message) => {
+    setReplyTo(msg);
+  }, []);
+
+  const handleReact = useCallback(async (messageId: string, emoji: string) => {
+    try {
+      const res = await fetch(`/api/leagues/${leagueId}/messages/reactions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message_id: messageId, emoji }),
+      });
+      if (!res.ok) throw new Error('Failed to react');
+      // Refetch to update reaction counts
+      fetchMessages(false);
+    } catch {
+      toast.error('Failed to add reaction');
+    }
+  }, [leagueId, fetchMessages]);
+
   // -----------------------------------------------------------------------
   // Render
   // -----------------------------------------------------------------------
-
-  const currentUserId = session?.user?.id;
 
   return (
     <div className="flex flex-col h-full">
@@ -193,8 +229,29 @@ export function ChatWindow({ leagueId, teamId, teamName }: ChatWindowProps) {
         <div className="flex items-center gap-2 border-b px-4 py-3 shrink-0">
           <MessageCircle className="size-4 text-muted-foreground" />
           <h2 className="text-sm font-semibold">{teamName}</h2>
+
+          {/* Filter tabs */}
+          <div className="ml-auto flex items-center gap-1">
+            <Filter className="size-3.5 text-muted-foreground mr-1" />
+            {FILTER_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setFilter(opt.value)}
+                className={cn(
+                  'text-[11px] px-2 py-1 rounded-full transition-colors',
+                  filter === opt.value
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-accent'
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
           {realtimeActive && (
-            <span className="ml-auto size-2 rounded-full bg-green-500" title="Live" />
+            <span className="size-2 rounded-full bg-green-500 shrink-0" title="Live" />
           )}
         </div>
       )}
@@ -224,9 +281,13 @@ export function ChatWindow({ leagueId, teamId, teamName }: ChatWindowProps) {
           {!loading && !error && messages.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <MessageCircle className="size-10 mb-3 opacity-30" />
-              <p className="text-sm font-medium">No messages yet</p>
+              <p className="text-sm font-medium">
+                {filter !== 'all' ? `No ${filter} messages` : 'No messages yet'}
+              </p>
               <p className="text-xs mt-1">
-                Be the first to start the conversation!
+                {filter !== 'all'
+                  ? 'Try switching to "All" to see all messages.'
+                  : 'Be the first to start the conversation!'}
               </p>
             </div>
           )}
@@ -238,6 +299,9 @@ export function ChatWindow({ leagueId, teamId, teamName }: ChatWindowProps) {
                 key={msg.message_id}
                 message={msg}
                 isOwn={msg.sender_id === currentUserId}
+                currentUserId={currentUserId}
+                onReply={handleReply}
+                onReact={handleReact}
               />
             ))}
 
@@ -249,6 +313,8 @@ export function ChatWindow({ leagueId, teamId, teamName }: ChatWindowProps) {
       <MessageInput
         leagueId={leagueId}
         teamId={teamId}
+        replyTo={replyTo}
+        onCancelReply={() => setReplyTo(null)}
         onMessageSent={handleMessageSent}
       />
     </div>
