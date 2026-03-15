@@ -11,6 +11,7 @@ import {
   Megaphone,
   X,
   Reply,
+  Dumbbell,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLeague } from '@/contexts/league-context';
@@ -58,6 +59,7 @@ export function MessageInput({
   const [visibility, setVisibility] = useState<Visibility>('all');
   const [isImportant, setIsImportant] = useState(false);
   const [isAnnouncement, setIsAnnouncement] = useState(false);
+  const [deepLink, setDeepLink] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -151,6 +153,7 @@ export function MessageInput({
       };
       if (teamId) body.team_id = teamId;
       if (replyTo) body.parent_message_id = replyTo.message_id;
+      if (deepLink) body.deep_link = deepLink;
 
       const res = await fetch(`/api/leagues/${leagueId}/messages`, {
         method: 'POST',
@@ -166,6 +169,7 @@ export function MessageInput({
       setContent('');
       setIsImportant(false);
       setIsAnnouncement(false);
+      setDeepLink(null);
       onMessageSent();
       textareaRef.current?.focus();
     } catch (err) {
@@ -175,7 +179,7 @@ export function MessageInput({
     } finally {
       setSending(false);
     }
-  }, [content, sending, visibility, isImportant, isAnnouncement, teamId, leagueId, replyTo, onMessageSent]);
+  }, [content, sending, visibility, isImportant, isAnnouncement, deepLink, teamId, leagueId, replyTo, onMessageSent]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // If mention dropdown is visible, let it handle Enter/Tab/Arrow keys
@@ -221,6 +225,23 @@ export function MessageInput({
       )}
 
       {/* Active modifiers */}
+      {/* Deep link preview */}
+      {deepLink && (
+        <div className="flex items-center gap-2 mb-2 px-2 py-1.5 rounded-lg bg-muted/50 border-l-2 border-green-400">
+          <Dumbbell className="size-3.5 text-green-500 shrink-0" />
+          <span className="text-[11px] text-muted-foreground flex-1 truncate">
+            Workout link attached
+          </span>
+          <button
+            type="button"
+            onClick={() => setDeepLink(null)}
+            className="p-0.5 rounded hover:bg-accent text-muted-foreground"
+          >
+            <X className="size-3.5" />
+          </button>
+        </div>
+      )}
+
       {(visibility === 'captains_only' || isImportant || isAnnouncement) && (
         <div className="flex flex-wrap items-center gap-1.5 mb-2">
           {isAnnouncement && (
@@ -250,6 +271,24 @@ export function MessageInput({
         {canSetVisibility && (
           <CannedMessagePicker leagueId={leagueId} onSelect={handleCannedSelect} />
         )}
+
+        {/* Link workout */}
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className={cn('size-8 shrink-0', deepLink && 'text-green-600 dark:text-green-400')}
+          title="Attach workout link"
+          onClick={() => {
+            if (deepLink) {
+              setDeepLink(null);
+            } else {
+              setDeepLink(`/leagues/${leagueId}/submit`);
+            }
+          }}
+        >
+          <Dumbbell className="size-4" />
+        </Button>
 
         {/* Textarea wrapper with mention dropdown */}
         <div className="relative flex-1">
