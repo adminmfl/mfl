@@ -108,12 +108,12 @@ export function GuidedTour() {
   const [dontShowAgain, setDontShowAgain] = useState(false);
   const [steps, setSteps] = useState<TourStep[]>(FALLBACK_STEPS);
 
-  // Fetch steps from DB
+  // Fetch steps from public API (not admin-only)
   useEffect(() => {
-    fetch('/api/admin/tour-steps')
+    fetch('/api/tour-steps')
       .then((res) => res.json())
       .then((json) => {
-        const dbSteps = (json.steps || []).filter((s: any) => s.is_active !== false);
+        const dbSteps = json.steps || [];
         if (dbSteps.length > 0) {
           setSteps(dbSteps);
         }

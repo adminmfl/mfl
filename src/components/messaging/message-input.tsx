@@ -40,6 +40,7 @@ interface MessageInputProps {
   replyTo?: Message | null;
   onCancelReply?: () => void;
   onMessageSent: () => void;
+  onOptimisticMessage?: (msg: Message) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -52,6 +53,7 @@ export function MessageInput({
   replyTo,
   onCancelReply,
   onMessageSent,
+  onOptimisticMessage,
 }: MessageInputProps) {
   const { data: session } = useSession();
   const { currentRole } = useLeague();
@@ -144,6 +146,33 @@ export function MessageInput({
     if (!trimmed || sending) return;
 
     setSending(true);
+
+    // Optimistic: show message immediately
+    if (onOptimisticMessage && session?.user) {
+      const optimistic: Message = {
+        message_id: `optimistic-${Date.now()}`,
+        league_id: leagueId,
+        team_id: teamId || null,
+        sender_id: session.user.id,
+        sender_name: session.user.name || '',
+        sender_username: session.user.name || '',
+        content: trimmed,
+        message_type: isAnnouncement ? 'announcement' : 'chat',
+        visibility,
+        is_important: isImportant,
+        is_read: true,
+        deep_link: deepLink || null,
+        parent_message_id: replyTo?.message_id || null,
+        parent_message: replyTo ? { sender_name: replyTo.sender_name || replyTo.sender_username || '', content: replyTo.content } : null,
+        created_at: new Date().toISOString(),
+        edited_at: null,
+        deleted_at: null,
+        reactions: [],
+        role: currentRole || 'player',
+      };
+      onOptimisticMessage(optimistic);
+    }
+
     try {
       const body: Record<string, unknown> = {
         content: trimmed,
@@ -267,6 +296,71 @@ export function MessageInput({
 
       {/* Input row */}
       <div className="flex items-end gap-2 relative">
+        {/* Target group dropdown (left side) */}
+        {(canSetVisibility || canMarkImportant || canAnnounce) && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className={cn(
+                  'h-8 shrink-0 gap-1 text-xs',
+                  (isAnnouncement || isImportant || visibility === 'captains_only') &&
+                    'border-amber-400 text-amber-600 dark:text-amber-400'
+                )}
+              >
+                {isAnnouncement ? (
+                  <><Megaphone className="size-3" /> Announcement</>
+                ) : visibility === 'captains_only' ? (
+                  <><Shield className="size-3" /> {currentRole === 'player' ? 'DM Captain' : 'Captains'}</>
+                ) : (
+                  <><Globe className="size-3" /> All</>
+                )}
+                <ChevronDown className="size-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-52">
+              {canAnnounce && (
+                <DropdownMenuItem
+                  onClick={() => setIsAnnouncement((v) => !v)}
+                  className={cn(isAnnouncement && 'bg-accent')}
+                >
+                  <Megaphone className="size-4 mr-2" />
+                  {isAnnouncement ? 'Switch to Chat' : 'Send as Announcement'}
+                </DropdownMenuItem>
+              )}
+              {canSetVisibility && (
+                <>
+                  <DropdownMenuItem
+                    onClick={() => setVisibility('all')}
+                    className={cn(visibility === 'all' && 'bg-accent')}
+                  >
+                    <Globe className="size-4 mr-2" />
+                    Visible to All
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setVisibility('captains_only')}
+                    className={cn(visibility === 'captains_only' && 'bg-accent')}
+                  >
+                    <Shield className="size-4 mr-2" />
+                    {currentRole === 'player' ? 'DM to Captain' : 'Captains Only'}
+                  </DropdownMenuItem>
+                </>
+              )}
+              {canMarkImportant && (
+                <DropdownMenuItem
+                  onClick={() => setIsImportant((v) => !v)}
+                  className={cn(isImportant && 'bg-accent')}
+                >
+                  <AlertTriangle className="size-4 mr-2" />
+                  {isImportant ? 'Unmark Important' : 'Mark as Important'}
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+
         {/* Canned messages */}
         {canSetVisibility && (
           <CannedMessagePicker leagueId={leagueId} onSelect={handleCannedSelect} />
@@ -316,68 +410,6 @@ export function MessageInput({
             disabled={sending}
           />
         </div>
-
-        {/* Visibility / important / announcement toggles */}
-        {(canSetVisibility || canMarkImportant || canAnnounce) && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  'size-8 shrink-0',
-                  (isAnnouncement || isImportant || visibility === 'captains_only') &&
-                    'text-amber-600 dark:text-amber-400'
-                )}
-              >
-                <ChevronDown className="size-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52">
-              {canAnnounce && (
-                <DropdownMenuItem
-                  onClick={() => setIsAnnouncement((v) => !v)}
-                  className={cn(isAnnouncement && 'bg-accent')}
-                >
-                  <Megaphone className="size-4 mr-2" />
-                  {isAnnouncement ? 'Switch to Chat' : 'Send as Announcement'}
-                </DropdownMenuItem>
-              )}
-              {canSetVisibility && (
-                <>
-                  <DropdownMenuItem
-                    onClick={() => setVisibility('all')}
-                    className={cn(
-                      visibility === 'all' && 'bg-accent'
-                    )}
-                  >
-                    <Globe className="size-4 mr-2" />
-                    Visible to All
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => setVisibility('captains_only')}
-                    className={cn(
-                      visibility === 'captains_only' && 'bg-accent'
-                    )}
-                  >
-                    <Shield className="size-4 mr-2" />
-                    {currentRole === 'player' ? 'DM to Captain' : 'Captains Only'}
-                  </DropdownMenuItem>
-                </>
-              )}
-              {canMarkImportant && (
-                <DropdownMenuItem
-                  onClick={() => setIsImportant((v) => !v)}
-                  className={cn(isImportant && 'bg-accent')}
-                >
-                  <AlertTriangle className="size-4 mr-2" />
-                  {isImportant ? 'Unmark Important' : 'Mark as Important'}
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
 
         {/* Send */}
         <Button

@@ -1393,12 +1393,11 @@ export default function LeagueDashboardPage({
 
       {/* League Information */}
       <div className="px-4 lg:px-6">
-        <div className="mb-4">
-          <h2 className="text-lg font-semibold">League Information</h2>
-          <p className="text-sm text-muted-foreground">Configuration and settings overview</p>
-        </div>
-
         <div className="rounded-lg border">
+          <div className="p-4 border-b">
+            <h2 className="text-lg font-semibold">League Information</h2>
+            <p className="text-sm text-muted-foreground">Configuration and settings overview</p>
+          </div>
           {/* Progress Bar (for launched/active leagues) */}
           {(league.status === 'active' || league.status === 'launched') && (
             <div className="p-4 border-b">

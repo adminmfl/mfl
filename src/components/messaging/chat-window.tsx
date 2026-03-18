@@ -2,11 +2,17 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
-import { Loader2, MessageCircle, Filter } from 'lucide-react';
+import { Loader2, MessageCircle, Filter, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSupabase } from '@/lib/supabase/client';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { MessageBubble, type Message } from './message-bubble';
 import { MessageInput } from './message-input';
@@ -232,24 +238,28 @@ export function ChatWindow({ leagueId, teamId, teamName, adminView }: ChatWindow
           <MessageCircle className="size-4 text-muted-foreground" />
           <h2 className="text-sm font-semibold">{teamName}</h2>
 
-          {/* Filter tabs */}
-          <div className="ml-auto flex items-center gap-1">
-            <Filter className="size-3.5 text-muted-foreground mr-1" />
-            {FILTER_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setFilter(opt.value)}
-                className={cn(
-                  'text-[11px] px-2 py-1 rounded-full transition-colors',
-                  filter === opt.value
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-accent'
-                )}
-              >
-                {opt.label}
-              </button>
-            ))}
+          {/* Filter dropdown */}
+          <div className="ml-auto">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-7 gap-1.5 text-xs">
+                  <Filter className="size-3" />
+                  {FILTER_OPTIONS.find((o) => o.value === filter)?.label ?? 'All'}
+                  <ChevronDown className="size-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-40">
+                {FILTER_OPTIONS.map((opt) => (
+                  <DropdownMenuItem
+                    key={opt.value}
+                    onClick={() => setFilter(opt.value)}
+                    className={cn(filter === opt.value && 'bg-accent')}
+                  >
+                    {opt.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {realtimeActive && (
@@ -318,6 +328,9 @@ export function ChatWindow({ leagueId, teamId, teamName, adminView }: ChatWindow
         replyTo={replyTo}
         onCancelReply={() => setReplyTo(null)}
         onMessageSent={handleMessageSent}
+        onOptimisticMessage={(msg) => {
+          setMessages((prev) => [...prev, msg]);
+        }}
       />
     </div>
   );

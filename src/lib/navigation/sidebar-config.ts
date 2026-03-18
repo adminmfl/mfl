@@ -324,9 +324,9 @@ export function getMobileTabItems(
         icon: BarChart3,
       },
       {
-        title: 'Submit',
-        url: leagueUrl('/submit'),
-        icon: Dumbbell,
+        title: 'Team Chat',
+        url: leagueUrl('/messages'),
+        icon: MessageCircle,
       }
     );
     if (role === 'captain') {
