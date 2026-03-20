@@ -55,6 +55,9 @@ import { DynamicReportDialog } from '@/components/leagues/dynamic-report-dialog'
 import { SubmissionDetailDialog } from '@/components/submissions';
 import { WhatsAppReminderButton } from '@/components/league/whatsapp-reminder-button';
 import { useRouter } from 'next/navigation';
+import { CoachNudgeCards } from '@/components/ai-coach/coach-nudge-cards';
+import { CoachChatWidget } from '@/components/ai-coach/coach-chat-widget';
+import { CaptainIntelPanel } from '@/components/ai-coach/captain-intel-panel';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -1391,6 +1394,18 @@ export default function LeagueDashboardPage({
         </Link>
       </div>
 
+      {/* AI Coach Nudges */}
+      <div className="px-4 lg:px-6">
+        <CoachNudgeCards leagueId={id} />
+      </div>
+
+      {/* Captain Intelligence (captains only) */}
+      {(activeRole === 'captain') && (
+        <div className="px-4 lg:px-6">
+          <CaptainIntelPanel leagueId={id} />
+        </div>
+      )}
+
       {/* League Information */}
       <div className="px-4 lg:px-6">
         <div className="rounded-lg border">
@@ -1491,6 +1506,9 @@ export default function LeagueDashboardPage({
           </div>
         </div>
       </div>
+
+      {/* AI Coach Chat Widget (floating) */}
+      <CoachChatWidget leagueId={id} />
     </div>
   );
 }
