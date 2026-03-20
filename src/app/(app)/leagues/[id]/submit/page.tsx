@@ -2117,7 +2117,7 @@ export default function SubmitActivityPage({
           </DialogHeader>
 
           {(submittedData?.rr_value || submittedData?.isRestDay) && (
-            <div className="flex justify-center py-2">
+            <div className="flex justify-center gap-3 py-2">
               <div className={cn(
                 "inline-flex items-center gap-2 px-5 py-2.5 rounded-full border",
                 submittedData?.isExemption
@@ -2131,7 +2131,15 @@ export default function SubmitActivityPage({
                   +{submittedData?.rr_value?.toFixed(1) || '1.0'}
                 </span>
                 <span className="text-sm text-muted-foreground">
-                  RR points {submittedData?.isExemption && '(if approved)'}
+                  RR {submittedData?.isExemption && '(if approved)'}
+                </span>
+              </div>
+              <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border bg-gradient-to-r from-purple-500/10 to-indigo-500/10 border-purple-500/20">
+                <span className="text-2xl font-bold text-purple-600">
+                  +{submittedData?.points_per_session ?? 1}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  point{(submittedData?.points_per_session ?? 1) !== 1 ? 's' : ''}
                 </span>
               </div>
             </div>

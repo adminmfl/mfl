@@ -412,19 +412,35 @@ async function getRankings(
     const memberIds = allMembers.map(m => m.league_member_id);
 
     // Get all approved entries for scoring
-    // LOGIC MATCH: Same as /api/leagues/[id]/leaderboard
-    // 1 point per approved entry
+    // LOGIC MATCH: Same as /api/leagues/[id]/leaderboard — use points_per_session from leagueactivities
     const { data: allEntries } = await supabase
         .from('effortentry')
-        .select('league_member_id, rr_value')
+        .select('league_member_id, rr_value, workout_type')
         .eq('status', 'approved')
         .in('league_member_id', memberIds);
 
-    // Calculate points per member (1 point per entry)
+    // Fetch activity points configuration for this league
+    const activityPointsMap = new Map<string, number>();
+    const { data: laRows } = await supabase
+        .from('leagueactivities')
+        .select('activity_id, custom_activity_id, points_per_session, activities(activity_name)')
+        .eq('league_id', leagueId);
+    for (const row of (laRows || [])) {
+        const pts = (row as any).points_per_session ?? 1;
+        if ((row as any).activities?.activity_name) {
+            activityPointsMap.set((row as any).activities.activity_name, pts);
+        }
+        if (row.custom_activity_id) {
+            activityPointsMap.set(row.custom_activity_id, pts);
+        }
+    }
+
+    // Calculate points per member using configured points_per_session
     const memberPoints = new Map<string, number>();
     for (const entry of (allEntries || [])) {
         const current = memberPoints.get(entry.league_member_id) || 0;
-        memberPoints.set(entry.league_member_id, current + 1); // 1 point per approved entry
+        const pts = (entry as any).workout_type ? (activityPointsMap.get((entry as any).workout_type) ?? 1) : 1;
+        memberPoints.set(entry.league_member_id, current + pts);
     }
 
     // Map user_id to points
