@@ -671,6 +671,14 @@ export default function LeagueDashboardPage({
               }
             }
 
+            // Extract individual points from leaderboard (respects points_per_session config)
+            const individuals: Array<{ user_id: string; points?: number }> =
+              leaderboardData?.data?.individuals || [];
+            const myIndividual = individuals.find((i) => String(i.user_id) === String(user?.id));
+            if (myIndividual && typeof myIndividual.points === 'number') {
+              points = myIndividual.points;
+            }
+
             // Individual stats: challenge points are no longer added to individual totals.
             // Individual players only see activity points - all challenge points go to team.
             // totalPoints for individual = activity points only

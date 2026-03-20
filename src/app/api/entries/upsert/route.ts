@@ -392,7 +392,7 @@ export async function POST(req: NextRequest) {
         // Custom activity — lookup by custom_activity_id
         const { data, error } = await supabase
           .from('leagueactivities')
-          .select('proof_requirement, notes_requirement, points_per_session, outcome_config')
+          .select('proof_requirement, notes_requirement, points_per_session, outcome_config, min_value')
           .eq('league_id', league_id)
           .eq('custom_activity_id', workout_type)
           .maybeSingle();
@@ -404,7 +404,7 @@ export async function POST(req: NextRequest) {
         // Global activity — lookup by activity name via join
         const { data, error } = await supabase
           .from('leagueactivities')
-          .select('proof_requirement, notes_requirement, points_per_session, outcome_config, activities!inner(activity_name)')
+          .select('proof_requirement, notes_requirement, points_per_session, outcome_config, min_value, activities!inner(activity_name)')
           .eq('league_id', league_id)
           .eq('activities.activity_name', workout_type)
           .maybeSingle();
@@ -416,6 +416,11 @@ export async function POST(req: NextRequest) {
         activityNotesRequirement = activityConfigRow.notes_requirement ?? 'optional';
         activityPointsPerSession = activityConfigRow.points_per_session ?? 1;
         activityOutcomeConfig = activityConfigRow.outcome_config ?? null;
+
+        // Use league-configured minimum duration instead of hardcoded default
+        if (typeof activityConfigRow.min_value === 'number' && activityConfigRow.min_value > 0) {
+          baseDuration = activityConfigRow.min_value;
+        }
       }
     }
 
@@ -607,7 +612,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({
           success: true,
-          data: updated,
+          data: { ...updated, points_per_session: activityPointsPerSession },
           updated: true,
           replacedRejected: canReplaceRejected,
           overwritten: !!overwrite
@@ -643,7 +648,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: created,
+      data: { ...created, points_per_session: activityPointsPerSession },
       created: true
     });
   } catch (error) {

@@ -91,6 +91,36 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Fetch league-configured min_value for this activity to override baseDuration
+    if (workout_type && league_id) {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(workout_type);
+      let configRow: any = null;
+
+      if (isUuid) {
+        const { data } = await supabase
+          .from('leagueactivities')
+          .select('min_value')
+          .eq('league_id', league_id)
+          .eq('custom_activity_id', workout_type)
+          .maybeSingle();
+        if (data) configRow = data;
+      }
+
+      if (!configRow) {
+        const { data } = await supabase
+          .from('leagueactivities')
+          .select('min_value, activities!inner(activity_name)')
+          .eq('league_id', league_id)
+          .eq('activities.activity_name', workout_type)
+          .maybeSingle();
+        if (data) configRow = data;
+      }
+
+      if (configRow && typeof configRow.min_value === 'number' && configRow.min_value > 0) {
+        baseDuration = configRow.min_value;
+      }
+    }
+
     let rr_value = 0;
 
     if (type === 'rest') {
