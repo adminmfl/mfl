@@ -136,36 +136,55 @@ export async function GET(
     const memberIds = members.map((m) => m.league_member_id);
 
     // Build query for all submissions
-    let query = supabase
-      .from('effortentry')
-      .select(`
-        id,
-        league_member_id,
-        date,
-        type,
-        workout_type,
-        duration,
-        distance,
-        steps,
-        holes,
-        rr_value,
-        status,
-        proof_url,
-        notes,
-        created_date,
-        modified_date,
-        reupload_of,
-        rejection_reason
-      `)
-      .in('league_member_id', memberIds)
-      .order('date', { ascending: false });
+    // Supabase JS client defaults to 1000 rows. Paginate in chunks to fetch ALL entries.
+    const PAGE_SIZE = 1000;
+    let submissions: any[] = [];
+    let submissionsError: any = null;
 
-    // Apply optional status filter
-    if (status) {
-      query = query.eq('status', status);
+    {
+      let page = 0;
+      let hasMore = true;
+      while (hasMore) {
+        let query = supabase
+          .from('effortentry')
+          .select(`
+            id,
+            league_member_id,
+            date,
+            type,
+            workout_type,
+            duration,
+            distance,
+            steps,
+            holes,
+            rr_value,
+            status,
+            proof_url,
+            notes,
+            created_date,
+            modified_date,
+            reupload_of,
+            rejection_reason
+          `)
+          .in('league_member_id', memberIds)
+          .order('date', { ascending: false });
+
+        if (status) {
+          query = query.eq('status', status);
+        }
+
+        query = query.range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+
+        const { data, error } = await query;
+        if (error) {
+          submissionsError = error;
+          break;
+        }
+        submissions = submissions.concat(data || []);
+        hasMore = (data?.length || 0) === PAGE_SIZE;
+        page++;
+      }
     }
-
-    const { data: submissions, error: submissionsError } = await query;
 
     if (submissionsError) {
       console.error('Error fetching submissions:', submissionsError);
