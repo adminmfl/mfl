@@ -12,6 +12,8 @@ import {
   X,
   Reply,
   Dumbbell,
+  Zap,
+  Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLeague } from '@/contexts/league-context';
@@ -63,6 +65,7 @@ export function MessageInput({
   const [isAnnouncement, setIsAnnouncement] = useState(false);
   const [deepLink, setDeepLink] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [motivating, setMotivating] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Mention state
@@ -76,6 +79,31 @@ export function MessageInput({
   const canSetVisibility = true;
   const canMarkImportant = isHostOrGovernor;
   const canAnnounce = isHostOrGovernor;
+  const isCaptain = currentRole === 'captain';
+
+  // Motivate Team — AI-generated message for captains
+  const handleMotivateTeam = useCallback(async () => {
+    if (!teamId) return;
+    setMotivating(true);
+    try {
+      const res = await fetch(`/api/leagues/${leagueId}/ai-motivate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ teamId }),
+      });
+      const json = await res.json();
+      if (json.success && json.message) {
+        setContent(json.message);
+        textareaRef.current?.focus();
+      } else {
+        toast.error(json.error || 'Failed to generate message');
+      }
+    } catch {
+      toast.error('Failed to generate motivational message');
+    } finally {
+      setMotivating(false);
+    }
+  }, [leagueId, teamId]);
 
   // -------------------------------------------------------------------------
   // Mention detection
@@ -364,6 +392,22 @@ export function MessageInput({
         {/* Canned messages */}
         {canSetVisibility && (
           <CannedMessagePicker leagueId={leagueId} onSelect={handleCannedSelect} />
+        )}
+
+        {/* AI Motivate Team — captain only */}
+        {isCaptain && teamId && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="shrink-0 text-xs gap-1 h-8 px-2"
+            disabled={motivating}
+            onClick={handleMotivateTeam}
+            title="AI-generated team motivation message"
+          >
+            {motivating ? <Loader2 className="size-3.5 animate-spin" /> : <Zap className="size-3.5" />}
+            <span className="hidden sm:inline">Motivate</span>
+          </Button>
         )}
 
         {/* Link workout */}

@@ -26,6 +26,7 @@ import {
   Moon,
   Gift,
   Eye,
+  Sparkles,
 } from 'lucide-react';
 
 import { useLeague } from '@/contexts/league-context';
@@ -55,9 +56,7 @@ import { DynamicReportDialog } from '@/components/leagues/dynamic-report-dialog'
 import { SubmissionDetailDialog } from '@/components/submissions';
 import { WhatsAppReminderButton } from '@/components/league/whatsapp-reminder-button';
 import { useRouter } from 'next/navigation';
-import { CoachNudgeCards } from '@/components/ai-coach/coach-nudge-cards';
-import { CoachChatWidget } from '@/components/ai-coach/coach-chat-widget';
-import { CaptainIntelPanel } from '@/components/ai-coach/captain-intel-panel';
+import { useAiInsights } from '@/hooks/use-ai-insights';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -188,6 +187,14 @@ export default function LeagueDashboardPage({
 
 
   const { user } = useAuth();
+
+  // AI inline insights
+  const { insights: aiInsights } = useAiInsights(id, 'my_activity', [
+    'welcome_text',
+    'coach_insight',
+    'stat_label_rr',
+    'stat_label_missed',
+  ]);
 
   const [mySummary, setMySummary] = React.useState<{
     points: number; // approved workout points
@@ -856,7 +863,9 @@ export default function LeagueDashboardPage({
               </div>
             )}
           </div>
-          <p className="text-muted-foreground">Add today's effort. Push your team forward.</p>
+          <p className="text-muted-foreground">
+            {aiInsights.welcome_text || "Add today's effort. Push your team forward."}
+          </p>
           {isTrialPeriod && (
             <Badge className="mt-2 bg-amber-50 text-amber-700 border-amber-200">
               Trial Period
@@ -1015,6 +1024,12 @@ export default function LeagueDashboardPage({
                 </Link>
               </Button>
             </div>
+            {aiInsights.coach_insight && (
+              <p className="text-xs text-muted-foreground mt-1.5 px-1 flex items-center gap-1">
+                <Sparkles className="size-3 text-primary/60 shrink-0" />
+                {aiInsights.coach_insight}
+              </p>
+            )}
           </div>
           <div className="px-4 lg:px-6 mt-2">
             <Card className="py-4 gap-2">
@@ -1066,6 +1081,9 @@ export default function LeagueDashboardPage({
                         ? mySummary.avgRR.toFixed(2)
                         : '—'}
                     </div>
+                    {aiInsights.stat_label_rr && (
+                      <div className="text-[10px] text-amber-600 mt-0.5">{aiInsights.stat_label_rr}</div>
+                    )}
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -1090,6 +1108,9 @@ export default function LeagueDashboardPage({
                     <div className="text-sm font-semibold text-foreground tabular-nums">
                       {mySummary?.missedDays.toLocaleString() ?? '—'}
                     </div>
+                    {aiInsights.stat_label_missed && (
+                      <div className="text-[10px] text-red-500 mt-0.5">{aiInsights.stat_label_missed}</div>
+                    )}
                   </div>
                   <div
                     className={`rounded-md border border-border/60 px-3 py-2.5 text-center ${rejectedCount > 0 ? 'bg-destructive/10 dark:bg-destructive/20' : 'bg-muted/40'
@@ -1402,18 +1423,6 @@ export default function LeagueDashboardPage({
         </Link>
       </div>
 
-      {/* AI Coach Nudges */}
-      <div className="px-4 lg:px-6">
-        <CoachNudgeCards leagueId={id} />
-      </div>
-
-      {/* Captain Intelligence (captains only) */}
-      {(activeRole === 'captain') && (
-        <div className="px-4 lg:px-6">
-          <CaptainIntelPanel leagueId={id} />
-        </div>
-      )}
-
       {/* League Information */}
       <div className="px-4 lg:px-6">
         <div className="rounded-lg border">
@@ -1515,8 +1524,6 @@ export default function LeagueDashboardPage({
         </div>
       </div>
 
-      {/* AI Coach Chat Widget (floating) */}
-      <CoachChatWidget leagueId={id} />
     </div>
   );
 }
