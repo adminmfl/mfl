@@ -198,7 +198,7 @@ export async function GET(req: NextRequest) {
     // Step 1: Get all active leagues with auto_rest_day_enabled = true
     const { data: enabledLeagues, error: leaguesError } = await supabase
       .from('leagues')
-      .select('league_id, rest_days, status')
+      .select('league_id, rest_days, status, start_date, end_date')
       .eq('auto_rest_day_enabled', true)
       .eq('is_active', true)
       .in('status', ['active']);
@@ -251,6 +251,22 @@ export async function GET(req: NextRequest) {
         try {
           // Calculate yesterday in league's timezone
           const yesterdayStr = getYesterdayInTimezone(leagueTimezoneOffset);
+
+          // Skip if yesterday is before league start date (prevents pre-start rest days)
+          if (league.start_date && yesterdayStr < league.start_date) {
+            logCron('SKIP_PRE_START', {
+              league: league.league_id,
+              member: member.league_member_id,
+              yesterday: yesterdayStr,
+              startDate: league.start_date,
+            });
+            continue;
+          }
+
+          // Skip if yesterday is after league end date
+          if (league.end_date && yesterdayStr > league.end_date) {
+            continue;
+          }
 
           // Check if member already has entry for yesterday
           const hasEntry = await hasEntryForDate(member.league_member_id, yesterdayStr);

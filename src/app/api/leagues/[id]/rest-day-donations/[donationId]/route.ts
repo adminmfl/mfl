@@ -2,9 +2,10 @@
  * REST API for Individual Rest Day Donation
  * PATCH: Approve or reject a donation
  * 
- * Two-stage approval flow:
- * 1. Captain approves: pending → captain_approved
- * 2. Governor/Host approves: captain_approved → approved
+ * Approval flow:
+ * - Captain approves: pending → captain_approved (still needs host/governor)
+ * - Governor/Host approves captain_approved → approved
+ * - Governor/Host can also approve pending → approved directly (captain optional)
  * Either can reject at any stage.
  */
 
@@ -177,13 +178,13 @@ export async function PATCH(
                     final_approved_at: new Date().toISOString(),
                 };
             }
-            // Governor/Host can also do direct approval for pending if no captain in team
+            // Governor/Host can directly approve pending donations (captain approval is optional)
             else if (isGovernorOrHost && currentStatus === 'pending') {
                 canAct = true;
-                newStatus = 'captain_approved';
+                newStatus = 'approved';
                 updateFields = {
-                    captain_approved_by: userId,
-                    captain_approved_at: new Date().toISOString(),
+                    final_approved_by: userId,
+                    final_approved_at: new Date().toISOString(),
                 };
             }
         }
