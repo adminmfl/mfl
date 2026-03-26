@@ -195,13 +195,15 @@ export async function GET(req: NextRequest) {
     let totalAssigned = 0;
     let totalProcessed = 0;
 
-    // Step 1: Get all active leagues with auto_rest_day_enabled = true
+    // Step 1: Get leagues with auto_rest_day_enabled = true
+    // Include scheduled/launched — DB status may not reflect derived 'active' status.
+    // The start_date/end_date guards below handle date-range filtering.
     const { data: enabledLeagues, error: leaguesError } = await supabase
       .from('leagues')
       .select('league_id, rest_days, status, start_date, end_date')
       .eq('auto_rest_day_enabled', true)
       .eq('is_active', true)
-      .in('status', ['active']);
+      .in('status', ['active', 'scheduled', 'launched']);
 
     if (leaguesError) {
       console.error('Error fetching leagues with auto rest enabled:', leaguesError);
