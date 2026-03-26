@@ -466,89 +466,23 @@ export default function ConfigureChallengesPage({ params }: { params: Promise<{ 
             toast.error('Start date and end date are required');
             return;
         }
-        if (!pricing?.per_day_rate) {
-            toast.error('Pricing not available');
-            return;
-        }
-        const base = (finishDays || 0) * (pricing.per_day_rate || 0);
-        const taxPercent = pricing.tax != null ? pricing.tax : 0;
-        const amount = base + (taxPercent / 100) * base;
-        if (!amount || amount <= 0) {
-            toast.error('Amount is invalid');
-            return;
-        }
         setFinishing(true);
         try {
-            const orderRes = await fetch('/api/payments/challenge-order', {
-                method: 'POST',
+            const payload = { startDate: finishStart, endDate: finishEnd };
+            const patchRes = await fetch(`/api/leagues/${leagueId}/challenges/${finishChallenge.id}`, {
+                method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    leagueId,
-                    challengeId: finishChallenge.id,
-                    startDate: finishStart,
-                    endDate: finishEnd,
-                }),
+                body: JSON.stringify(payload),
             });
-
-            const orderJson = await orderRes.json();
-            if (!orderRes.ok || orderJson.error) {
-                throw new Error(orderJson.error || 'Failed to start payment');
+            const patchJson = await patchRes.json();
+            if (!patchRes.ok || !patchJson.success) {
+                throw new Error(patchJson.error || 'Failed to activate challenge');
             }
 
-            const Razorpay = await loadRazorpay();
-            if (!Razorpay) throw new Error('Razorpay unavailable');
-
-            const options = {
-                key: orderJson.keyId,
-                amount: orderJson.amount,
-                currency: orderJson.currency || 'INR',
-                name: 'Challenge Activation',
-                description: finishChallenge.name,
-                order_id: orderJson.orderId,
-                notes: { leagueId, challengeId: finishChallenge.id },
-                handler: async (response: any) => {
-                    try {
-                        const verifyRes = await fetch('/api/payments/verify', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                orderId: response.razorpay_order_id,
-                                paymentId: response.razorpay_payment_id,
-                                signature: response.razorpay_signature,
-                            }),
-                        });
-                        const verifyJson = await verifyRes.json();
-                        if (!verifyRes.ok || verifyJson.error) {
-                            throw new Error(verifyJson.error || 'Payment verification failed');
-                        }
-
-                        const payload = { startDate: finishStart, endDate: finishEnd };
-                        const patchRes = await fetch(`/api/leagues/${leagueId}/challenges/${finishChallenge.id}`, {
-                            method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(payload),
-                        });
-                        const patchJson = await patchRes.json();
-                        if (!patchRes.ok || !patchJson.success) {
-                            throw new Error(patchJson.error || 'Failed to update challenge after payment');
-                        }
-
-                        toast.success('Payment successful. Challenge activated.');
-                        setFinishOpen(false);
-                        setFinishChallenge(null);
-                        fetchChallenges();
-                    } catch (err: any) {
-                        toast.error(err?.message || 'Payment succeeded but activation failed');
-                    }
-                },
-                theme: { color: '#0F172A' },
-            } as any;
-
-            const rzp = new Razorpay(options);
-            rzp.on('payment.failed', (resp: any) => {
-                toast.error(resp?.error?.description || 'Payment failed');
-            });
-            rzp.open();
+            toast.success('Challenge activated.');
+            setFinishOpen(false);
+            setFinishChallenge(null);
+            fetchChallenges();
         } catch (err) {
             toast.error(err instanceof Error ? err.message : 'Failed to finish setup');
         } finally {
@@ -904,21 +838,41 @@ export default function ConfigureChallengesPage({ params }: { params: Promise<{ 
                                             size="sm"
                                             variant="outline"
                                             onClick={() => handleOpenReview(challenge)}
-                                            disabled={challenge.status !== 'submission_closed' && challenge.status !== 'published'}
-                                            title={['submission_closed', 'published'].includes(challenge.status) ? '' : 'Reviews open after submissions close'}
+                                            disabled={
+                                                challenge.challenge_type === 'team'
+                                                    ? challenge.status === 'draft'
+                                                    : challenge.status !== 'submission_closed' && challenge.status !== 'published'
+                                            }
+                                            title={
+                                                challenge.challenge_type === 'team'
+                                                    ? 'Assign team scores'
+                                                    : ['submission_closed', 'published'].includes(challenge.status) ? '' : 'Reviews open after submissions close'
+                                            }
                                         >
-                                            Review
+                                            {challenge.challenge_type === 'team' ? 'Assign Scores' : 'Review'}
                                         </Button>
                                     )}
 
-                                    {challenge.status === 'submission_closed' && challenge.challenge_type !== 'tournament' && (
-                                        <Button
-                                            size="sm"
-                                            onClick={() => handlePublish(challenge)}
-                                            disabled={publishingId === challenge.id || (challenge.stats?.pending ?? 0) > 0}
-                                        >
-                                            {publishingId === challenge.id ? 'Publishing...' : 'Publish Scores'}
-                                        </Button>
+                                    {challenge.challenge_type !== 'tournament' && (
+                                        challenge.challenge_type === 'team'
+                                            ? challenge.status !== 'draft' && challenge.status !== 'published' && (
+                                                <Button
+                                                    size="sm"
+                                                    onClick={() => handlePublish(challenge)}
+                                                    disabled={publishingId === challenge.id}
+                                                >
+                                                    {publishingId === challenge.id ? 'Publishing...' : 'Publish Scores'}
+                                                </Button>
+                                            )
+                                            : challenge.status === 'submission_closed' && (
+                                                <Button
+                                                    size="sm"
+                                                    onClick={() => handlePublish(challenge)}
+                                                    disabled={publishingId === challenge.id || (challenge.stats?.pending ?? 0) > 0}
+                                                >
+                                                    {publishingId === challenge.id ? 'Publishing...' : 'Publish Scores'}
+                                                </Button>
+                                            )
                                     )}
 
                                     {challenge.status === 'published' && challenge.challenge_type === 'tournament' && (
@@ -1371,17 +1325,10 @@ export default function ConfigureChallengesPage({ params }: { params: Promise<{ 
                             <Input type="date" value={finishEnd} onChange={(e) => setFinishEnd(e.target.value)} />
                         </div>
                     </div>
-                    {finishDays > 0 && pricing?.per_day_rate && (
-                        <div className="rounded-lg border p-3 text-sm space-y-1">
-                            <p>Duration: {finishDays} days</p>
-                            <p>Rate: ₹{pricing.per_day_rate}/day</p>
-                            <p className="font-semibold">Total: ₹{finishAmount.toFixed(2)}</p>
-                        </div>
-                    )}
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setFinishOpen(false)}>Cancel</Button>
                         <Button onClick={handleFinishSubmit} disabled={finishing}>
-                            {finishing ? 'Processing...' : 'Pay & Activate'}
+                            {finishing ? 'Activating...' : 'Activate Challenge'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

@@ -128,23 +128,83 @@ export async function POST(
       return buildError('Challenge scores are already published', 400);
     }
 
-    if (effectiveStatus !== 'submission_closed') {
+    // Team challenges can be published anytime (host enters scores directly)
+    // Other types require submissions to be closed first
+    if (challenge.challenge_type !== 'team' && effectiveStatus !== 'submission_closed') {
       return buildError('Publishing is allowed only after submissions have closed', 400);
     }
 
-    const { count: pendingCount, error: pendingError } = await supabase
-      .from('challenge_submissions')
-      .select('id', { count: 'exact', head: true })
-      .eq('league_challenge_id', challengeId)
-      .eq('status', 'pending');
+    if (challenge.challenge_type !== 'team') {
+      const { count: pendingCount, error: pendingError } = await supabase
+        .from('challenge_submissions')
+        .select('id', { count: 'exact', head: true })
+        .eq('league_challenge_id', challengeId)
+        .eq('status', 'pending');
 
-    if (pendingError) {
-      console.error('Error counting pending submissions:', pendingError);
-      return buildError('Failed to verify pending submissions', 500);
+      if (pendingError) {
+        console.error('Error counting pending submissions:', pendingError);
+        return buildError('Failed to verify pending submissions', 500);
+      }
+
+      if ((pendingCount || 0) > 0) {
+        return buildError('Review all pending submissions before publishing', 400);
+      }
     }
 
-    if ((pendingCount || 0) > 0) {
-      return buildError('Review all pending submissions before publishing', 400);
+    // Sub-team all-or-nothing: zero out points for incomplete sub-teams
+    if (challenge.challenge_type === 'sub_team') {
+      const { data: subteams } = await supabase
+        .from('challenge_subteams')
+        .select('subteam_id, name')
+        .eq('league_challenge_id', challengeId);
+
+      if (subteams && subteams.length > 0) {
+        for (const subteam of subteams) {
+          // Get all members of this sub-team
+          const { data: members } = await supabase
+            .from('challenge_subteam_members')
+            .select('league_member_id')
+            .eq('subteam_id', subteam.subteam_id);
+
+          if (!members || members.length === 0) continue;
+
+          const memberIds = members.map((m: any) => m.league_member_id);
+
+          // Check which members have approved submissions
+          const { data: approvedSubs } = await supabase
+            .from('challenge_submissions')
+            .select('league_member_id')
+            .eq('league_challenge_id', challengeId)
+            .eq('status', 'approved')
+            .in('league_member_id', memberIds);
+
+          const approvedMemberIds = new Set(
+            (approvedSubs || []).map((s: any) => String(s.league_member_id))
+          );
+
+          const allSubmitted = memberIds.every((id: string) =>
+            approvedMemberIds.has(String(id))
+          );
+
+          if (!allSubmitted) {
+            // Zero out awarded_points for all members of this incomplete sub-team
+            console.log(
+              `Sub-team "${subteam.name}" (${subteam.subteam_id}) incomplete — zeroing points for ${memberIds.length} members`
+            );
+
+            const { error: zeroError } = await supabase
+              .from('challenge_submissions')
+              .update({ awarded_points: 0 })
+              .eq('league_challenge_id', challengeId)
+              .eq('status', 'approved')
+              .in('league_member_id', memberIds);
+
+            if (zeroError) {
+              console.error('Error zeroing sub-team points:', zeroError);
+            }
+          }
+        }
+      }
     }
 
     const { data: updated, error: updateError } = await supabase
