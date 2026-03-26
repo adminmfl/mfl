@@ -201,6 +201,7 @@ export async function POST(
 
             if (zeroError) {
               console.error('Error zeroing sub-team points:', zeroError);
+              return buildError('Failed to apply sub-team scoring rules', 500);
             }
           }
         }
@@ -220,12 +221,18 @@ export async function POST(
       return buildError('Failed to publish scores', 500);
     }
 
-    await syncSpecialChallengeScores({
-      leagueChallengeId: challengeId,
-      challengeId: updated.challenge_id,
-      leagueId,
-      challengeType: updated.challenge_type,
-    });
+    try {
+      await syncSpecialChallengeScores({
+        leagueChallengeId: challengeId,
+        challengeId: updated.challenge_id,
+        leagueId,
+        challengeType: updated.challenge_type,
+      });
+    } catch (syncErr) {
+      // Publish succeeded but score sync failed — log but don't return 500
+      // so the client knows publish worked and can retry score sync separately
+      console.error('Score sync failed after publish:', syncErr);
+    }
 
     return NextResponse.json({ success: true, status: 'published' });
   } catch (err: any) {
