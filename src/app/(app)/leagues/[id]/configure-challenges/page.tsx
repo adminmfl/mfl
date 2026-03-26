@@ -135,7 +135,6 @@ export default function ConfigureChallengesPage({ params }: { params: Promise<{ 
     const [error, setError] = React.useState<string | null>(null);
     const [challenges, setChallenges] = React.useState<Challenge[]>([]);
     const [presets, setPresets] = React.useState<any[]>([]);
-    const [pricing, setPricing] = React.useState<{ pricing_id?: string | null; per_day_rate?: number | null; tax?: number | null; admin_markup?: number | null } | null>(null);
     const [selectedPresetId, setSelectedPresetId] = React.useState<string>('');
 
     // Create challenge dialog state
@@ -216,23 +215,6 @@ export default function ConfigureChallengesPage({ params }: { params: Promise<{ 
     const [tournamentFinalizeOpen, setTournamentFinalizeOpen] = React.useState(false);
     const [manageChallenge, setManageChallenge] = React.useState<Challenge | null>(null);
 
-    const finishDays = React.useMemo(() => {
-        if (!finishStart || !finishEnd) return 0;
-        const start = new Date(finishStart);
-        const end = new Date(finishEnd);
-        if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 0;
-        const diff = Math.floor((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000));
-        return diff >= 0 ? diff + 1 : 0;
-    }, [finishStart, finishEnd]);
-
-    const finishAmount = React.useMemo(() => {
-        if (!pricing?.per_day_rate || !finishDays) return 0;
-        const base = finishDays * (pricing.per_day_rate || 0);
-        const taxPercent = pricing.tax != null ? pricing.tax : 0;
-        const taxMultiplier = taxPercent / 100;
-        return base + taxMultiplier * base;
-    }, [pricing, finishDays]);
-
     const fetchChallenges = React.useCallback(async () => {
         setLoading(true);
         setError(null);
@@ -244,7 +226,6 @@ export default function ConfigureChallengesPage({ params }: { params: Promise<{ 
             }
             setChallenges(json.data?.active || []);
             setPresets(json.data?.availablePresets || []);
-            setPricing(json.data?.defaultPricing || null);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to load challenges');
         } finally {
@@ -259,20 +240,6 @@ export default function ConfigureChallengesPage({ params }: { params: Promise<{ 
     React.useEffect(() => {
         fetchTeams();
     }, [leagueId]);
-
-    // Utility to load Razorpay script lazily
-    const loadRazorpay = React.useCallback(async () => {
-        if (typeof window === 'undefined') return null;
-        if ((window as any).Razorpay) return (window as any).Razorpay;
-        await new Promise<void>((resolve, reject) => {
-            const script = document.createElement('script');
-            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-            script.onload = () => resolve();
-            script.onerror = () => reject(new Error('Failed to load Razorpay'));
-            document.body.appendChild(script);
-        });
-        return (window as any).Razorpay;
-    }, []);
 
     const handleActivatePreset = () => {
         const preset = presets.find((p) => p.id === selectedPresetId);

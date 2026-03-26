@@ -75,10 +75,14 @@ export async function POST(
 
             parentChallengeId = newParent.challenge_id;
 
-            await supabase
+            const { error: linkError } = await supabase
                 .from('leagueschallenges')
                 .update({ challenge_id: parentChallengeId })
                 .eq('id', challengeId);
+
+            if (linkError) {
+                return NextResponse.json({ success: false, error: 'Failed to link scoring system' }, { status: 500 });
+            }
         }
 
         // Upsert the team score
