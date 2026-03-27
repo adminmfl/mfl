@@ -360,7 +360,7 @@ export async function POST(req: NextRequest) {
     // will cause a "multiple rows" error and allow additional inserts.
     const { data: existingRows, error: existingError } = await supabase
       .from('effortentry')
-      .select('id, type, status, proof_url, created_date')
+      .select('id, type, status, proof_url, created_date, notes')
       .eq('league_member_id', membership.league_member_id)
       .eq('date', normalizedDate)
       .order('created_date', { ascending: false });
@@ -585,15 +585,44 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // If the only existing entry is an auto-assigned rest day and the user is now
+    // submitting a real workout, remove the auto rest day so the workout can be inserted.
+    // This handles late submissions where the cron already assigned a rest day.
+    if (
+      existing &&
+      !reupload_of &&
+      type === 'workout' &&
+      existing.type === 'rest' &&
+      (existingRows ?? []).length === 1 &&
+      typeof existing.notes === 'string' &&
+      existing.notes?.includes('Auto-assigned')
+    ) {
+      const { error: deleteAutoErr } = await supabase
+        .from('effortentry')
+        .delete()
+        .eq('id', existing.id);
+
+      if (deleteAutoErr) {
+        console.error('Failed to remove auto-assigned rest day for late submission:', deleteAutoErr);
+      } else {
+        // Clear the existing reference so the code below inserts fresh
+        existingRows!.length = 0;
+      }
+    }
+
+    const effectiveExisting = (existingRows ?? []).length > 0 ? existingRows![0] : null;
+    const effectiveHasNonRejected = (existingRows ?? []).some((r: any) => r?.status && r.status !== 'rejected');
+    const effectiveCanReplaceRejected = !!effectiveExisting && !effectiveHasNonRejected;
+
     // If an entry already exists for the day:
     // - If overwrite is true, allow updating regardless of status (unless it's a reupload flow)
     // - If this is a reupload (reupload_of is set), always create a new entry (handled below)
     // - Otherwise, block if any existing entry is pending/approved
     // - Allow update/replace only when previous submissions for that day are rejected
-    if (existing && !reupload_of) {
+    if (effectiveExisting && !reupload_of) {
       // Logic: Allow update if overwrite is requested OR if we are replacing a rejected entry
       // Note: overwrite flag comes from frontend when user confirms they want to update
-      if (overwrite || canReplaceRejected) {
+      if (overwrite || effectiveCanReplaceRejected) {
         const { data: updated, error: updateError } = await supabase
           .from('effortentry')
           .update({
@@ -601,7 +630,7 @@ export async function POST(req: NextRequest) {
             modified_by: userId,
             modified_date: new Date().toISOString(),
           })
-          .eq('id', existing.id)
+          .eq('id', effectiveExisting.id)
           .select()
           .single();
 
@@ -614,7 +643,7 @@ export async function POST(req: NextRequest) {
           success: true,
           data: { ...updated, points_per_session: activityPointsPerSession },
           updated: true,
-          replacedRejected: canReplaceRejected,
+          replacedRejected: effectiveCanReplaceRejected,
           overwritten: !!overwrite
         });
       }
@@ -625,9 +654,9 @@ export async function POST(req: NextRequest) {
           error: `You already submitted an entry for ${normalizedDate}.`,
           // Return info about existing entry so frontend can check effectively
           existing: {
-            id: existing.id,
-            type: existing.type,
-            status: existing.status
+            id: effectiveExisting.id,
+            type: effectiveExisting.type,
+            status: effectiveExisting.status
           }
         },
         { status: 409 }

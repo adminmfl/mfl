@@ -353,15 +353,6 @@ export async function POST(
 
     const normalizedStatus = normalizeStatus(status);
 
-    // Fetch the default pricing_id from the singleton challengepricing table
-    const { data: defaultPricing } = await supabase
-      .from('challengepricing')
-      .select('pricing_id')
-      .limit(1)
-      .maybeSingle();
-
-    const resolvedPricingId = incomingPricingId || defaultPricing?.pricing_id || null;
-
     const insertPayload: Record<string, any> = {
       league_id: leagueId,
       name,
@@ -374,9 +365,9 @@ export async function POST(
       challenge_id: templateId ?? null,
       is_custom: isCustom,
       is_unique_workout: isUniqueWorkout,
-      payment_id: null, // Would be set after payment succeeds
+      payment_id: null,
       status: normalizedStatus,
-      pricing_id: resolvedPricingId,
+      pricing_id: null, // Costing removed per client request
     };
 
     const { data, error } = await supabase
