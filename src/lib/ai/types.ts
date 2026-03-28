@@ -94,3 +94,133 @@ export interface TriggeredInsight {
   priority: number;
   templateId: string;
 }
+
+// ============================================================================
+// V2.5 — AI League Manager Types
+// ============================================================================
+
+/** Per-member activity snapshot for league health evaluation */
+export interface MemberSnapshot {
+  userId: string;
+  username: string;
+  teamId: string | null;
+  teamName: string | null;
+  totalPoints: number;
+  avgRR: number | null;
+  missedDays: number;
+  restDaysUsed: number;
+  restDaysAllowed: number;
+  consecutiveDaysActive: number;
+  consecutiveDaysInactive: number;
+  hasLoggedToday: boolean;
+  lastActivityDate: string | null;
+  streakBroken: boolean;
+  rrTrend: 'improving' | 'stable' | 'declining' | null;
+}
+
+/** Per-team health summary */
+export interface TeamHealthSummary {
+  teamId: string;
+  teamName: string;
+  rank: number;
+  totalPoints: number;
+  avgRR: number | null;
+  memberCount: number;
+  membersLoggedToday: number;
+  todayParticipationPct: number;
+  inactiveMembers: string[]; // userIds
+  atRiskMembers: string[]; // userIds
+}
+
+/** Active challenge info for digest evaluation */
+export interface ActiveChallengeInfo {
+  challengeId: string;
+  name: string;
+  type: string;
+  daysRemaining: number;
+  submissionCount: number;
+  totalMembers: number;
+}
+
+/** Full league health context — input to digest evaluator */
+export interface LeagueHealthContext {
+  leagueId: string;
+  leagueName: string;
+  leagueDay: number;
+  totalLeagueDays: number;
+  isFinalWeek: boolean;
+  isLastDay: boolean;
+  teams: TeamHealthSummary[];
+  allMembers: MemberSnapshot[];
+  overallParticipationPct: number;
+  activeChallenges: ActiveChallengeInfo[];
+}
+
+// --- Digest Types ---
+
+export type DigestCategory =
+  | 'participation_drop'
+  | 'inactive_members'
+  | 'streak_alert'
+  | 'team_imbalance'
+  | 'challenge_ending'
+  | 'rr_anomaly'
+  | 'league_health'
+  | 'milestone';
+
+export interface DigestCandidate {
+  category: DigestCategory;
+  title: string;
+  body: string;
+  priority: number; // 1-10
+  metadata: Record<string, any>;
+  actionType?: string;
+  actionPayload?: Record<string, any>;
+}
+
+// --- Intervention Types ---
+
+export type InterventionTriggerType =
+  | 'inactivity_5d'
+  | 'inactivity_3d'
+  | 'streak_broken'
+  | 'rr_declining'
+  | 'rest_days_exhausted'
+  | 'dropout_risk';
+
+export type InterventionSeverity = 'critical' | 'high' | 'medium' | 'low';
+
+export interface InterventionCandidate {
+  memberUserId: string;
+  teamId: string | null;
+  triggerType: InterventionTriggerType;
+  severity: InterventionSeverity;
+  title: string;
+  description: string;
+  suggestedAction: string;
+  playerContext: Record<string, any>;
+}
+
+// --- Draft Types ---
+
+export type DraftType = 'nudge' | 'team_nudge' | 'announcement' | 'intervention' | 'challenge_hype' | 'challenge_results';
+export type DraftStatus = 'pending' | 'edited' | 'sent' | 'dismissed';
+export type DraftTargetScope = 'league' | 'team' | 'individual';
+
+// --- Challenge Template Types ---
+
+export interface ChallengeTemplate {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  defaultDuration: number;
+  commSchedule: ChallengeCommItem[];
+  isActive: boolean;
+}
+
+export interface ChallengeCommItem {
+  dayOffset: number;
+  type: DraftType;
+  promptHint: string;
+}

@@ -15,6 +15,10 @@
     {
       "path": "/api/cron/ai-coach",
       "schedule": "30 2,7,13 * * *"
+    },
+    {
+      "path": "/api/cron/ai-daily-scan",
+      "schedule": "0 3 * * *"
     }
   ]
 }

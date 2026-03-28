@@ -21,6 +21,7 @@ import {
   HelpCircle,
   CreditCard,
   MessageCircle,
+  Brain,
 } from 'lucide-react';
 
 // ============================================================================
@@ -215,6 +216,11 @@ export function getSidebarNavItems(
         title: 'Team Chat',
         url: leagueUrl('/messages'),
         icon: MessageCircle,
+      },
+      {
+        title: 'AI Manager',
+        url: leagueUrl('/ai-manager'),
+        icon: Brain,
       },
     ];
 
