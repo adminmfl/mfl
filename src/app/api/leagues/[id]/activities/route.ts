@@ -43,7 +43,7 @@ export interface LeagueActivity {
   description: string | null;
   category_id: string | null;
   frequency?: number | null;
-  frequency_type?: 'weekly' | 'monthly' | null;
+  frequency_type?: 'daily' | 'weekly' | 'monthly' | null;
   category?: {
     category_id: string;
     category_name: string;
@@ -100,7 +100,7 @@ export async function PATCH(
     const { activity_id, frequency, frequency_type, proof_requirement, notes_requirement, points_per_session, outcome_config, max_images, custom_field_label } = body as {
       activity_id?: string;
       frequency?: number | null;
-      frequency_type?: 'weekly' | 'monthly' | null;
+      frequency_type?: 'daily' | 'weekly' | 'monthly' | null;
       proof_requirement?: 'not_required' | 'optional' | 'mandatory';
       notes_requirement?: 'not_required' | 'optional' | 'mandatory';
       points_per_session?: number;
@@ -132,17 +132,17 @@ export async function PATCH(
       );
     }
 
-    let normalizedFrequencyType: 'weekly' | 'monthly' | null | undefined = undefined;
+    let normalizedFrequencyType: 'daily' | 'weekly' | 'monthly' | null | undefined = undefined;
     if (hasFrequencyType) {
       if (frequency_type === null || frequency_type === undefined || frequency_type === '') {
         normalizedFrequencyType = null;
-      } else if (frequency_type !== 'weekly' && frequency_type !== 'monthly') {
+      } else if (frequency_type !== 'daily' && frequency_type !== 'weekly' && frequency_type !== 'monthly') {
         return NextResponse.json(
-          { error: 'frequency_type must be weekly or monthly (or null to reset)' },
+          { error: 'frequency_type must be daily, weekly, or monthly (or null to reset)' },
           { status: 400 }
         );
       } else {
-        normalizedFrequencyType = frequency_type;
+        normalizedFrequencyType = frequency_type as 'daily' | 'weekly' | 'monthly';
       }
     }
 
@@ -168,13 +168,12 @@ export async function PATCH(
           .or(`activity_id.eq.${activity_id},custom_activity_id.eq.${activity_id}`)
           .maybeSingle();
         const currentType = (currentRow as any)?.frequency_type;
-        if (currentType === 'monthly') {
-          effectiveType = 'monthly';
-        }
+        if (currentType === 'monthly') effectiveType = 'monthly';
+        if (currentType === 'daily') effectiveType = 'daily';
       }
 
       const rounded = Math.floor(asNumber);
-      const maxAllowed = effectiveType === 'monthly' ? 10 : 7;
+      const maxAllowed = effectiveType === 'monthly' ? 28 : effectiveType === 'daily' ? 10 : 7;
       if (rounded === 0) {
         normalizedFrequency = null;
       } else if (rounded < 1 || rounded > maxAllowed) {

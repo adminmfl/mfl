@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { useLeague } from '@/contexts/league-context';
+import { LeaguePlanPreview, type LeaguePlan } from './league-plan-preview';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -48,6 +49,11 @@ interface LeagueFields {
   rest_days?: number;
   is_public?: boolean;
   is_exclusive?: boolean;
+  // Profiling fields
+  league_type?: string;
+  intent?: string;
+  age_range?: string;
+  participant_mix?: string;
 }
 
 interface ChatMessage {
@@ -56,7 +62,7 @@ interface ChatMessage {
   content: string;
 }
 
-type ViewState = 'chat' | 'summary' | 'payment' | 'success';
+type ViewState = 'chat' | 'plan' | 'summary' | 'payment' | 'success';
 
 declare global {
   interface Window {
@@ -100,6 +106,11 @@ export function LeagueCreatorChat() {
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [createdLeagueId, setCreatedLeagueId] = useState<string | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
+
+  // Plan state
+  const [plan, setPlan] = useState<LeaguePlan | null>(null);
+  const [planLoading, setPlanLoading] = useState(false);
+  const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -216,6 +227,51 @@ export function LeagueCreatorChat() {
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [sending, messages, fields]);
+
+  // -------------------------------------------------------------------------
+  // Plan generation
+  // -------------------------------------------------------------------------
+
+  const generatePlan = useCallback(async () => {
+    if (!fields.duration || !fields.league_type || !fields.intent) return;
+    setPlanLoading(true);
+    try {
+      const res = await fetch('/api/ai-coach/league-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          league_type: fields.league_type,
+          intent: fields.intent,
+          age_range: fields.age_range || 'all',
+          participant_mix: fields.participant_mix || 'mixed',
+          duration: fields.duration,
+          num_teams: fields.num_teams || 4,
+          max_participants: fields.max_participants || 20,
+        }),
+      });
+      const json = await res.json();
+      if (json.success && json.plan) {
+        setPlan(json.plan);
+        if (json.plan.restDayRecommendation && !fields.rest_days) {
+          setFields((prev) => ({ ...prev, rest_days: json.plan.restDayRecommendation }));
+        }
+        setView('plan');
+      } else {
+        // Fallback — skip plan, go to summary
+        setView('summary');
+      }
+    } catch {
+      setView('summary');
+    } finally {
+      setPlanLoading(false);
+    }
+  }, [fields]);
+
+  const handlePlanAccept = useCallback((acceptedPlan: LeaguePlan, activities: string[]) => {
+    setSelectedActivities(activities);
+    setPlan(acceptedPlan);
+    setView('summary');
+  }, []);
 
   // -------------------------------------------------------------------------
   // Key handler
@@ -373,6 +429,8 @@ export function LeagueCreatorChat() {
     setView('chat');
     setPaymentError(null);
     setCreatedLeagueId(null);
+    setPlan(null);
+    setSelectedActivities([]);
   };
 
   const handleClose = () => {
@@ -410,6 +468,7 @@ export function LeagueCreatorChat() {
             </DialogTitle>
             <DialogDescription className="text-xs">
               {view === 'chat' && 'Tell me about the league you want to create'}
+              {view === 'plan' && 'Review your AI-generated league plan'}
               {view === 'summary' && 'Review your league configuration'}
               {view === 'payment' && 'Complete payment to create your league'}
               {view === 'success' && 'Your league has been created!'}
@@ -498,10 +557,21 @@ export function LeagueCreatorChat() {
                     <Button
                       size="sm"
                       className="w-full gap-2"
-                      onClick={() => setView('summary')}
+                      onClick={() => {
+                        if (fields.league_type && fields.intent && fields.duration) {
+                          generatePlan();
+                        } else {
+                          setView('summary');
+                        }
+                      }}
+                      disabled={planLoading}
                     >
-                      <FileText className="size-4" />
-                      Review & Create League
+                      {planLoading ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <FileText className="size-4" />
+                      )}
+                      {planLoading ? 'Generating Plan...' : fields.league_type ? 'Generate Plan & Review' : 'Review & Create League'}
                     </Button>
                   </div>
                 )}
@@ -527,6 +597,20 @@ export function LeagueCreatorChat() {
                 </div>
               </div>
             </>
+          )}
+
+          {/* ============================================================ */}
+          {/* PLAN VIEW */}
+          {/* ============================================================ */}
+          {view === 'plan' && plan && (
+            <div className="flex-1 overflow-y-auto px-4 py-4">
+              <LeaguePlanPreview
+                plan={plan}
+                duration={fields.duration || 30}
+                onAccept={handlePlanAccept}
+                onBack={() => setView('chat')}
+              />
+            </div>
           )}
 
           {/* ============================================================ */}
@@ -582,6 +666,23 @@ export function LeagueCreatorChat() {
                   </div>
                 </div>
               </div>
+
+              {/* Plan summary */}
+              {plan && selectedActivities.length > 0 && (
+                <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground">AI Plan Included</p>
+                  <div className="flex flex-wrap gap-1">
+                    {selectedActivities.map((name) => (
+                      <Badge key={name} variant="secondary" className="text-[10px]">{name}</Badge>
+                    ))}
+                  </div>
+                  {plan.rrProfile && (
+                    <p className="text-[10px] text-muted-foreground">
+                      Scoring: {plan.rrProfile === 'standard' ? 'Standard RR' : plan.rrProfile === 'simple' ? 'Simple (binary)' : 'Points Only'}
+                    </p>
+                  )}
+                </div>
+              )}
 
               {paymentError && (
                 <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">

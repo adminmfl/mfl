@@ -16,7 +16,7 @@ export interface LeagueActivity {
   description: string | null;
   category_id: string | null;
   frequency?: number | null;
-  frequency_type?: 'weekly' | 'monthly' | null;
+  frequency_type?: 'daily' | 'weekly' | 'monthly' | null;
   min_value?: number | null;
   age_group_overrides?: Record<string, any> | null;
   category?: {
@@ -64,7 +64,7 @@ export interface UseLeagueActivitiesReturn {
   updateFrequency: (
     activityId: string,
     frequency: number | null,
-    frequencyType?: 'weekly' | 'monthly' | null
+    frequencyType?: 'daily' | 'weekly' | 'monthly' | null
   ) => Promise<boolean>;
 }
 
@@ -189,7 +189,7 @@ export function useLeagueActivities(
     async (
       activityId: string,
       frequency: number | null,
-      frequencyType?: 'weekly' | 'monthly' | null
+      frequencyType?: 'daily' | 'weekly' | 'monthly' | null
     ): Promise<boolean> => {
       if (!leagueId) return false;
 

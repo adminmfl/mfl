@@ -148,6 +148,7 @@ type RecentDayRow = {
   status?: string;
   pointsLabel: string;
   submission?: MySubmission | null;
+  entryCount?: number; // Number of entries for this day (for daily multi-frequency)
 };
 
 // ============================================================================
@@ -368,8 +369,10 @@ export default function LeagueDashboardPage({
           recentData?.success && recentData?.data?.submissions ? (recentData.data.submissions as MySubmission[]) : [];
 
         const byDate = new Map<string, MySubmission>();
+        const countByDate = new Map<string, number>();
         for (const s of submissions) {
           if (!s?.date) continue;
+          countByDate.set(s.date, (countByDate.get(s.date) || 0) + 1);
           const existing = byDate.get(s.date);
           if (!existing) {
             byDate.set(s.date, s);
@@ -446,9 +449,15 @@ export default function LeagueDashboardPage({
           }
 
           const rr = typeof entry.rr_value === 'number' ? entry.rr_value : null;
-          const pointsLabel = rr === null ? '0 pt' : `${rr.toFixed(1)} RR`;
+          const leagueFormula = (league as any)?.rr_config?.formula || 'standard';
+          const pointsLabel = rr === null
+            ? '0 pt'
+            : leagueFormula === 'standard'
+              ? `${rr.toFixed(1)} RR`
+              : `${Math.round(rr)} pt`;
 
-          rows.push({ date: ymd, label, subtitle, status: statusLabel, pointsLabel, submission: entry });
+          const entryCount = countByDate.get(ymd) || 1;
+          rows.push({ date: ymd, label, subtitle, status: statusLabel, pointsLabel, submission: entry, entryCount });
         }
 
         if (!cancelled) setRecentDays(rows.reverse());
@@ -817,10 +826,10 @@ export default function LeagueDashboardPage({
         icon: Zap,
       },
       {
-        title: 'RR',
+        title: (league as any)?.rr_config?.formula === 'standard' || !(league as any)?.rr_config?.formula ? 'RR' : 'Score',
         value: mySummary.avgRR !== null ? mySummary.avgRR.toFixed(2) : '—',
         changeLabel: 'Your Performance',
-        description: 'Run Rate (approved)',
+        description: (league as any)?.rr_config?.formula === 'standard' || !(league as any)?.rr_config?.formula ? 'Run Rate (approved)' : 'Average score',
         icon: TrendingUp,
       },
       {
@@ -1345,6 +1354,11 @@ export default function LeagueDashboardPage({
                       })()}
                     </div>
                     <div className="flex items-center gap-2">
+                      {(row.entryCount || 0) > 1 && (
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                          {row.entryCount}x
+                        </Badge>
+                      )}
                       <div className="font-medium tabular-nums min-w-[56px] text-right">{row.pointsLabel}</div>
                       {row.submission ? (
                         <Button

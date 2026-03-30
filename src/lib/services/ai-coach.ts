@@ -4,21 +4,8 @@
  * Uses Mistral free tier to generate motivational messages for players,
  * teams, captains, and league Q&A.
  */
-import { Mistral } from '@mistralai/mistralai';
 import { getSupabaseServiceRole } from '@/lib/supabase/client';
-
-// ---------------------------------------------------------------------------
-// Client
-// ---------------------------------------------------------------------------
-
-function getMistralClient() {
-  const apiKey = process.env.MISTRAL_API_KEY;
-  if (!apiKey) throw new Error('MISTRAL_API_KEY not configured');
-  return new Mistral({ apiKey });
-}
-
-// Free-tier model
-const MODEL = 'mistral-small-latest';
+import { aiChat } from '@/lib/ai-client';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -61,28 +48,21 @@ interface ChallengeContext {
 }
 
 // ---------------------------------------------------------------------------
-// LLM Call
+// AI Helper
 // ---------------------------------------------------------------------------
 
-async function callMistral(systemPrompt: string, userPrompt: string): Promise<string> {
-  const client = getMistralClient();
-
-  const response = await client.chat.complete({
-    model: MODEL,
+async function callAI(systemPrompt: string, userPrompt: string, leagueId?: string): Promise<string> {
+  const result = await aiChat({
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },
     ],
+    feature: 'ai-coach',
+    leagueId,
     temperature: 0.8,
     maxTokens: 300,
   });
-
-  const content = response.choices?.[0]?.message?.content;
-  if (typeof content === 'string') return content.trim();
-  if (Array.isArray(content)) {
-    return content.map((c: any) => (typeof c === 'string' ? c : c?.text || '')).join('').trim();
-  }
-  return '';
+  return result.content;
 }
 
 // ---------------------------------------------------------------------------
@@ -397,7 +377,7 @@ ${ctx.recent_activities.length > 0
 
 Generate a short motivational message for this player.`;
 
-  return callMistral(SYSTEM_INDIVIDUAL, prompt);
+  return callAI(SYSTEM_INDIVIDUAL, prompt, ctx.league_id);
 }
 
 export async function generateTeamMessage(ctx: TeamContext): Promise<string> {
@@ -411,7 +391,7 @@ ${ctx.inactive_members.length > 0 ? `Inactive members: ${ctx.inactive_members.jo
 
 Generate a short team motivation message.`;
 
-  return callMistral(SYSTEM_TEAM, prompt);
+  return callAI(SYSTEM_TEAM, prompt, ctx.league_id);
 }
 
 export async function generateCaptainInsight(ctx: TeamContext): Promise<string> {
@@ -424,7 +404,7 @@ Inactive: ${ctx.inactive_members.length > 0 ? ctx.inactive_members.join(', ') : 
 
 Provide actionable insights for the captain.`;
 
-  return callMistral(SYSTEM_CAPTAIN, prompt);
+  return callAI(SYSTEM_CAPTAIN, prompt, ctx.league_id);
 }
 
 export async function generateChallengeMessage(ctx: ChallengeContext): Promise<string> {
@@ -434,11 +414,11 @@ ${ctx.challenges.map((c) => `- "${c.title}" (${c.type}) — ends ${c.end_date}: 
 
 Generate an exciting challenge reminder.`;
 
-  return callMistral(SYSTEM_CHALLENGE, prompt);
+  return callAI(SYSTEM_CHALLENGE, prompt, ctx.league_id);
 }
 
 export async function generateBondingMessage(teamName: string): Promise<string> {
-  return callMistral(SYSTEM_BONDING, `Team: ${teamName}\n\nSuggest a fun team bonding activity for this week.`);
+  return callAI(SYSTEM_BONDING, `Team: ${teamName}\n\nSuggest a fun team bonding activity for this week.`);
 }
 
 // ---------------------------------------------------------------------------
@@ -493,20 +473,15 @@ Available activities: ${activityList.length > 0 ? activityList.join(', ') : 'Sta
     { role: 'user', content: question },
   ];
 
-  const client = getMistralClient();
-  const response = await client.chat.complete({
-    model: MODEL,
+  const result = await aiChat({
     messages,
+    feature: 'ai-coach',
+    leagueId,
+    userId,
     temperature: 0.5,
     maxTokens: 500,
   });
-
-  const content = response.choices?.[0]?.message?.content;
-  if (typeof content === 'string') return content.trim();
-  if (Array.isArray(content)) {
-    return content.map((c: any) => (typeof c === 'string' ? c : c?.text || '')).join('').trim();
-  }
-  return 'Sorry, I couldn\'t generate a response. Please try again.';
+  return result.content || 'Sorry, I couldn\'t generate a response. Please try again.';
 }
 
 // ---------------------------------------------------------------------------

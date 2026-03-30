@@ -1,26 +1,28 @@
 import {
   LandingHeader,
   HeroSection,
-  FeaturesSection,
+  WhatIsSection,
+  PillarsSection,
+  HabitSection,
   HowItWorksSection,
-  BenefitsSection,
+  StoriesSection,
+  EveryoneSection,
   CtaSection,
   LandingFooter,
 } from '@/components/landing';
-
-// ============================================================================
-// Landing Page
-// ============================================================================
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background">
       <LandingHeader />
-      <main className="space-y-0 [&>section]:py-12 md:[&>section]:py-16">
+      <main>
         <HeroSection />
-        <FeaturesSection />
+        <WhatIsSection />
+        <PillarsSection />
+        <HabitSection />
         <HowItWorksSection />
-        <BenefitsSection />
+        <StoriesSection />
+        <EveryoneSection />
         <CtaSection />
       </main>
       <LandingFooter />

@@ -65,11 +65,9 @@ export async function POST(
     let message = templateMessage;
 
     try {
-      const { Mistral } = await import('@mistralai/mistralai');
-      const apiKey = process.env.MISTRAL_API_KEY;
+      const { aiChat } = await import('@/lib/ai-client');
 
-      if (apiKey && context.teamName) {
-        const client = new Mistral({ apiKey });
+      if (context.teamName) {
         const systemPrompt = `You are a team motivation assistant for MyFitnessLeague. Generate a short (2-3 sentence) motivational message that a team captain can send to their team chat. Be energetic, specific, and action-driven. No hashtags. Use the team name. Reference actual stats provided.`;
 
         const userPrompt = `Team: ${context.teamName}
@@ -81,29 +79,24 @@ Leading: ${context.isLeading ? 'Yes' : 'No'}
 
 Generate a motivational message for the captain to send to the team.`;
 
-        const response = await client.chat.complete({
-          model: 'mistral-small-latest',
+        const result = await aiChat({
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt },
           ],
+          feature: 'ai-motivate',
+          leagueId,
+          userId,
           temperature: 0.8,
           maxTokens: 200,
         });
 
-        const content = response.choices?.[0]?.message?.content;
-        if (typeof content === 'string' && content.trim()) {
-          message = content.trim();
-        } else if (Array.isArray(content)) {
-          const text = content
-            .map((c: any) => (typeof c === 'string' ? c : c?.text || ''))
-            .join('')
-            .trim();
-          if (text) message = text;
+        if (result.content) {
+          message = result.content;
         }
       }
     } catch {
-      // Mistral unavailable — fall through to template
+      // AI unavailable — fall through to template
     }
 
     // Fallback if nothing worked

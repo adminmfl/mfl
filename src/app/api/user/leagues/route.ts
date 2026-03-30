@@ -57,7 +57,7 @@ export async function GET() {
     const { data: leaguesData, error: leaguesError } = await supabase
       .from('leagues')
       .select(
-        'league_id, league_name, description, status, start_date, end_date, num_teams, tier_id, is_public, is_exclusive, invite_code, created_by, logo_url'
+        'league_id, league_name, description, status, start_date, end_date, num_teams, tier_id, is_public, is_exclusive, invite_code, created_by, logo_url, branding, rr_config'
       )
       .in('league_id', leagueIds);
 
@@ -206,6 +206,8 @@ export async function GET() {
         team_logo_url: membership.team_id ? teamLogoMap.get(`${membership.team_id}_${leagueId}`) || null : null,
         is_host: isHost,
         creator_name: league?.created_by ? creatorNameMap.get(league.created_by) || null : null,
+        branding: (league as any)?.branding || null,
+        rr_config: (league as any)?.rr_config || null,
       };
 
     });

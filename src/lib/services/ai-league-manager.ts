@@ -4,7 +4,7 @@
 // ============================================================================
 
 import { getSupabaseServiceRole } from '@/lib/supabase/client';
-import { Mistral } from '@mistralai/mistralai';
+import { aiChat } from '@/lib/ai-client';
 import { evaluateDigest, evaluateInterventions } from '@/lib/ai/digest-evaluator';
 import { sendMessage } from '@/lib/services/messages';
 import {
@@ -28,34 +28,21 @@ import type {
 } from '@/lib/ai/types';
 
 // ============================================================================
-// Mistral Client
+// AI Helper
 // ============================================================================
 
-const MODEL = 'mistral-small-latest';
-
-function getMistralClient() {
-  const apiKey = process.env.MISTRAL_API_KEY;
-  if (!apiKey) throw new Error('MISTRAL_API_KEY not configured');
-  return new Mistral({ apiKey });
-}
-
-async function callMistral(systemPrompt: string, userPrompt: string): Promise<string> {
-  const client = getMistralClient();
-  const response = await client.chat.complete({
-    model: MODEL,
+async function callAI(systemPrompt: string, userPrompt: string, leagueId?: string): Promise<string> {
+  const result = await aiChat({
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },
     ],
+    feature: 'ai-manager',
+    leagueId,
     temperature: 0.8,
     maxTokens: 300,
   });
-  const content = response.choices?.[0]?.message?.content;
-  if (typeof content === 'string') return content.trim();
-  if (Array.isArray(content)) {
-    return content.map((c: any) => (typeof c === 'string' ? c : c?.text || '')).join('').trim();
-  }
-  return '';
+  return result.content;
 }
 
 // ============================================================================
@@ -473,8 +460,8 @@ export async function generateDraft(params: {
       .join('\n') + '\n\nGenerate an appropriate message.';
   }
 
-  // Call Mistral
-  const content = await callMistral(systemPrompt, userPrompt);
+  // Call AI
+  const content = await callAI(systemPrompt, userPrompt, leagueId);
 
   // Save draft to DB
   const { data: draft, error } = await supabase
@@ -582,7 +569,7 @@ export async function deployChallengeFromTemplate(params: {
   if (chErr || !challenge) throw new Error('Failed to create challenge: ' + (chErr?.message || 'unknown'));
 
   // Create comm schedule entries
-  const commSchedule = template.definition?.comm_schedule || [];
+  const commSchedule = template.comm_templates || template.definition?.comm_schedule || [];
   for (const item of commSchedule) {
     const scheduledDate = new Date(startDate);
     scheduledDate.setDate(scheduledDate.getDate() + (item.day_offset || 0));

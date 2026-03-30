@@ -1,13 +1,13 @@
 /**
- * GET /api/leagues/[id]/messages/unread-count - Get unread message count
+ * GET /api/leagues/[id]/messages/unread-count - Get unread and total message counts
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth/config';
-import { getUnreadCount } from '@/lib/services/messages';
+import { getMessageCounts } from '@/lib/services/messages';
 
 // ============================================================================
-// GET Handler - Get unread message count
+// GET Handler - Get message counts (unread + total)
 // ============================================================================
 
 export async function GET(
@@ -24,11 +24,11 @@ export async function GET(
 
     const userId = session.user.id;
 
-    const count = await getUnreadCount(leagueId, userId);
+    const { unread, total } = await getMessageCounts(leagueId, userId);
 
     return NextResponse.json({
       success: true,
-      data: { count },
+      data: { count: unread, unread, total },
     });
   } catch (error) {
     console.error('Error in unread-count GET:', error);

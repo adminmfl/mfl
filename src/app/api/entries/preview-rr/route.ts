@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth/config';
 import { getSupabaseServiceRole } from '@/lib/supabase/client';
+import { calculateRR, type RRConfig } from '@/lib/rr-calculator';
 
 export async function POST(req: NextRequest) {
   try {
@@ -45,7 +46,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "type must be 'workout' or 'rest'" }, { status: 400 });
     }
 
-    // Verify membership (also gives us league_member_id, but we don't need it for RR)
+    // Verify membership
     const { data: membership, error: memberError } = await supabase
       .from('leaguemembers')
       .select('league_member_id')
@@ -56,6 +57,15 @@ export async function POST(req: NextRequest) {
     if (memberError || !membership) {
       return NextResponse.json({ error: 'You are not a member of this league' }, { status: 403 });
     }
+
+    // Fetch league rr_config
+    const { data: leagueRow } = await supabase
+      .from('leagues')
+      .select('rr_config')
+      .eq('league_id', league_id)
+      .single();
+
+    const rrConfig: RRConfig = (leagueRow as any)?.rr_config || { formula: 'standard', age_adjustments: true };
 
     // Get user's age for RR calculation adjustments
     const { data: userData } = await supabase
@@ -75,23 +85,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Age-based thresholds
-    let baseDuration = 45;
-    let minSteps = 10000,
-      maxSteps = 20000;
-    if (typeof userAge === 'number') {
-      if (userAge > 75) {
-        minSteps = 3000;
-        maxSteps = 6000;
-        baseDuration = 30;
-      } else if (userAge > 65) {
-        minSteps = 5000;
-        maxSteps = 10000;
-        baseDuration = 30;
-      }
-    }
-
-    // Fetch league-configured min_value for this activity to override baseDuration
+    // Fetch league-configured min_value for baseDuration override
+    let overrideBaseDuration: number | null = null;
     if (workout_type && league_id) {
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(workout_type);
       let configRow: any = null;
@@ -117,97 +112,50 @@ export async function POST(req: NextRequest) {
       }
 
       if (configRow && typeof configRow.min_value === 'number' && configRow.min_value > 0) {
-        baseDuration = configRow.min_value;
+        overrideBaseDuration = configRow.min_value;
       }
     }
 
-    let rr_value = 0;
+    // Resolve measurement_type
+    let measurementType: string | null = null;
+    if (workout_type) {
+      const { data: customActivity } = await supabase
+        .from('custom_activities')
+        .select('measurement_type')
+        .eq('custom_activity_id', workout_type)
+        .maybeSingle();
 
-    if (type === 'rest') {
-      rr_value = 1.0;
-    } else {
-      // Check if this is a custom activity with measurement_type='none'
-      // First, check if workout_type is a custom activity ID (UUID format) or regular activity
-      let measurementType: string | null = null;
-
-      if (workout_type) {
-        // Try to find as custom activity first
-        const { data: customActivity } = await supabase
-          .from('custom_activities')
-          .select('measurement_type')
-          .eq('custom_activity_id', workout_type)
-          .maybeSingle();
-
-        if (customActivity) {
-          measurementType = customActivity.measurement_type;
-        } else {
-          // Try regular activity
-          const { data: regularActivity } = await supabase
-            .from('activities')
-            .select('measurement_type')
-            .eq('activity_id', workout_type)
-            .maybeSingle();
-
-          if (regularActivity) {
-            measurementType = regularActivity.measurement_type;
-          }
-        }
-      }
-
-      // If measurement_type is 'none', auto-approve with RR 1.0
-      if (measurementType === 'none') {
-        rr_value = 1.0;
+      if (customActivity) {
+        measurementType = customActivity.measurement_type;
       } else {
-        // Calculate RR for each metric if present
-        let rrSteps = 0;
-        let rrHoles = 0;
-        let rrDuration = 0;
-        let rrDistance = 0;
-
-        // Steps Calculation
-        if (typeof steps === 'number') {
-          if (steps >= minSteps) {
-            const capped = Math.min(steps, maxSteps);
-            rrSteps = Math.min(1 + (capped - minSteps) / (maxSteps - minSteps), 2.0);
-          }
+        const { data: regularActivity } = await supabase
+          .from('activities')
+          .select('measurement_type')
+          .eq('activity_id', workout_type)
+          .maybeSingle();
+        if (regularActivity) {
+          measurementType = regularActivity.measurement_type;
         }
-
-        // Holes Calculation
-        if (typeof holes === 'number') {
-          rrHoles = Math.min(holes / 9, 2.0);
-        }
-
-        // Duration Calculation
-        if (typeof duration === 'number' && duration > 0) {
-          rrDuration = Math.min(duration / baseDuration, 2.0);
-        }
-
-        // Distance Calculation
-        if (typeof distance === 'number' && distance > 0) {
-          // Use activity-specific logic if available for distance scaling
-          let distanceDivisor = 4; // Default for running/walking (4km = 1 RR)
-
-          if (workout_type === 'cycling') {
-            distanceDivisor = 10; // 10km = 1 RR for cycling
-          }
-
-          rrDistance = Math.min(distance / distanceDivisor, 2.0);
-        }
-
-        // Take the maximum of all calculated RRs
-        // This allows users to qualify via whichever metric is strongest
-        rr_value = Math.max(rrSteps, rrHoles, rrDuration, rrDistance);
       }
     }
 
-    const canSubmit = type === 'rest' || rr_value >= 1.0;
+    const result = calculateRR(
+      rrConfig,
+      type as 'workout' | 'rest',
+      { duration, distance, steps, holes },
+      workout_type || null,
+      userAge,
+      measurementType,
+      overrideBaseDuration,
+    );
 
     return NextResponse.json({
       success: true,
       data: {
-        rr_value,
-        canSubmit,
-        minRR: 1.0,
+        rr_value: result.rr_value,
+        canSubmit: result.canSubmit,
+        formula: rrConfig.formula,
+        minRR: rrConfig.formula === 'standard' ? 1.0 : 0,
         maxRR: 2.0,
       },
     });

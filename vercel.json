@@ -19,6 +19,10 @@
     {
       "path": "/api/cron/ai-daily-scan",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/ai-nudges",
+      "schedule": "30 4 * * *"
     }
   ]
 }

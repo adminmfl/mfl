@@ -48,6 +48,7 @@ export interface PerformanceSummary {
     totalChallengePoints: number;
     finalLeagueScore: number;
     totalMissedDays: number;
+    bestStreak: number;
 }
 
 export interface LeagueReportData {
@@ -225,6 +226,9 @@ export async function getLeagueReportData(
     const totalMissedDays = Math.max(0, totalReportDays - allLoggedDates.size);
 
 
+    // Calculate best streak (consecutive workout days)
+    const bestStreak = calculateBestStreak(activeDatesSet, reportStartDate, reportEndDate);
+
     const performance: PerformanceSummary = {
         totalActivities: workoutEntries.length,
         totalActiveDays: activeDatesSet.size,
@@ -232,6 +236,7 @@ export async function getLeagueReportData(
         totalMissedDays,
         totalChallengePoints,
         finalLeagueScore: rankings.userTotalPoints,
+        bestStreak,
     };
 
     // Calculate Average RR
@@ -276,6 +281,23 @@ export async function getLeagueReportData(
 // ============================================================================
 // Helper Functions
 // ============================================================================
+
+function calculateBestStreak(activeDates: Set<string>, startDate: Date, endDate: Date): number {
+    let bestStreak = 0;
+    let currentStreak = 0;
+    const d = new Date(startDate);
+    while (d <= endDate) {
+        const ds = d.toISOString().split('T')[0];
+        if (activeDates.has(ds)) {
+            currentStreak++;
+            if (currentStreak > bestStreak) bestStreak = currentStreak;
+        } else {
+            currentStreak = 0;
+        }
+        d.setDate(d.getDate() + 1);
+    }
+    return bestStreak;
+}
 
 function aggregateActivities(entries: any[]): ActivitySummary[] {
     const workoutEntries = entries.filter(e => e.type === 'workout');

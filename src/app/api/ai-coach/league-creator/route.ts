@@ -4,11 +4,13 @@
  * Conversational AI endpoint for league creation.
  * The LLM converses with the user to collect league configuration fields,
  * extracts structured data from natural language, and tracks progress.
+ *
+ * Enhanced with league profiling: league_type, intent, age_range, participant_mix.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth/config';
-import { Mistral } from '@mistralai/mistralai';
+import { aiChat } from '@/lib/ai-client';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -24,6 +26,11 @@ interface LeagueFields {
   rest_days?: number;
   is_public?: boolean;
   is_exclusive?: boolean;
+  // Profiling fields
+  league_type?: 'corporate' | 'residential' | 'school' | 'organization' | 'other';
+  intent?: 'fitness' | 'health' | 'wellness' | 'bonding' | 'fun';
+  age_range?: 'youth' | 'adult' | 'mixed' | 'senior' | 'all';
+  participant_mix?: 'male' | 'female' | 'mixed';
 }
 
 interface ConversationMessage {
@@ -51,11 +58,24 @@ REQUIRED FIELDS:
 - start_date: When the league starts (YYYY-MM-DD format)
 - duration: How many days the league runs (e.g., 30, 60, 90)
 
+PROFILING FIELDS (ask early to personalize recommendations):
+- league_type: "corporate", "residential", "school", "organization", or "other" — ask "What type of group is this for?"
+- intent: "fitness", "health", "wellness", "bonding", or "fun" — ask "What's the main goal?"
+- age_range: "youth" (13-18), "adult" (18-40), "mixed" (18-60), "senior" (60+), "all" — ask "What's the age range of participants?"
+- participant_mix: "male", "female", or "mixed"
+
 OPTIONAL FIELDS (have defaults):
 - description: A short description of the league
-- rest_days: Number of rest days per week (0-7, default: auto-calculated as 20% of duration)
+- rest_days: Number of rest days (0-7, default: auto-calculated as 20% of duration)
 - is_public: Whether the league is publicly visible (default: false)
 - is_exclusive: Whether joining requires an invite (default: true)
+
+CONVERSATION FLOW:
+1. First ask about the organization type (league_type) and goals (intent)
+2. Then collect league name, teams, participants
+3. Ask about participant demographics (age_range, participant_mix)
+4. Collect dates and duration
+5. Present summary with recommendations
 
 RULES:
 - Be conversational, friendly, and concise (2-3 sentences per response)
@@ -65,12 +85,17 @@ RULES:
 - If user gives team size (e.g., "10 per team"), calculate max_participants = num_teams × team_size
 - Give examples when the user seems confused
 - When showing the summary, format it clearly and ask "Shall I proceed with creating this league?"
+- Based on league_type + intent + age_range, suggest appropriate RR formula:
+  - Corporate fitness → "standard"
+  - School/fun/bonding → "simple" (binary, less pressure)
+  - Senior groups → "standard" with age adjustments
+  - Step challenges → "points_only"
 
 IMPORTANT RESPONSE FORMAT:
 You MUST end every response with a JSON block on its own line, wrapped in triple backticks, containing the extracted fields so far. Include ONLY fields that have been explicitly mentioned or confirmed by the user. Example:
 
 \`\`\`json
-{"league_name": "RFL Corporate League", "num_teams": 5, "max_participants": 50, "duration": 30}
+{"league_name": "RFL Corporate League", "num_teams": 5, "max_participants": 50, "duration": 30, "league_type": "corporate", "intent": "fitness"}
 \`\`\`
 
 If no fields have been extracted yet, return:
@@ -91,11 +116,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const apiKey = process.env.MISTRAL_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: 'AI not configured' }, { status: 500 });
-    }
-
     const body = await req.json();
     const { message, history, currentFields } = body as {
       message: string;
@@ -113,13 +133,16 @@ export async function POST(req: NextRequest) {
       .map(([k, v]) => `${k}: ${v}`)
       .join(', ');
 
-    const missingRequired = ['league_name', 'num_teams', 'max_participants', 'start_date', 'duration']
-      .filter((f) => !(currentFields as any)?.[f]);
+    const requiredFields = ['league_name', 'num_teams', 'max_participants', 'start_date', 'duration'];
+    const profilingFields = ['league_type', 'intent', 'age_range'];
+    const missingRequired = requiredFields.filter((f) => !(currentFields as any)?.[f]);
+    const missingProfiling = profilingFields.filter((f) => !(currentFields as any)?.[f]);
 
     const contextNote = `
 [SYSTEM CONTEXT — not visible to user]
 Fields collected so far: ${filledFields || 'None'}
 Missing required fields: ${missingRequired.length > 0 ? missingRequired.join(', ') : 'ALL REQUIRED FIELDS COLLECTED — present summary and ask for confirmation'}
+Missing profiling fields: ${missingProfiling.length > 0 ? missingProfiling.join(', ') : 'All profiling complete'}
 Today's date: ${new Date().toISOString().split('T')[0]}
 `;
 
@@ -134,21 +157,15 @@ Today's date: ${new Date().toISOString().split('T')[0]}
       { role: 'user', content: message },
     ];
 
-    const client = new Mistral({ apiKey });
-    const response = await client.chat.complete({
-      model: 'mistral-small-latest',
+    const aiResult = await aiChat({
       messages,
+      feature: 'league-creator',
+      userId: session.user.id,
       temperature: 0.7,
-      maxTokens: 600,
+      maxTokens: 800,
     });
 
-    const rawContent = response.choices?.[0]?.message?.content;
-    let assistantMessage = '';
-    if (typeof rawContent === 'string') {
-      assistantMessage = rawContent.trim();
-    } else if (Array.isArray(rawContent)) {
-      assistantMessage = rawContent.map((c: any) => (typeof c === 'string' ? c : c?.text || '')).join('').trim();
-    }
+    let assistantMessage = aiResult.content;
 
     // Extract JSON block from response
     let extractedFields: LeagueFields = {};
@@ -170,14 +187,27 @@ Today's date: ${new Date().toISOString().split('T')[0]}
     const mergedFields: LeagueFields = { ...(currentFields || {}), ...extractedFields };
 
     // Check if all required fields are present
-    const allRequiredPresent = ['league_name', 'num_teams', 'max_participants', 'start_date', 'duration']
+    const allRequiredPresent = requiredFields
       .every((f) => (mergedFields as any)[f] !== undefined && (mergedFields as any)[f] !== null && (mergedFields as any)[f] !== '');
+
+    // Determine recommended RR formula based on profiling
+    let recommendedFormula: string | undefined;
+    if (mergedFields.league_type || mergedFields.intent || mergedFields.age_range) {
+      if (mergedFields.intent === 'fun' || mergedFields.intent === 'bonding' || mergedFields.league_type === 'school') {
+        recommendedFormula = 'simple';
+      } else if (mergedFields.age_range === 'senior') {
+        recommendedFormula = 'standard';
+      } else {
+        recommendedFormula = 'standard';
+      }
+    }
 
     return NextResponse.json({
       success: true,
       message: visibleMessage,
       extractedFields: mergedFields,
       isComplete: allRequiredPresent,
+      recommendedFormula,
     });
   } catch (error) {
     console.error('Error in league creator AI:', error);

@@ -757,6 +757,17 @@ export async function getUnreadCount(
   leagueId: string,
   userId: string
 ): Promise<number> {
+  const counts = await getMessageCounts(leagueId, userId);
+  return counts.unread;
+}
+
+/**
+ * Get both unread and total message counts for a user in a league
+ */
+export async function getMessageCounts(
+  leagueId: string,
+  userId: string
+): Promise<{ unread: number; total: number }> {
   try {
     const supabase = getSupabaseServiceRole();
 
@@ -766,7 +777,7 @@ export async function getUnreadCount(
       getUserTeamInLeague(userId, leagueId),
     ]);
 
-    if (!role) return 0;
+    if (!role) return { unread: 0, total: 0 };
 
     const isHostOrGovernor = role === 'host' || role === 'governor';
     const isCaptain = role === 'captain';
@@ -799,9 +810,10 @@ export async function getUnreadCount(
 
     const { data: visibleMessages, error: msgError } = await query;
 
-    if (msgError || !visibleMessages) return 0;
+    if (msgError || !visibleMessages) return { unread: 0, total: 0 };
 
-    if (visibleMessages.length === 0) return 0;
+    const total = visibleMessages.length;
+    if (total === 0) return { unread: 0, total: 0 };
 
     const visibleIds = visibleMessages.map((m: any) => m.message_id);
 
@@ -812,15 +824,15 @@ export async function getUnreadCount(
       .eq('user_id', userId)
       .in('message_id', visibleIds);
 
-    if (readError) return 0;
+    if (readError) return { unread: 0, total };
 
     const readIds = new Set((readReceipts || []).map((r: any) => r.message_id));
-    const unreadCount = visibleIds.filter((id: string) => !readIds.has(id)).length;
+    const unread = visibleIds.filter((id: string) => !readIds.has(id)).length;
 
-    return unreadCount;
+    return { unread, total };
   } catch (err) {
-    console.error('Error in getUnreadCount:', err);
-    return 0;
+    console.error('Error in getMessageCounts:', err);
+    return { unread: 0, total: 0 };
   }
 }
 
