@@ -22,6 +22,8 @@ export interface ActivitySummary {
 
 export interface RestDaysSummary {
     total: number;
+    donated: number;
+    received: number;
     dates: string[];  // ISO date strings (YYYY-MM-DD)
 }
 
@@ -167,29 +169,39 @@ export async function getLeagueReportData(
     }
 
     // 5. Get all effort entries for this member (approved only for scoring)
-    // Apply optional date range filter for dynamic reports
-    let entriesQuery = supabase
+    // ALWAYS filter to league date range to exclude pre-league / post-league entries.
+    // Dynamic reports can narrow the range further via options.
+    const effectiveStart = options?.startDate || league.start_date;
+    const effectiveEnd = options?.endDate || league.end_date;
+
+    const { data: entries } = await supabase
         .from('effortentry')
         .select('*')
         .eq('league_member_id', leagueMemberId)
-        .eq('status', 'approved');
-
-    if (options?.startDate) {
-        entriesQuery = entriesQuery.gte('date', options.startDate);
-    }
-    if (options?.endDate) {
-        entriesQuery = entriesQuery.lte('date', options.endDate);
-    }
-
-    const { data: entries } = await entriesQuery;
+        .eq('status', 'approved')
+        .gte('date', effectiveStart)
+        .lte('date', effectiveEnd);
 
     const allEntries = entries || [];
 
     // 6. Aggregate activity data
     const activities = aggregateActivities(allEntries);
 
-    // 7. Get rest days
-    const restDays = aggregateRestDays(allEntries);
+    // 7. Get rest days + donation info
+    const { data: donatedRows } = await supabase
+        .from('rest_day_donations')
+        .select('days_transferred')
+        .eq('donor_member_id', leagueMemberId)
+        .eq('status', 'approved');
+    const { data: receivedRows } = await supabase
+        .from('rest_day_donations')
+        .select('days_transferred')
+        .eq('receiver_member_id', leagueMemberId)
+        .eq('status', 'approved');
+
+    const donated = (donatedRows || []).reduce((sum, r) => sum + (r.days_transferred || 0), 0);
+    const received = (receivedRows || []).reduce((sum, r) => sum + (r.days_transferred || 0), 0);
+    const restDays = aggregateRestDays(allEntries, donated, received);
 
     // 8. Get challenge data
     const challenges = await getChallengesSummary(supabase, leagueId, leagueMemberId, leagueMember.team_id);
@@ -200,13 +212,17 @@ export async function getLeagueReportData(
         leagueId,
         userId,
         leagueMember.team_id,
-        (league as any).normalize_points_by_team_size || false
+        (league as any).normalize_points_by_team_size || false,
+        { start: effectiveStart, end: effectiveEnd }
     );
 
     // 10. Calculate performance summary
+    // Deduplicate workout entries by date (only one counts per day, matching leaderboard)
     const workoutEntries = allEntries.filter(e => e.type === 'workout');
     const totalChallengePoints = challenges.reduce((sum, c) => sum + c.pointsEarned, 0);
     const activeDatesSet = new Set(workoutEntries.map(e => e.date));
+    // totalActivities = unique workout dates (not raw entry count)
+    const uniqueWorkoutCount = activeDatesSet.size;
 
     // Calculate missed days
     // Use date range if provided, otherwise full league duration
@@ -226,7 +242,7 @@ export async function getLeagueReportData(
 
 
     const performance: PerformanceSummary = {
-        totalActivities: workoutEntries.length,
+        totalActivities: uniqueWorkoutCount,
         totalActiveDays: activeDatesSet.size,
         totalRestDays: restDays.total,
         totalMissedDays,
@@ -317,12 +333,14 @@ function aggregateActivities(entries: any[]): ActivitySummary[] {
     }));
 }
 
-function aggregateRestDays(entries: any[]): RestDaysSummary {
+function aggregateRestDays(entries: any[], donated: number = 0, received: number = 0): RestDaysSummary {
     const restEntries = entries.filter(e => e.type === 'rest');
     const dates = restEntries.map(e => e.date).sort();
 
     return {
         total: restEntries.length,
+        donated,
+        received,
         dates,
     };
 }
@@ -333,7 +351,7 @@ async function getChallengesSummary(
     leagueMemberId: string,
     teamId: string | null
 ): Promise<ChallengeSummary[]> {
-    // Get all challenges for this league that are closed/published
+    // Get all challenges for this league (active, published, closed, submission_closed)
     const { data: leagueChallenges } = await supabase
         .from('leagueschallenges')
         .select(`
@@ -344,7 +362,7 @@ async function getChallengesSummary(
       status
     `)
         .eq('league_id', leagueId)
-        .in('status', ['published', 'closed']);
+        .in('status', ['active', 'submission_closed', 'published', 'closed']);
 
     if (!leagueChallenges || leagueChallenges.length === 0) {
         return [];
@@ -387,7 +405,8 @@ async function getRankings(
     leagueId: string,
     userId: string,
     teamId: string | null,
-    normalizePoints: boolean = false
+    normalizePoints: boolean = false,
+    dateRange?: { start: string; end: string }
 ): Promise<RankingsSummary> {
     // Get all members with their points for ranking calculation
     const { data: allMembers } = await supabase
@@ -411,13 +430,19 @@ async function getRankings(
 
     const memberIds = allMembers.map(m => m.league_member_id);
 
-    // Get all approved entries for scoring
+    // Get all approved entries for scoring — filtered to league date range
     // LOGIC MATCH: Same as /api/leagues/[id]/leaderboard — use points_per_session from leagueactivities
-    const { data: allEntries } = await supabase
+    let entriesQuery = supabase
         .from('effortentry')
-        .select('league_member_id, rr_value, workout_type')
+        .select('league_member_id, date, rr_value, workout_type')
         .eq('status', 'approved')
         .in('league_member_id', memberIds);
+
+    if (dateRange) {
+        entriesQuery = entriesQuery.gte('date', dateRange.start).lte('date', dateRange.end);
+    }
+
+    const { data: allEntries } = await entriesQuery;
 
     // Fetch activity points configuration for this league
     const activityPointsMap = new Map<string, number>();
@@ -435,9 +460,20 @@ async function getRankings(
         }
     }
 
+    // Deduplicate: only one entry per date per member (matches leaderboard logic)
+    const seenMemberDate = new Set<string>();
+    const dedupedEntries: typeof allEntries = [];
+    for (const entry of (allEntries || [])) {
+        const key = `${entry.league_member_id}:${entry.date}`;
+        if (!seenMemberDate.has(key)) {
+            seenMemberDate.add(key);
+            dedupedEntries.push(entry);
+        }
+    }
+
     // Calculate points per member using configured points_per_session
     const memberPoints = new Map<string, number>();
-    for (const entry of (allEntries || [])) {
+    for (const entry of dedupedEntries) {
         const current = memberPoints.get(entry.league_member_id) || 0;
         const pts = (entry as any).workout_type ? (activityPointsMap.get((entry as any).workout_type) ?? 1) : 1;
         memberPoints.set(entry.league_member_id, current + pts);
