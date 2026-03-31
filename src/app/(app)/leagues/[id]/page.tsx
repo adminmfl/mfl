@@ -26,6 +26,8 @@ import {
   Moon,
   Gift,
   Eye,
+  MessageSquareHeart,
+  ExternalLink,
 } from 'lucide-react';
 
 import { useLeague } from '@/contexts/league-context';
@@ -893,6 +895,27 @@ export default function LeagueDashboardPage({
 
         </div>
       </div>
+
+      {/* League Ended — Feedback Banner */}
+      {league.status === 'completed' && (
+        <div className="mx-4 lg:mx-6 rounded-lg border border-primary/20 bg-primary/5 p-4 flex items-center gap-3">
+          <MessageSquareHeart className="size-5 text-primary shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-medium">This league has ended — we&apos;d love your feedback!</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Help us improve future leagues by sharing your experience.</p>
+          </div>
+          <Button size="sm" asChild>
+            <a
+              href="https://docs.google.com/forms/d/e/1FAIpQLSdooeQxEuY95nK0Ft4mnhZvT6TdxL9_Gbb6L_3T-NEmbLxQJQ/viewform?usp=publish-editor"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Give Feedback
+              <ExternalLink className="ml-1.5 size-3.5" />
+            </a>
+          </Button>
+        </div>
+      )}
 
       {mySummaryLoading || !mySummaryStats ? (
         <>
