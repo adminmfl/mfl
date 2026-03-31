@@ -458,10 +458,10 @@ export function LeagueReportPDF({ data }: LeagueReportPDFProps) {
     // Calculate best streak (simplified - based on active days)
     const bestStreak = data.performance.totalActiveDays;
 
-    // Points breakdown
-    const workoutPoints = data.performance.totalActivities;
+    // Points breakdown — workout points = total minus challenge bonus (not raw entry count)
     const challengePointsTotal = data.performance.totalChallengePoints;
     const totalPoints = data.finalIndividualScore;
+    const workoutPoints = Math.max(0, totalPoints - challengePointsTotal);
 
     return (
         <Document>
@@ -511,7 +511,7 @@ export function LeagueReportPDF({ data }: LeagueReportPDFProps) {
                         {/* Performance Overview */}
                         <Section title="Performance Overview">
                             <MetricRow label="Workouts Completed" value={data.performance.totalActivities} />
-                            <MetricRow label="Rest Days Taken" value={data.restDays.total} />
+                            <MetricRow label="Rest Days Taken" value={`${data.restDays.total}${data.restDays.donated ? ` (+ ${data.restDays.donated} donated)` : ''}${data.restDays.received ? ` (+ ${data.restDays.received} received)` : ''}`} />
                             <MetricRow label="Active Days" value={data.performance.totalActiveDays} />
                             <MetricRow label="Missed Days" value={data.performance.totalMissedDays} />
                             <MetricRow label="Best Streak" value={`${bestStreak} Days`} isLast />
@@ -663,7 +663,7 @@ export function LeagueReportPDF({ data }: LeagueReportPDFProps) {
                 </View>
 
                 {/* Rest Days Section */}
-                <Section title={`Rest Days (${data.restDays.total} Total)`}>
+                <Section title={`Rest Days (${data.restDays.total} Used${data.restDays.donated ? ` • ${data.restDays.donated} Donated` : ''}${data.restDays.received ? ` • ${data.restDays.received} Received` : ''})`}>
                     {data.restDays.dates.length > 0 ? (
                         <View style={styles.restDaysList}>
                             {data.restDays.dates.map((date, index) => (
