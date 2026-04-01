@@ -12,7 +12,7 @@ export function HeroSection() {
     <section className="relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-background to-background" />
       <div className="absolute top-[-100px] right-[-150px] w-[600px] h-[400px] rounded-full bg-primary/5 blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-[-100px] w-[400px] h-[400px] rounded-full bg-violet-500/5 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-[-100px] w-[400px] h-[400px] rounded-full bg-orange-500/5 blur-3xl pointer-events-none" />
 
       <div className="container relative max-w-7xl mx-auto px-6 md:px-12 lg:px-16 py-16 md:py-24 lg:py-32">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
@@ -25,7 +25,7 @@ export function HeroSection() {
 
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight mb-6">
               Fitness that builds{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-violet-600">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-orange-500 to-primary">
                 habits, bonds & real friendship.
               </span>
             </h1>
@@ -38,7 +38,7 @@ export function HeroSection() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-10">
-              <Button size="lg" asChild className="px-8 shadow-lg shadow-primary/20 text-base">
+              <Button size="lg" asChild className="px-8 shadow-lg shadow-primary/20 text-base bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 border-0">
                 <Link href="/signup">
                   Start Your League Free
                   <ArrowRight className="ml-2 size-4" />
@@ -64,7 +64,7 @@ export function HeroSection() {
 
           {/* Right: Hero Illustration */}
           <div className="relative flex items-center justify-center order-first lg:order-last">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-violet-500/10 rounded-full blur-3xl scale-75" />
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-orange-500/10 rounded-full blur-3xl scale-75" />
             <Image
               src="/img/mfl-hero.svg"
               alt="My Fitness League — teams moving together"

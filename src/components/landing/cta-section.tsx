@@ -9,7 +9,7 @@ export function CtaSection() {
   return (
     <section className="py-20 md:py-28">
       <div className="container max-w-7xl mx-auto px-6 md:px-12 lg:px-16">
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-primary to-primary/80 p-10 md:p-16 lg:p-20">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-primary to-orange-500 p-10 md:p-16 lg:p-20">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
           <div className="absolute bottom-0 left-0 w-96 h-96 bg-white/5 rounded-full blur-3xl" />
 

@@ -13,15 +13,15 @@ const pillars = [
     points: [
       '50+ activities — walk, run, cycle, yoga, gym, swim & more',
       'Weighted points so effort is always rewarded fairly',
-      'No wearable needed — log manually or sync any device',
+      'Wearable needed — log manually or sync any device',
       'Streaks that reward consistency, not speed',
     ],
   },
   {
     emoji: '🎮',
     kicker: 'Pillar two',
-    kickerColor: 'text-violet-600',
-    checkColor: 'text-violet-600',
+    kickerColor: 'text-orange-600',
+    checkColor: 'text-orange-600',
     title: 'Fun that keeps people coming back',
     desc: "Gamification done right isn't about leaderboards that shame the less fit. It's about giving everyone a real reason to open the app tomorrow — and the day after that.",
     points: [
