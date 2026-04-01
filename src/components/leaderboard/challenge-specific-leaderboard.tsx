@@ -98,19 +98,42 @@ export function ChallengeSpecificLeaderboard({ leagueId, renderViewSwitcher }: C
 
   const selectedChallenge = challenges.find((c) => c.id === selectedChallengeId);
 
-  // Fetch challenges
+  // Fetch challenges (from leagueschallenges + any special-challenge-only entries)
   React.useEffect(() => {
     const fetchChallenges = async () => {
       try {
         const res = await fetch(`/api/leagues/${leagueId}/challenges`);
         const json = await res.json();
+        const visible: Challenge[] = [];
         if (json.success && json.data?.active) {
-          // Filter to only show published/closed challenges in leaderboard
-          const visibleChallenges = (json.data.active as Challenge[]).filter(
-            (c) => c.status === 'published' || c.status === 'closed'
+          // Filter to show challenges that are at least active
+          const fromLeague = (json.data.active as Challenge[]).filter(
+            (c) => c.status === 'active' || c.status === 'submission_closed' || c.status === 'published' || c.status === 'closed'
           );
-          setChallenges(visibleChallenges);
+          visible.push(...fromLeague);
         }
+
+        // Also fetch special challenges that have team scores but aren't in leagueschallenges
+        const scRes = await fetch(`/api/leagues/${leagueId}/special-challenge-scores`);
+        if (scRes.ok) {
+          const scJson = await scRes.json();
+          if (scJson.success && scJson.data) {
+            const existingIds = new Set(visible.map((c) => (c as any).template_id || ''));
+            (scJson.data as Array<{ challenge_id: string; name: string }>).forEach((sc) => {
+              if (!existingIds.has(sc.challenge_id)) {
+                visible.push({
+                  id: `sc_${sc.challenge_id}`,
+                  name: sc.name,
+                  challenge_type: 'team',
+                  total_points: 0,
+                  status: 'closed',
+                });
+              }
+            });
+          }
+        }
+
+        setChallenges(visible);
       } catch (err) {
         console.error('Failed to fetch challenges:', err);
       }
@@ -149,7 +172,15 @@ export function ChallengeSpecificLeaderboard({ leagueId, renderViewSwitcher }: C
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`/api/leagues/${leagueId}/challenges/${selectedChallengeId}/leaderboard`);
+        let url: string;
+        if (selectedChallengeId.startsWith('sc_')) {
+          // Special-challenge-only entry — fetch scores directly
+          const scId = selectedChallengeId.replace('sc_', '');
+          url = `/api/leagues/${leagueId}/special-challenge-scores/${scId}`;
+        } else {
+          url = `/api/leagues/${leagueId}/challenges/${selectedChallengeId}/leaderboard`;
+        }
+        const res = await fetch(url);
         const json = await res.json();
         if (!res.ok || !json.success) {
           throw new Error(json.error || 'Failed to fetch scores');
