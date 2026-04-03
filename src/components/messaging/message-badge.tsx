@@ -24,7 +24,6 @@ interface MessageBadgeProps {
 
 export function MessageBadge({ leagueId, className }: MessageBadgeProps) {
   const [unread, setUnread] = useState(0);
-  const [total, setTotal] = useState(0);
   const latestRef = useRef(0);
 
   useEffect(() => {
@@ -42,7 +41,6 @@ export function MessageBadge({ leagueId, className }: MessageBadgeProps) {
         const data = await res.json();
         if (!cancelled && fetchId === latestRef.current) {
           setUnread(data.data?.unread ?? data.data?.count ?? 0);
-          setTotal(data.data?.total ?? 0);
         }
       } catch {
         // silently ignore
@@ -63,37 +61,17 @@ export function MessageBadge({ leagueId, className }: MessageBadgeProps) {
     };
   }, [leagueId]);
 
-  // Nothing to show if no messages at all
-  if (total <= 0 && unread <= 0) return null;
+  // Only show badge when there are unread messages
+  if (unread <= 0) return null;
 
-  // If unread = 0, show only total in muted style
-  if (unread <= 0) {
-    return (
-      <span
-        className={cn(
-          'inline-flex items-center justify-center text-[10px] font-medium leading-none text-muted-foreground',
-          className
-        )}
-      >
-        {total > 999 ? '999+' : total}
-      </span>
-    );
-  }
-
-  // Show unread / total format
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-0.5 text-[10px] font-bold leading-none',
+        'inline-flex items-center justify-center rounded-full bg-red-500 text-white min-w-[18px] h-[18px] px-1 text-[10px] font-bold leading-none',
         className
       )}
     >
-      <span className="inline-flex items-center justify-center rounded-full bg-red-500 text-white min-w-[18px] h-[18px] px-1">
-        {unread > 99 ? '99+' : unread}
-      </span>
-      <span className="text-muted-foreground font-normal">
-        /{total > 999 ? '999+' : total}
-      </span>
+      {unread > 99 ? '99+' : unread}
     </span>
   );
 }

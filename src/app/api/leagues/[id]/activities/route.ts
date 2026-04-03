@@ -288,7 +288,6 @@ export async function PATCH(
       .from('leagueactivities')
       .update(updatePayload)
       .eq('league_id', leagueId)
-      .eq('league_id', leagueId)
       .or(`activity_id.eq.${activity_id},custom_activity_id.eq.${activity_id}`)
       .select()
       .maybeSingle();
@@ -442,8 +441,11 @@ export async function GET(
     if (activitiesError && typeof activitiesError?.message === 'string') {
       const msg = activitiesError.message.toLowerCase();
 
-      // Fallback: if proof_requirement/notes_requirement/points_per_session/outcome_config columns don't exist
-      if ((msg.includes('proof_requirement') || msg.includes('notes_requirement') || msg.includes('points_per_session') || msg.includes('outcome_config') || msg.includes('max_images') || msg.includes('custom_field_label')) && msg.includes('column')) {
+      // Fallback: if proof_requirement/notes_requirement/points_per_session/outcome_config/max_images/custom_field_label columns don't exist
+      // Also catch generic column errors (e.g. "column ... does not exist") that may not mention the exact name we check
+      const isNewColumnError = (msg.includes('proof_requirement') || msg.includes('notes_requirement') || msg.includes('points_per_session') || msg.includes('outcome_config') || msg.includes('max_images') || msg.includes('custom_field_label'));
+      const isGenericColumnError = msg.includes('column') && (msg.includes('does not exist') || msg.includes('not found') || msg.includes('undefined'));
+      if (isNewColumnError || isGenericColumnError) {
         const withoutNewCols = await supabase
           .from('leagueactivities')
           .select(`

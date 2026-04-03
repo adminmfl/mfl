@@ -162,8 +162,17 @@ export default function LeagueDashboardPage({
 }) {
   const { id } = React.use(params);
   const { activeLeague, setActiveLeague, userLeagues } = useLeague();
-  const { isHost, isCaptain, activeRole } = useRole();
+  const { isHost, isGovernor, isCaptain, activeRole } = useRole();
   const router = useRouter();
+
+  // Host/Governor should not see the player dashboard — redirect to their first action
+  React.useEffect(() => {
+    if (isHost) {
+      router.replace(`/leagues/${id}/settings`);
+    } else if (isGovernor) {
+      router.replace(`/leagues/${id}/submissions`);
+    }
+  }, [isHost, isGovernor, id, router]);
 
   const [league, setLeague] = React.useState<LeagueDetails | null>(null);
   const [stats, setStats] = React.useState<LeagueStats | null>(null);
