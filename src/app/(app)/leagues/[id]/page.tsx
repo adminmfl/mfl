@@ -28,6 +28,7 @@ import {
   Eye,
   MessageSquareHeart,
   ExternalLink,
+  Sparkles,
 } from 'lucide-react';
 
 import { useLeague } from '@/contexts/league-context';
@@ -57,6 +58,7 @@ import { DynamicReportDialog } from '@/components/leagues/dynamic-report-dialog'
 import { SubmissionDetailDialog } from '@/components/submissions';
 import { WhatsAppReminderButton } from '@/components/league/whatsapp-reminder-button';
 import { useRouter } from 'next/navigation';
+import { useAiInsights } from '@/hooks/use-ai-insights';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -148,6 +150,7 @@ type RecentDayRow = {
   status?: string;
   pointsLabel: string;
   submission?: MySubmission | null;
+  entryCount?: number; // Number of entries for this day (for daily multi-frequency)
 };
 
 // ============================================================================
@@ -161,8 +164,17 @@ export default function LeagueDashboardPage({
 }) {
   const { id } = React.use(params);
   const { activeLeague, setActiveLeague, userLeagues } = useLeague();
-  const { isHost, isCaptain, activeRole } = useRole();
+  const { isHost, isGovernor, isCaptain, activeRole } = useRole();
   const router = useRouter();
+
+  // Host/Governor should not see the player dashboard — redirect to their first action
+  React.useEffect(() => {
+    if (isHost) {
+      router.replace(`/leagues/${id}/settings`);
+    } else if (isGovernor) {
+      router.replace(`/leagues/${id}/submissions`);
+    }
+  }, [isHost, isGovernor, id, router]);
 
   const [league, setLeague] = React.useState<LeagueDetails | null>(null);
   const [stats, setStats] = React.useState<LeagueStats | null>(null);
@@ -187,6 +199,14 @@ export default function LeagueDashboardPage({
 
 
   const { user } = useAuth();
+
+  // AI inline insights
+  const { insights: aiInsights } = useAiInsights(id, 'my_activity', [
+    'welcome_text',
+    'coach_insight',
+    'stat_label_rr',
+    'stat_label_missed',
+  ]);
 
   const [mySummary, setMySummary] = React.useState<{
     points: number; // approved workout points
@@ -360,8 +380,10 @@ export default function LeagueDashboardPage({
           recentData?.success && recentData?.data?.submissions ? (recentData.data.submissions as MySubmission[]) : [];
 
         const byDate = new Map<string, MySubmission>();
+        const countByDate = new Map<string, number>();
         for (const s of submissions) {
           if (!s?.date) continue;
+          countByDate.set(s.date, (countByDate.get(s.date) || 0) + 1);
           const existing = byDate.get(s.date);
           if (!existing) {
             byDate.set(s.date, s);
@@ -438,9 +460,15 @@ export default function LeagueDashboardPage({
           }
 
           const rr = typeof entry.rr_value === 'number' ? entry.rr_value : null;
-          const pointsLabel = rr === null ? '0 pt' : `${rr.toFixed(1)} RR`;
+          const leagueFormula = (league as any)?.rr_config?.formula || 'standard';
+          const pointsLabel = rr === null
+            ? '0 pt'
+            : leagueFormula === 'standard'
+              ? `${rr.toFixed(1)} RR`
+              : `${Math.round(rr)} pt`;
 
-          rows.push({ date: ymd, label, subtitle, status: statusLabel, pointsLabel, submission: entry });
+          const entryCount = countByDate.get(ymd) || 1;
+          rows.push({ date: ymd, label, subtitle, status: statusLabel, pointsLabel, submission: entry, entryCount });
         }
 
         if (!cancelled) setRecentDays(rows.reverse());
@@ -809,10 +837,10 @@ export default function LeagueDashboardPage({
         icon: Zap,
       },
       {
-        title: 'RR',
+        title: (league as any)?.rr_config?.formula === 'standard' || !(league as any)?.rr_config?.formula ? 'RR' : 'Score',
         value: mySummary.avgRR !== null ? mySummary.avgRR.toFixed(2) : '—',
         changeLabel: 'Your Performance',
-        description: 'Run Rate (approved)',
+        description: (league as any)?.rr_config?.formula === 'standard' || !(league as any)?.rr_config?.formula ? 'Run Rate (approved)' : 'Average score',
         icon: TrendingUp,
       },
       {
@@ -855,7 +883,9 @@ export default function LeagueDashboardPage({
               </div>
             )}
           </div>
-          <p className="text-muted-foreground">Add today's effort. Push your team forward.</p>
+          <p className="text-muted-foreground">
+            {aiInsights.welcome_text || "Add today's effort. Push your team forward."}
+          </p>
           {isTrialPeriod && (
             <Badge className="mt-2 bg-amber-50 text-amber-700 border-amber-200">
               Trial Period
@@ -1035,6 +1065,12 @@ export default function LeagueDashboardPage({
                 </Link>
               </Button>
             </div>
+            {aiInsights.coach_insight && (
+              <p className="text-xs text-muted-foreground mt-1.5 px-1 flex items-center gap-1">
+                <Sparkles className="size-3 text-primary/60 shrink-0" />
+                {aiInsights.coach_insight}
+              </p>
+            )}
           </div>
           <div className="px-4 lg:px-6 mt-2">
             <Card className="py-4 gap-2">
@@ -1086,6 +1122,9 @@ export default function LeagueDashboardPage({
                         ? mySummary.avgRR.toFixed(2)
                         : '—'}
                     </div>
+                    {aiInsights.stat_label_rr && (
+                      <div className="text-[10px] text-amber-600 mt-0.5">{aiInsights.stat_label_rr}</div>
+                    )}
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -1110,6 +1149,9 @@ export default function LeagueDashboardPage({
                     <div className="text-sm font-semibold text-foreground tabular-nums">
                       {mySummary?.missedDays.toLocaleString() ?? '—'}
                     </div>
+                    {aiInsights.stat_label_missed && (
+                      <div className="text-[10px] text-red-500 mt-0.5">{aiInsights.stat_label_missed}</div>
+                    )}
                   </div>
                   <div
                     className={`rounded-md border border-border/60 px-3 py-2.5 text-center ${rejectedCount > 0 ? 'bg-destructive/10 dark:bg-destructive/20' : 'bg-muted/40'
@@ -1344,6 +1386,11 @@ export default function LeagueDashboardPage({
                       })()}
                     </div>
                     <div className="flex items-center gap-2">
+                      {(row.entryCount || 0) > 1 && (
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                          {row.entryCount}x
+                        </Badge>
+                      )}
                       <div className="font-medium tabular-nums min-w-[56px] text-right">{row.pointsLabel}</div>
                       {row.submission ? (
                         <Button
@@ -1424,12 +1471,11 @@ export default function LeagueDashboardPage({
 
       {/* League Information */}
       <div className="px-4 lg:px-6">
-        <div className="mb-4">
-          <h2 className="text-lg font-semibold">League Information</h2>
-          <p className="text-sm text-muted-foreground">Configuration and settings overview</p>
-        </div>
-
         <div className="rounded-lg border">
+          <div className="p-4 border-b">
+            <h2 className="text-lg font-semibold">League Information</h2>
+            <p className="text-sm text-muted-foreground">Configuration and settings overview</p>
+          </div>
           {/* Progress Bar (for launched/active leagues) */}
           {(league.status === 'active' || league.status === 'launched') && (
             <div className="p-4 border-b">
@@ -1523,6 +1569,7 @@ export default function LeagueDashboardPage({
           </div>
         </div>
       </div>
+
     </div>
   );
 }

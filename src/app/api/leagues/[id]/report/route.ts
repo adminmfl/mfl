@@ -123,7 +123,7 @@ export async function GET(
             pdfBuffer = await renderToBuffer(
                 React.createElement(LeagueReportPDF, { data: reportData }) as any
             );
-            filename = `League_Report_${sanitizedLeagueName}_${sanitizedUsername}.pdf`;
+            filename = `My_League_Record_${sanitizedLeagueName}_${sanitizedUsername}.pdf`;
         }
 
         // Return PDF - convert Buffer to Uint8Array for NextResponse

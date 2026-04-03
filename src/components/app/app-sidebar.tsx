@@ -12,6 +12,7 @@ import {
 import { useLeague } from '@/contexts/league-context';
 import { useRole } from '@/contexts/role-context';
 import { getSidebarNavItems, NavSection } from '@/lib/navigation/sidebar-config';
+import { MessageBadge } from '@/components/messaging/message-badge';
 import { LeagueSwitcher } from './league-switcher';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -71,25 +72,32 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
     <Sidebar collapsible="icon" {...props}>
       {/* Header - Logo + League Switcher */}
       <SidebarHeader>
-        <div className={`flex items-center py-2 ${isCollapsed ? 'justify-center' : 'gap-3 md:justify-start'}`}>
-          <Link href="/dashboard" className={`flex items-center font-semibold ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
-            <img
-              src="/img/mfl-logo.jpg"
-              alt="My Fitness League"
-              className="size-10 rounded-md object-cover shadow-sm shrink-0"
-            />
-            {!isCollapsed && (
-              <div className="flex flex-col leading-tight min-w-0">
-                <span className="text-lg truncate">My Fitness League</span>
-                {activeLeague && (
-                  <span className="text-xs text-muted-foreground truncate">
-                    {activeRole ? `Viewing ${activeLeague.name} as ${activeRole}` : activeLeague.name}
-                  </span>
+        {(() => {
+          const branding = activeLeague?.branding;
+          const displayName = branding?.display_name || 'My Fitness League';
+          const logoSrc = branding?.logo_url || activeLeague?.logo_url || '/img/mfl-logo.jpg';
+          return (
+            <div className={`flex items-center py-2 ${isCollapsed ? 'justify-center' : 'gap-3 md:justify-start'}`}>
+              <Link href="/dashboard" className={`flex items-center font-semibold ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
+                <img
+                  src={logoSrc}
+                  alt={displayName}
+                  className="size-10 rounded-md object-cover shadow-sm shrink-0"
+                />
+                {!isCollapsed && (
+                  <div className="flex flex-col leading-tight min-w-0">
+                    <span className="text-lg truncate">{displayName}</span>
+                    {activeLeague && (
+                      <span className="text-xs text-muted-foreground truncate">
+                        {activeRole ? `Viewing ${activeLeague.name} as ${activeRole}` : activeLeague.name}
+                      </span>
+                    )}
+                  </div>
                 )}
-              </div>
-            )}
-          </Link>
-        </div>
+              </Link>
+            </div>
+          );
+        })()}
         {!isCollapsed && null}
       </SidebarHeader>
 
@@ -108,6 +116,13 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
           </React.Fragment>
         ))}
       </SidebarContent>
+
+      {/* Powered by MFL — shown when league has custom branding */}
+      {activeLeague?.branding?.display_name && activeLeague.branding.powered_by_visible !== false && !isCollapsed && (
+        <div className="px-3 py-1.5 text-center">
+          <span className="text-[10px] text-muted-foreground/60">Powered by My Fitness League</span>
+        </div>
+      )}
 
       {/* Footer - User Menu */}
       <SidebarFooter>
@@ -224,6 +239,9 @@ function NavSectionGroup({
                 <Link href={item.url} onClick={() => setOpenMobile(false)}>
                   <item.icon className="size-4" />
                   <span>{item.title}</span>
+                  {item.title === 'Team Chat' && leagueId && (
+                    <MessageBadge leagueId={leagueId} className="ml-auto" />
+                  )}
                   {item.badge && (
                     <span className="ml-auto text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
                       {item.badge}

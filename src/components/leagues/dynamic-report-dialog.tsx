@@ -148,13 +148,13 @@ export function DynamicReportDialog({
                 {trigger ?? (
                     <Button variant="outline" size="sm">
                         <IconFileAnalytics className="h-4 w-4 mr-2" />
-                        Progress Report
+                        My League Record
                     </Button>
                 )}
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>Generate Progress Report</DialogTitle>
+                    <DialogTitle>Generate My League Record</DialogTitle>
                     <DialogDescription>
                         Choose a date range for your performance report.
                     </DialogDescription>

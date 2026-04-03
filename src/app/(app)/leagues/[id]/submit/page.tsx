@@ -709,33 +709,30 @@ export default function SubmitActivityPage({
   // Overwrite Confirmation State
   // ============================================================================
   const [existingEntry, setExistingEntry] = React.useState<any>(null);
+  const [allDayEntries, setAllDayEntries] = React.useState<any[]>([]);
   const [overwriteDialogOpen, setOverwriteDialogOpen] = React.useState(false);
   const [viewProofUrl, setViewProofUrl] = React.useState<string | null>(null);
 
-  // Check for existing entry when date changes
+  // Check for existing entries when date changes
   React.useEffect(() => {
     const checkExisting = async () => {
       if (!leagueId || !activityDate) return;
 
       const dateStr = format(activityDate, 'yyyy-MM-dd');
-      // Only check if we are not in resubmit mode (resubmit targets a specific ID anyway)
       if (resubmitId) return;
 
       try {
-        // Use my-submissions API to check for entry on this date
         const res = await fetch(
           `/api/leagues/${leagueId}/my-submissions?startDate=${dateStr}&endDate=${dateStr}`
         );
         const json = await res.json();
 
         if (res.ok && json.success && json.data.submissions.length > 0) {
-          // Found an existing entry
-          // We only care about the first one (should be only one per date usually, but API returns list)
-          // Also, if it's rejected, we might not need to warn? Backend logic handles "canReplaceRejected".
-          // But user wants to know what they uploaded.
-          const entry = json.data.submissions[0];
-          setExistingEntry(entry);
+          const submissions = json.data.submissions;
+          setAllDayEntries(submissions);
+          setExistingEntry(submissions[0]);
         } else {
+          setAllDayEntries([]);
           setExistingEntry(null);
         }
       } catch (err) {
@@ -743,9 +740,28 @@ export default function SubmitActivityPage({
       }
     };
 
-    // Debounce slightly or just run
     checkExisting();
   }, [leagueId, activityDate, resubmitId]);
+
+  // For daily multi-frequency activities, determine if more entries are allowed
+  const isDailyMultiFrequency = React.useMemo(() => {
+    if (!selectedActivity) return false;
+    return selectedActivity.frequency_type === 'daily' && (selectedActivity.frequency || 1) > 1;
+  }, [selectedActivity]);
+
+  const dailyEntryCount = React.useMemo(() => {
+    if (!isDailyMultiFrequency || !selectedActivity) return 0;
+    return allDayEntries.filter(
+      (e: any) => e.workout_type === selectedActivity.value && e.status !== 'rejected'
+    ).length;
+  }, [isDailyMultiFrequency, selectedActivity, allDayEntries]);
+
+  const dailyFrequencyLimit = React.useMemo(() => {
+    if (!isDailyMultiFrequency || !selectedActivity) return 1;
+    return selectedActivity.frequency || 1;
+  }, [isDailyMultiFrequency, selectedActivity]);
+
+  const canSubmitDailyMulti = isDailyMultiFrequency && dailyEntryCount < dailyFrequencyLimit;
 
   // Submit the activity (step 1: validation and check)
   const handleSubmit = async (e: React.FormEvent) => {
@@ -803,8 +819,9 @@ export default function SubmitActivityPage({
       }
     }
 
-    // Skip RR Validation for 'none' measurement type (no metrics to validate)
-    if (primaryMetric !== 'none') {
+    // Skip RR Validation for 'none' measurement type or non-standard formulas
+    const rrFormula = (activeLeague as any)?.rr_config?.formula || 'standard';
+    if (primaryMetric !== 'none' && rrFormula === 'standard') {
       // Existing RR Validation Logic
       try {
         const previewPayload: Record<string, any> = {
@@ -865,9 +882,8 @@ export default function SubmitActivityPage({
       return;
     }
 
-    // Check for overwrite need
-    if (!overwrite && existingEntry && !resubmitId) {
-      // If existing entry is found, prompt user
+    // Check for overwrite need — skip for daily multi-frequency activities that still have capacity
+    if (!overwrite && existingEntry && !resubmitId && !canSubmitDailyMulti) {
       setOverwriteDialogOpen(true);
       return;
     }
@@ -1053,6 +1069,7 @@ export default function SubmitActivityPage({
 
       // Clear existing entry state since we just replaced it
       setExistingEntry(null);
+      setAllDayEntries([]);
       setOverwriteDialogOpen(false);
 
     } catch (error) {
@@ -1356,6 +1373,19 @@ export default function SubmitActivityPage({
                 {selectedActivity?.admin_info && (
                   <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
                     {selectedActivity.admin_info}
+                  </div>
+                )}
+                {isDailyMultiFrequency && (
+                  <div className={`text-xs p-2 rounded flex items-center gap-2 ${
+                    canSubmitDailyMulti
+                      ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400'
+                      : 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400'
+                  }`}>
+                    <Info className="size-3.5 shrink-0" />
+                    {canSubmitDailyMulti
+                      ? `${dailyEntryCount} of ${dailyFrequencyLimit} logged today — ${dailyFrequencyLimit - dailyEntryCount} remaining`
+                      : `Daily limit reached (${dailyEntryCount}/${dailyFrequencyLimit} for today)`
+                    }
                   </div>
                 )}
               </div>
@@ -2021,8 +2051,10 @@ export default function SubmitActivityPage({
                       )}
                       {(existingEntry.rr_value !== null && existingEntry.rr_value !== undefined) && (
                         <div className="col-span-2 sm:col-span-1">
-                          <span className="text-muted-foreground block text-xs">RR Value</span>
-                          <span>{Number(existingEntry.rr_value).toFixed(1)}</span>
+                          <span className="text-muted-foreground block text-xs">
+                            {((activeLeague as any)?.rr_config?.formula || 'standard') === 'standard' ? 'RR Value' : 'Points'}
+                          </span>
+                          <span>{((activeLeague as any)?.rr_config?.formula || 'standard') === 'standard' ? Number(existingEntry.rr_value).toFixed(1) : Math.round(Number(existingEntry.rr_value))}</span>
                         </div>
                       )}
                     </div>
@@ -2116,26 +2148,32 @@ export default function SubmitActivityPage({
             </DialogDescription>
           </DialogHeader>
 
-          {(submittedData?.rr_value || submittedData?.isRestDay) && (
-            <div className="flex justify-center py-2">
-              <div className={cn(
-                "inline-flex items-center gap-2 px-5 py-2.5 rounded-full border",
-                submittedData?.isExemption
-                  ? "bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/20"
-                  : "bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-green-500/20"
-              )}>
-                <span className={cn(
-                  "text-2xl font-bold",
-                  submittedData?.isExemption ? "text-amber-600" : "text-green-600"
+          {(submittedData?.rr_value || submittedData?.isRestDay) && (() => {
+            const formula = (activeLeague as any)?.rr_config?.formula || 'standard';
+            const isSimpleOrPoints = formula === 'simple' || formula === 'points_only';
+            return (
+              <div className="flex justify-center py-2">
+                <div className={cn(
+                  "inline-flex items-center gap-2 px-5 py-2.5 rounded-full border",
+                  submittedData?.isExemption
+                    ? "bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/20"
+                    : "bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-green-500/20"
                 )}>
-                  +{submittedData?.rr_value?.toFixed(1) || '1.0'}
-                </span>
-                <span className="text-sm text-muted-foreground">
-                  RR points {submittedData?.isExemption && '(if approved)'}
-                </span>
+                  <span className={cn(
+                    "text-2xl font-bold",
+                    submittedData?.isExemption ? "text-amber-600" : "text-green-600"
+                  )}>
+                    {isSimpleOrPoints ? '+1' : `+${submittedData?.rr_value?.toFixed(1) || '1.0'}`}
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    {isSimpleOrPoints
+                      ? `point${submittedData?.isExemption ? ' (if approved)' : ''}`
+                      : `RR points${submittedData?.isExemption ? ' (if approved)' : ''}`}
+                  </span>
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           <div className="flex flex-col gap-2 sm:flex-row sm:justify-center pt-2">
             <Button asChild className="flex-1">

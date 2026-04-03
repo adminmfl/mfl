@@ -74,6 +74,8 @@ import {
 import { DumbbellLoading } from '@/components/ui/dumbbell-loading';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useAiInsights } from '@/hooks/use-ai-insights';
+import { Sparkles } from 'lucide-react';
 
 import type { TeamMember } from '@/hooks/use-league-teams';
 
@@ -128,6 +130,13 @@ export default function MyTeamPage({
   const userTeamId = activeLeague?.team_id;
   const userTeamName = activeLeague?.team_name;
   const teamCapacity = activeLeague?.league_capacity || 20;
+
+  // AI inline insights
+  const { insights: aiInsights } = useAiInsights(leagueId, 'my_team', [
+    'team_strip',
+    'momentum_insight',
+    'leader_badge',
+  ]);
 
   // Fetch team members
   useEffect(() => {
@@ -517,6 +526,12 @@ export default function MyTeamPage({
             <p className="text-muted-foreground">
               Manage your team as captain
             </p>
+            {aiInsights.team_strip && (
+              <p className="text-xs text-primary/80 mt-1 flex items-center gap-1">
+                <Sparkles className="size-3 shrink-0" />
+                {aiInsights.team_strip}
+              </p>
+            )}
           </div>
         </div>
 
@@ -591,6 +606,15 @@ export default function MyTeamPage({
         })}
       </div>
 
+      {/* AI Momentum Insight */}
+      {aiInsights.momentum_insight && (
+        <div className="px-4 lg:px-6">
+          <p className="text-xs text-muted-foreground flex items-center gap-1">
+            <Sparkles className="size-3 text-primary/60 shrink-0" />
+            {aiInsights.momentum_insight}
+          </p>
+        </div>
+      )}
 
       {/* Team Members Table */}
       <div className="px-4 lg:px-6">

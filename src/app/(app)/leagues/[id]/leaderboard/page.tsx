@@ -44,6 +44,7 @@ import {
 import { cn } from '@/lib/utils';
 
 import { useLeagueLeaderboard } from '@/hooks/use-league-leaderboard';
+import { useAiInsights } from '@/hooks/use-ai-insights';
 import {
   LeaderboardStats,
   LeagueTeamsTable,
@@ -104,6 +105,12 @@ function LoadingSkeleton() {
 
 export default function LeaderboardPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: leagueId } = use(params);
+
+  // AI inline insights
+  const { insights: aiInsights } = useAiInsights(leagueId, 'leaderboard', [
+    'leaderboard_cta',
+  ]);
+
   const [viewRawTotals, setViewRawTotals] = useState(false);
   const [roles, setRoles] = useState<string[]>([]);
   const [startDate, setStartDate] = useState<Date | undefined>();
@@ -404,7 +411,9 @@ export default function LeaderboardPage({ params }: { params: Promise<{ id: stri
                 </div>
                 <p className="text-xs sm:text-sm text-muted-foreground">Combined activity + challenge points</p>
               </div>
-              <p className="text-xs text-muted-foreground mb-2">Log today to move up the rankings.</p>
+              <p className="text-xs text-muted-foreground mb-2">
+                {aiInsights.leaderboard_cta || 'Log today to move up the rankings.'}
+              </p>
               <div className="overflow-hidden">
                 <LeagueTeamsTable teams={teams} showAvgRR={true} />
               </div>

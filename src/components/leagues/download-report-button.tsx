@@ -109,7 +109,7 @@ export function DownloadReportButton({
             ) : (
                 <>
                     <IconFileDescription className="h-4 w-4 mr-2" />
-                    Report
+                    My League Record
                 </>
             )}
         </Button>

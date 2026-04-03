@@ -1,8 +1,6 @@
 /**
- * League Report PDF Template - 2 Page Version
- * 
- * Page 1: Summary with performance overview, challenges, points, team info
- * Page 2: Detailed activity breakdown with distances/durations, rest day dates
+ * My League Record — 1-Page PDF
+ * Matches client-provided PFL Summary Report format
  */
 
 import React from 'react';
@@ -15,12 +13,11 @@ import {
     StyleSheet,
     Svg,
     Path,
-    Circle,
 } from '@react-pdf/renderer';
 import type { LeagueReportData } from '@/lib/services/league-report';
 
 // ============================================================================
-// Theme & Styles
+// Theme
 // ============================================================================
 
 const theme = {
@@ -29,12 +26,15 @@ const theme = {
     blueLight: '#EFF6FF',
     grayText: '#374151',
     grayLight: '#F3F4F6',
+    grayBorder: '#D1D5DB',
     grayMuted: '#9CA3AF',
     white: '#FFFFFF',
     accent: '#F59E0B',
-    green: '#10B981',
-    orange: '#F97316',
 };
+
+// ============================================================================
+// Styles
+// ============================================================================
 
 const styles = StyleSheet.create({
     page: {
@@ -43,14 +43,15 @@ const styles = StyleSheet.create({
         backgroundColor: theme.white,
         flexDirection: 'column',
     },
-    // Header
+
+    // --- Header ---
     headerContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: 16,
         paddingBottom: 12,
-        borderBottomWidth: 4,
+        borderBottomWidth: 3,
         borderBottomColor: theme.blueDark,
     },
     headerLogoBox: {
@@ -77,10 +78,17 @@ const styles = StyleSheet.create({
         color: theme.grayText,
         fontWeight: 'bold',
     },
-    headerTitleContainer: {
+    headerCenter: {
         flex: 1,
         alignItems: 'center',
-        paddingHorizontal: 15,
+        paddingHorizontal: 12,
+    },
+    brandText: {
+        fontSize: 10,
+        fontFamily: 'Helvetica-Bold',
+        color: theme.grayMuted,
+        letterSpacing: 2,
+        marginBottom: 2,
     },
     reportTitle: {
         fontSize: 20,
@@ -88,89 +96,86 @@ const styles = StyleSheet.create({
         color: theme.blueDark,
     },
     reportSubtitle: {
-        fontSize: 11,
+        fontSize: 10,
         color: theme.grayMuted,
-        marginTop: 4,
+        marginTop: 3,
     },
 
-    // User Info Row
-    userInfoRow: {
+    // --- User Info Strip ---
+    userStrip: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         backgroundColor: theme.blueLight,
         padding: 14,
-        borderRadius: 8,
+        borderRadius: 6,
         marginBottom: 16,
         borderLeftWidth: 5,
         borderLeftColor: theme.blueDark,
     },
     userName: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: 'bold',
         color: theme.blueDark,
     },
-    teamName: {
-        fontSize: 12,
+    teamLabel: {
+        fontSize: 11,
         color: theme.bluePrimary,
-        marginLeft: 8,
+        marginLeft: 6,
     },
-    statsHighlight: {
+    statsRow: {
         flexDirection: 'row',
         gap: 20,
     },
-    statItem: {
+    statBox: {
         alignItems: 'center',
     },
     statLabel: {
-        fontSize: 9,
+        fontSize: 8,
         color: theme.grayMuted,
     },
     statValue: {
-        fontSize: 18,
+        fontSize: 20,
         fontWeight: 'bold',
         color: theme.blueDark,
     },
 
-    // Two Column Layout
+    // --- Two Column Sections ---
     columnsContainer: {
         flexDirection: 'row',
-        gap: 16,
-        flex: 1,
-    },
-    column: {
-        flex: 1,
         gap: 14,
+        marginBottom: 16,
     },
 
-    // Section Styling
+    // --- Section Box ---
     section: {
-        backgroundColor: theme.white,
-        borderRadius: 8,
-        overflow: 'hidden',
+        flex: 1,
         borderWidth: 1,
-        borderColor: theme.grayLight,
+        borderColor: theme.grayBorder,
+        borderRadius: 6,
+        overflow: 'hidden',
     },
     sectionHeader: {
         backgroundColor: theme.blueDark,
-        paddingVertical: 8,
+        paddingVertical: 7,
         paddingHorizontal: 12,
     },
     sectionTitle: {
-        fontSize: 11,
+        fontSize: 10,
         fontWeight: 'bold',
         color: theme.white,
         textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
     sectionContent: {
-        padding: 12,
+        padding: 10,
     },
 
-    // Metric Row
+    // --- Metric Row ---
     metricRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingVertical: 6,
+        paddingVertical: 5,
         borderBottomWidth: 1,
         borderBottomColor: theme.grayLight,
     },
@@ -178,121 +183,72 @@ const styles = StyleSheet.create({
         borderBottomWidth: 0,
     },
     metricLabel: {
-        fontSize: 11,
+        fontSize: 10,
         color: theme.grayText,
     },
     metricValue: {
-        fontSize: 11,
+        fontSize: 10,
         fontWeight: 'bold',
         color: theme.blueDark,
     },
 
-    // Challenges Badges Row
-    badgesRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
+    // --- Individual Standing ---
+    standingCenter: {
+        alignItems: 'center',
+        justifyContent: 'center',
         paddingVertical: 12,
     },
-    badge: {
-        alignItems: 'center',
-        width: 70,
-    },
-    badgeCircle: {
+    trophyCircle: {
         width: 50,
         height: 50,
         borderRadius: 25,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 6,
-    },
-    badgeNumber: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: theme.white,
-    },
-    badgeLabel: {
-        fontSize: 9,
-        color: theme.grayText,
-        textAlign: 'center',
-    },
-
-    // Progress Bar
-    progressBarContainer: {
-        height: 12,
-        backgroundColor: theme.grayLight,
-        borderRadius: 6,
-        marginTop: 4,
-        marginBottom: 4,
-        overflow: 'hidden',
-    },
-    progressBar: {
-        height: '100%',
-        borderRadius: 6,
-    },
-    progressLabel: {
-        fontSize: 10,
-        color: theme.grayMuted,
-        marginBottom: 2,
-    },
-
-    // Final Standing
-    finalStandingContainer: {
-        alignItems: 'center',
-        paddingVertical: 16,
-    },
-    trophyCircle: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
         backgroundColor: theme.accent,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 10,
+        marginBottom: 8,
     },
-    finalRankText: {
-        fontSize: 16,
+    standingMainText: {
+        fontSize: 12,
         fontWeight: 'bold',
         color: theme.blueDark,
-    },
-    finalPointsText: {
-        fontSize: 11,
-        color: theme.grayMuted,
-        marginTop: 4,
-    },
-
-    // Footer
-    footer: {
         textAlign: 'center',
-        paddingTop: 12,
-        borderTopWidth: 1,
-        borderTopColor: theme.grayLight,
-        marginTop: 'auto',
     },
-    footerText: {
+    standingSubText: {
         fontSize: 9,
         color: theme.grayMuted,
+        marginTop: 3,
+        textAlign: 'center',
     },
 
-    // Page 2 - Table styles
+    // --- Activity Table ---
+    tableTitle: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: theme.blueDark,
+        marginBottom: 8,
+    },
     table: {
         width: '100%',
-        marginBottom: 20,
+        borderWidth: 1,
+        borderColor: theme.grayBorder,
+        borderRadius: 4,
+        overflow: 'hidden',
     },
     tableHeader: {
         flexDirection: 'row',
         backgroundColor: theme.blueDark,
-        paddingVertical: 10,
-        paddingHorizontal: 12,
+        paddingVertical: 8,
+        paddingHorizontal: 10,
     },
     tableHeaderCell: {
         color: theme.white,
-        fontSize: 10,
+        fontSize: 9,
         fontWeight: 'bold',
     },
     tableRow: {
         flexDirection: 'row',
-        paddingVertical: 10,
-        paddingHorizontal: 12,
+        paddingVertical: 8,
+        paddingHorizontal: 10,
         borderBottomWidth: 1,
         borderBottomColor: theme.grayLight,
     },
@@ -300,83 +256,58 @@ const styles = StyleSheet.create({
         backgroundColor: theme.blueLight,
     },
     tableCell: {
-        fontSize: 10,
+        fontSize: 9,
         color: theme.grayText,
     },
     tableCellBold: {
-        fontSize: 10,
-        fontWeight: 'bold',
-        color: theme.blueDark,
-    },
-
-    // Rest days list
-    restDaysList: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 8,
-        marginTop: 8,
-    },
-    restDayChip: {
-        backgroundColor: theme.blueLight,
-        paddingVertical: 4,
-        paddingHorizontal: 10,
-        borderRadius: 4,
-    },
-    restDayChipText: {
         fontSize: 9,
+        fontWeight: 'bold',
         color: theme.blueDark,
     },
 
-    // Page 2 title
-    pageTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: theme.blueDark,
-        marginBottom: 20,
+    // --- Footer ---
+    footer: {
         textAlign: 'center',
+        paddingTop: 10,
+        borderTopWidth: 1,
+        borderTopColor: theme.grayLight,
+        marginTop: 'auto',
     },
-    brandText: {
-        fontSize: 11,
-        fontFamily: 'Helvetica-Bold',
-        color: theme.blueDark,
-        letterSpacing: 1.5,
-        marginTop: 6,
-        marginBottom: 4,
+    footerText: {
+        fontSize: 8,
+        color: theme.grayMuted,
     },
-    
 });
 
 // ============================================================================
-// Helper Functions
+// Helpers
 // ============================================================================
 
 function formatDate(dateString: string): string {
     if (!dateString) return '-';
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-    });
-}
-
-function formatDateShort(dateString: string): string {
-    if (!dateString) return '-';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-    });
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function formatDuration(minutes: number | null): string {
     if (!minutes) return '-';
     const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    if (hours > 0) {
-        return `${hours}h ${mins}m`;
-    }
+    const mins = Math.round(minutes % 60);
+    if (hours > 0) return `${hours}h ${mins}m`;
     return `${mins}m`;
+}
+
+function formatAvgPerSession(total: number | null, sessions: number): string {
+    if (!total || sessions === 0) return '-';
+    const avg = total / sessions;
+    // If it looks like duration (minutes)
+    if (avg > 1) return formatDuration(Math.round(avg));
+    return avg.toFixed(1);
+}
+
+function formatNumber(n: number | null): string {
+    if (!n) return '-';
+    return n.toLocaleString();
 }
 
 function getOrdinal(n: number): string {
@@ -386,24 +317,10 @@ function getOrdinal(n: number): string {
 }
 
 // ============================================================================
-// SVG Icons
+// Components
 // ============================================================================
 
-const TrophyIcon = ({ size = 28 }: { size?: number }) => (
-    <Svg width={size} height={size} viewBox="0 0 24 24">
-        <Path
-            fill="#FFFFFF"
-            d="M20.2 2H3.8c-1.1 0-2 .9-2 2v3.5c0 1.9 1.5 3.5 3.4 3.5h.3c1 2.3 3.3 3.9 6 3.9s5-1.6 6-3.9h.3c1.9 0 3.4-1.6 3.4-3.5V4c0-1.1-.9-2-2-2z"
-        />
-        <Path fill="#FFFFFF" d="M10 16h4v2h-4zM7 19h10v3H7z" />
-    </Svg>
-);
-
-// ============================================================================
-// Component: Logo
-// ============================================================================
-
-const Logo = ({ src, placeholderText }: { src: string | null, placeholderText: string }) => (
+const Logo = ({ src, placeholderText }: { src: string | null; placeholderText: string }) => (
     <View style={styles.headerLogoBox}>
         {src ? (
             <Image src={src} style={styles.logo} />
@@ -415,30 +332,21 @@ const Logo = ({ src, placeholderText }: { src: string | null, placeholderText: s
     </View>
 );
 
-// ============================================================================
-// Component: Section
-// ============================================================================
-
-const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{title}</Text>
-        </View>
-        <View style={styles.sectionContent}>
-            {children}
-        </View>
-    </View>
-);
-
-// ============================================================================
-// Component: MetricRow
-// ============================================================================
-
 const MetricRow = ({ label, value, isLast = false }: { label: string; value: string | number; isLast?: boolean }) => (
     <View style={[styles.metricRow, isLast && styles.metricRowLast]}>
         <Text style={styles.metricLabel}>{label}:</Text>
-        <Text style={styles.metricValue}>{value}</Text>
+        <Text style={styles.metricValue}>{String(value)}</Text>
     </View>
+);
+
+const TrophyIcon = ({ size = 24 }: { size?: number }) => (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+        <Path
+            fill="#FFFFFF"
+            d="M20.2 2H3.8c-1.1 0-2 .9-2 2v3.5c0 1.9 1.5 3.5 3.4 3.5h.3c1 2.3 3.3 3.9 6 3.9s5-1.6 6-3.9h.3c1.9 0 3.4-1.6 3.4-3.5V4c0-1.1-.9-2-2-2z"
+        />
+        <Path fill="#FFFFFF" d="M10 16h4v2h-4zM7 19h10v3H7z" />
+    </Svg>
 );
 
 // ============================================================================
@@ -463,198 +371,136 @@ export function LeagueReportPDF({ data }: LeagueReportPDFProps) {
     const totalPoints = data.finalIndividualScore;
     const workoutPoints = Math.max(0, totalPoints - challengePointsTotal);
 
+    // Determine standing text
+    const isCompleted = data.league.endDate && new Date(data.league.endDate) < new Date();
+    const standingText = isCompleted
+        ? 'League Completed. Congrats!'
+        : `#${data.rankings.userRankInLeague}${getOrdinal(data.rankings.userRankInLeague)} in League`;
+
     return (
         <Document>
-            {/* PAGE 1: Summary */}
             <Page size="A4" style={styles.page}>
-                {/* Header */}
+                {/* ===== HEADER ===== */}
                 <View style={styles.headerContainer}>
-                    <Logo src={data.league.logoUrl} placeholderText="LEAGUE" />
-                    <View style={styles.headerTitleContainer}>
-                    <Text style={styles.brandText}>MY FITNESS LEAGUE</Text>
-                        <Text style={styles.reportTitle}>{data.league.name} Summary Report</Text>
+                    <Logo src={data.league.logoUrl} placeholderText="MFL" />
+                    <View style={styles.headerCenter}>
+                        <Text style={styles.brandText}>MY FITNESS LEAGUE</Text>
+                        <Text style={styles.reportTitle}>My League Record</Text>
                         <Text style={styles.reportSubtitle}>
                             {formatDate(data.league.startDate)} - {formatDate(data.league.endDate)}
                         </Text>
                     </View>
-                    <Logo src={data.team?.logoUrl || null} placeholderText="TEAM" />
+                    <Logo src={data.team?.logoUrl || null} placeholderText={data.team?.name?.substring(0, 3).toUpperCase() || 'TEAM'} />
                 </View>
 
-                {/* User Info Row */}
-                <View style={styles.userInfoRow}>
+                {/* ===== USER INFO STRIP ===== */}
+                <View style={styles.userStrip}>
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                         <Text style={styles.userName}>{data.user.username}</Text>
-                        {data.team && (
-                            <Text style={styles.teamName}>| {data.team.name}</Text>
-                        )}
+                        {data.team && <Text style={styles.teamLabel}>| {data.team.name}</Text>}
                     </View>
-                    <View style={styles.statsHighlight}>
-                        <View style={styles.statItem}>
+                    <View style={styles.statsRow}>
+                        <View style={styles.statBox}>
                             <Text style={styles.statLabel}>Total Points</Text>
                             <Text style={styles.statValue}>{totalPoints}</Text>
                         </View>
-                        <View style={styles.statItem}>
-                            <Text style={styles.statLabel}>Challenge Pts</Text>
-                            <Text style={styles.statValue}>{challengePointsTotal}</Text>
-                        </View>
-                        <View style={styles.statItem}>
+                        <View style={styles.statBox}>
                             <Text style={styles.statLabel}>Avg RR</Text>
-                            <Text style={styles.statValue}>{data.averageRR}</Text>
+                            <Text style={styles.statValue}>{data.averageRR > 0 ? data.averageRR.toFixed(2) : '-'}</Text>
                         </View>
                     </View>
                 </View>
 
-                {/* Two Column Layout */}
+                {/* ===== PERFORMANCE OVERVIEW + INDIVIDUAL STANDING ===== */}
                 <View style={styles.columnsContainer}>
-                    {/* Left Column */}
-                    <View style={styles.column}>
-                        {/* Performance Overview */}
-                        <Section title="Performance Overview">
+                    {/* Left: Performance Overview */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Text style={styles.sectionTitle}>Performance Overview</Text>
+                        </View>
+                        <View style={styles.sectionContent}>
                             <MetricRow label="Workouts Completed" value={data.performance.totalActivities} />
+                            <MetricRow label="Points earned for team" value={totalPoints} />
                             <MetricRow label="Rest Days Taken" value={`${data.restDays.total}${data.restDays.donated ? ` (+ ${data.restDays.donated} donated)` : ''}${data.restDays.received ? ` (+ ${data.restDays.received} received)` : ''}`} />
                             <MetricRow label="Active Days" value={data.performance.totalActiveDays} />
                             <MetricRow label="Missed Days" value={data.performance.totalMissedDays} />
-                            <MetricRow label="Best Streak" value={`${bestStreak} Days`} isLast />
-                        </Section>
+                            <MetricRow label="Best Streak (consecutive workout days)" value={`${bestStreak} Days`} isLast />
+                        </View>
+                    </View>
 
-                        {/* Challenges Completed */}
-                        <Section title="Challenges Completed">
-                            <View style={styles.badgesRow}>
-                                <View style={styles.badge}>
-                                    <View style={[styles.badgeCircle, { backgroundColor: theme.bluePrimary }]}>
-                                        <Text style={styles.badgeNumber}>{individualChallenges}</Text>
-                                    </View>
-                                    <Text style={styles.badgeLabel}>Individual</Text>
-                                </View>
-                                <View style={styles.badge}>
-                                    <View style={[styles.badgeCircle, { backgroundColor: theme.green }]}>
-                                        <Text style={styles.badgeNumber}>{teamChallenges}</Text>
-                                    </View>
-                                    <Text style={styles.badgeLabel}>Team</Text>
-                                </View>
-                                <View style={styles.badge}>
-                                    <View style={[styles.badgeCircle, { backgroundColor: theme.orange }]}>
-                                        <Text style={styles.badgeNumber}>{subTeamChallenges}</Text>
-                                    </View>
-                                    <Text style={styles.badgeLabel}>Sub-Team</Text>
-                                </View>
-                            </View>
-                        </Section>
-
-                        {/* Final Standing */}
-                        <Section title="Final Standing">
-                            <View style={styles.finalStandingContainer}>
+                    {/* Right: Individual Standing */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Text style={styles.sectionTitle}>Individual Standing</Text>
+                        </View>
+                        <View style={styles.sectionContent}>
+                            <View style={styles.standingCenter}>
                                 <View style={styles.trophyCircle}>
-                                    <TrophyIcon size={32} />
+                                    <TrophyIcon size={26} />
                                 </View>
-                                <Text style={styles.finalRankText}>
-                                    #{data.rankings.userRankInLeague} in League
+                                <Text style={styles.standingMainText}>{standingText}</Text>
+                                <Text style={styles.standingSubText}>
+                                    {totalPoints} Total Points | {data.averageRR > 0 ? data.averageRR.toFixed(2) : '-'} Avg RR
                                 </Text>
-                                <Text style={styles.finalPointsText}>
-                                    {totalPoints} Total Points
-                                </Text>
+                                {data.team && (
+                                    <Text style={styles.standingSubText}>
+                                        Team Rank: #{data.rankings.teamRankInLeague} | Your Rank in Team: #{data.rankings.userRankInTeam}
+                                    </Text>
+                                )}
                             </View>
-                        </Section>
-                    </View>
-
-                    {/* Right Column */}
-                    <View style={styles.column}>
-                        {/* Points Breakdown */}
-                        <Section title="Points Breakdown">
-                            <View style={{ marginBottom: 10 }}>
-                                <Text style={styles.progressLabel}>Workouts: {workoutPoints} pts</Text>
-                                <View style={styles.progressBarContainer}>
-                                    <View
-                                        style={[
-                                            styles.progressBar,
-                                            {
-                                                width: `${totalPoints > 0 ? (workoutPoints / totalPoints) * 100 : 0}%`,
-                                                backgroundColor: theme.bluePrimary
-                                            }
-                                        ]}
-                                    />
-                                </View>
-                            </View>
-                            <View style={{ marginBottom: 10 }}>
-                                <Text style={styles.progressLabel}>Challenges: {challengePointsTotal} pts</Text>
-                                <View style={styles.progressBarContainer}>
-                                    <View
-                                        style={[
-                                            styles.progressBar,
-                                            {
-                                                width: `${totalPoints > 0 ? (challengePointsTotal / totalPoints) * 100 : 0}%`,
-                                                backgroundColor: theme.orange
-                                            }
-                                        ]}
-                                    />
-                                </View>
-                            </View>
-                            <MetricRow label="Total Points" value={totalPoints} isLast />
-                        </Section>
-
-                        {/* Team Info */}
-                        {data.team && (
-                            <Section title={data.team.name}>
-                                <MetricRow label="Team Rank" value={`${data.rankings.teamRankInLeague}${getOrdinal(data.rankings.teamRankInLeague)} Place`} />
-                                <MetricRow label="Your Rank in Team" value={`${data.rankings.userRankInTeam}${getOrdinal(data.rankings.userRankInTeam)} Place`} />
-                                <MetricRow label="Team Score" value={`${data.finalTeamScore} Points`} isLast />
-                            </Section>
-                        )}
-
-                        {/* Milestones */}
-                        <Section title="Milestones">
-                            <MetricRow label="Longest Streak" value={`${bestStreak} Days`} />
-                            <MetricRow label="Average RR" value={data.averageRR > 0 ? data.averageRR.toFixed(2) : '-'} />
-                            <MetricRow label="League Rank" value={`${data.rankings.userRankInLeague}${getOrdinal(data.rankings.userRankInLeague)} Place`} isLast />
-                        </Section>
+                        </View>
                     </View>
                 </View>
 
-                {/* Footer */}
-                <View style={styles.footer}>
-                    <Text style={styles.footerText}>
-                        Page 1 of 2 • Generated on {formatDate(data.generatedAt)} • MyFitnessLeague
-                    </Text>
-                </View>
-            </Page>
-
-            {/* PAGE 2: Activity Details & Rest Days */}
-            <Page size="A4" style={styles.page}>
-                <Text style={styles.pageTitle}>Activity Details</Text>
-
-                {/* Activity Breakdown Table */}
+                {/* ===== ACTIVITY DETAILS TABLE ===== */}
+                <Text style={styles.tableTitle}>Activity Details</Text>
                 <View style={styles.table}>
                     <View style={styles.tableHeader}>
-                        <Text style={[styles.tableHeaderCell, { flex: 2 }]}>Activity</Text>
+                        <Text style={[styles.tableHeaderCell, { flex: 2.5 }]}>Activity</Text>
                         <Text style={[styles.tableHeaderCell, { flex: 1, textAlign: 'center' }]}>Sessions</Text>
-                        <Text style={[styles.tableHeaderCell, { flex: 1.5, textAlign: 'center' }]}>Distance</Text>
-                        <Text style={[styles.tableHeaderCell, { flex: 1.5, textAlign: 'center' }]}>Duration</Text>
+                        <Text style={[styles.tableHeaderCell, { flex: 1.2, textAlign: 'center' }]}>Distance</Text>
+                        <Text style={[styles.tableHeaderCell, { flex: 1.2, textAlign: 'center' }]}>Steps</Text>
+                        <Text style={[styles.tableHeaderCell, { flex: 1.2, textAlign: 'center' }]}>Duration</Text>
+                        <Text style={[styles.tableHeaderCell, { flex: 1.2, textAlign: 'center' }]}>Avg/Session</Text>
                     </View>
                     {data.activities.length > 0 ? (
-                        data.activities.map((activity, index) => (
-                            <View
-                                key={index}
-                                style={[
-                                    styles.tableRow,
-                                    index % 2 === 1 && styles.tableRowAlt
-                                ]}
-                            >
-                                <Text style={[styles.tableCellBold, { flex: 2 }]}>
-                                    {activity.activityName}
-                                </Text>
-                                <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>
-                                    {activity.sessionCount}
-                                </Text>
-                                <Text style={[styles.tableCell, { flex: 1.5, textAlign: 'center' }]}>
-                                    {activity.totalDistance ? `${activity.totalDistance.toFixed(1)} km` :
-                                        activity.totalSteps ? `${activity.totalSteps.toLocaleString()} steps` :
-                                            activity.totalHoles ? `${activity.totalHoles} holes` : '-'}
-                                </Text>
-                                <Text style={[styles.tableCell, { flex: 1.5, textAlign: 'center' }]}>
-                                    {formatDuration(activity.totalDuration)}
-                                </Text>
-                            </View>
-                        ))
+                        data.activities.map((activity, index) => {
+                            // Determine primary metric for avg/session
+                            let avgSession = '-';
+                            if (activity.totalDuration && activity.totalDuration > 0) {
+                                avgSession = formatAvgPerSession(activity.totalDuration, activity.sessionCount);
+                            } else if (activity.totalSteps && activity.totalSteps > 0) {
+                                avgSession = formatNumber(Math.round(activity.totalSteps / activity.sessionCount));
+                            } else if (activity.totalDistance && activity.totalDistance > 0) {
+                                avgSession = `${(activity.totalDistance / activity.sessionCount).toFixed(1)} km`;
+                            }
+
+                            return (
+                                <View
+                                    key={index}
+                                    style={[styles.tableRow, index % 2 === 1 && styles.tableRowAlt]}
+                                >
+                                    <Text style={[styles.tableCellBold, { flex: 2.5 }]}>
+                                        {activity.activityName}
+                                    </Text>
+                                    <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>
+                                        {activity.sessionCount}
+                                    </Text>
+                                    <Text style={[styles.tableCell, { flex: 1.2, textAlign: 'center' }]}>
+                                        {activity.totalDistance ? `${activity.totalDistance.toFixed(1)} km` : '-'}
+                                    </Text>
+                                    <Text style={[styles.tableCell, { flex: 1.2, textAlign: 'center' }]}>
+                                        {activity.totalSteps ? formatNumber(activity.totalSteps) : '-'}
+                                    </Text>
+                                    <Text style={[styles.tableCell, { flex: 1.2, textAlign: 'center' }]}>
+                                        {formatDuration(activity.totalDuration)}
+                                    </Text>
+                                    <Text style={[styles.tableCell, { flex: 1.2, textAlign: 'center' }]}>
+                                        {avgSession}
+                                    </Text>
+                                </View>
+                            );
+                        })
                     ) : (
                         <View style={styles.tableRow}>
                             <Text style={[styles.tableCell, { flex: 1 }]}>No activities recorded</Text>
@@ -662,43 +508,10 @@ export function LeagueReportPDF({ data }: LeagueReportPDFProps) {
                     )}
                 </View>
 
-                {/* Rest Days Section */}
-                <Section title={`Rest Days (${data.restDays.total} Used${data.restDays.donated ? ` • ${data.restDays.donated} Donated` : ''}${data.restDays.received ? ` • ${data.restDays.received} Received` : ''})`}>
-                    {data.restDays.dates.length > 0 ? (
-                        <View style={styles.restDaysList}>
-                            {data.restDays.dates.map((date, index) => (
-                                <View key={index} style={styles.restDayChip}>
-                                    <Text style={styles.restDayChipText}>{formatDateShort(date)}</Text>
-                                </View>
-                            ))}
-                        </View>
-                    ) : (
-                        <Text style={{ fontSize: 10, color: theme.grayMuted, padding: 8 }}>
-                            No rest days taken during this league.
-                        </Text>
-                    )}
-                </Section>
-
-                {/* Summary Stats */}
-                <View style={{ marginTop: 20 }}>
-                    <Section title="Summary Statistics">
-                        <View style={{ flexDirection: 'row', gap: 20 }}>
-                            <View style={{ flex: 1 }}>
-                                <MetricRow label="Total Activities" value={data.activities.length} />
-                                <MetricRow label="Total Sessions" value={data.performance.totalActivities} />
-                            </View>
-                            <View style={{ flex: 1 }}>
-                                <MetricRow label="Rest Days" value={data.restDays.total} />
-                                <MetricRow label="Active Days" value={data.performance.totalActiveDays} isLast />
-                            </View>
-                        </View>
-                    </Section>
-                </View>
-
-                {/* Footer */}
+                {/* ===== FOOTER ===== */}
                 <View style={styles.footer}>
                     <Text style={styles.footerText}>
-                        Page 2 of 2 • Generated on {formatDate(data.generatedAt)} • MyFitnessLeague
+                        Generated on {formatDate(data.generatedAt)} • MyFitnessLeague
                     </Text>
                 </View>
             </Page>

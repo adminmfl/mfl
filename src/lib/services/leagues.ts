@@ -488,6 +488,9 @@ export async function updateLeague(
         allowedUpdates.max_team_capacity = data.max_team_capacity;
       }
       if (data.description !== undefined) allowedUpdates.description = data.description;
+      // RR config and branding are always editable for active leagues
+      if ((data as any).rr_config !== undefined) (allowedUpdates as any).rr_config = (data as any).rr_config;
+      if ((data as any).branding !== undefined) (allowedUpdates as any).branding = (data as any).branding;
       // League name is always editable (league_id stays constant)
       if (data.league_name !== undefined) allowedUpdates.league_name = data.league_name;
       // Allow date edits if the date hasn't passed yet

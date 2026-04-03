@@ -9,6 +9,7 @@ import { getSupabaseServiceRole } from "@/lib/supabase/client";
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth/config';
 import { getUserLocalDateYMD } from '@/lib/utils/timezone';
+import { calculateRR, getAgeThresholds, type RRConfig } from '@/lib/rr-calculator';
 
 // ============================================================================
 // Types
@@ -99,7 +100,7 @@ export async function POST(req: NextRequest) {
     // Block submissions entirely if the league has completed
     const { data: leagueRow, error: leagueRowError } = await supabase
       .from('leagues')
-      .select('league_id, end_date, status')
+      .select('league_id, end_date, status, rr_config')
       .eq('league_id', league_id)
       .single();
 
@@ -110,6 +111,7 @@ export async function POST(req: NextRequest) {
 
     const leagueEnd = (leagueRow as any).end_date || null;
     const leagueStatus = (leagueRow as any).status || null;
+    const leagueRRConfig = (leagueRow as any).rr_config || null;
 
     // Check league completion status and date
     // Logic update: Allow submissions until 08:30 UTC the day AFTER the end date.
@@ -215,7 +217,9 @@ export async function POST(req: NextRequest) {
 
       const rawFrequency = (leagueActivity as any)?.frequency ?? null;
       const rawFrequencyType = (leagueActivity as any)?.frequency_type ?? 'weekly';
-      const frequencyType = rawFrequencyType === 'monthly' ? 'monthly' : 'weekly';
+      const frequencyType: 'daily' | 'weekly' | 'monthly' =
+        rawFrequencyType === 'monthly' ? 'monthly' :
+        rawFrequencyType === 'daily' ? 'daily' : 'weekly';
       const normalizedFrequency = typeof rawFrequency === 'number' && Number.isFinite(rawFrequency)
         ? Math.floor(rawFrequency)
         : null;
@@ -226,53 +230,79 @@ export async function POST(req: NextRequest) {
       // Null means unlimited. Otherwise, enforce max submissions per period.
       if (typeof frequency === 'number' && frequency >= 1) {
 
-        const dateRange = frequencyType === 'monthly'
-          ? getMonthRangeYmd(normalizedDate)
-          : getWeekRangeYmd(normalizedDate);
-        if (!dateRange) {
-          return NextResponse.json({ error: 'Invalid date format for submission' }, { status: 400 });
-        }
+        if (frequencyType === 'daily') {
+          // Daily frequency: count total entries for this activity on this specific date
+          const { data: dailyEntries, error: dailyError } = await supabase
+            .from('effortentry')
+            .select('id, status')
+            .eq('league_member_id', membership.league_member_id)
+            .eq('type', 'workout')
+            .eq('workout_type', workout_type)
+            .eq('date', normalizedDate);
 
-        const { data: weeklyEntries, error: weeklyError } = await supabase
-          .from('effortentry')
-          .select('date, status')
-          .eq('league_member_id', membership.league_member_id)
-          .eq('type', 'workout')
-          .eq('workout_type', workout_type)
-          .gte('date', dateRange.start)
-          .lte('date', dateRange.end);
+          if (dailyError) {
+            console.error('Daily entries lookup error:', dailyError);
+            return NextResponse.json({ error: 'Failed to validate activity limit' }, { status: 500 });
+          }
 
-        if (weeklyError) {
-          console.error('Weekly entries lookup error:', weeklyError);
-          return NextResponse.json({ error: 'Failed to validate activity limit' }, { status: 500 });
-        }
+          const activeCount = (dailyEntries || []).filter((row: any) => row?.status !== 'rejected').length;
 
-        const usedDates = new Set(
-          (weeklyEntries || [])
-            .filter((row: any) => {
-              // Exclude rejected entries
-              if (row?.status === 'rejected') return false;
+          if (activeCount >= frequency) {
+            return NextResponse.json(
+              {
+                error: `This activity is limited to ${frequency} time${frequency === 1 ? '' : 's'} per day. You have already logged ${activeCount} time${activeCount === 1 ? '' : 's'} today.`,
+              },
+              { status: 409 }
+            );
+          }
+        } else {
+          // Weekly/monthly frequency: count unique dates
+          const dateRange = frequencyType === 'monthly'
+            ? getMonthRangeYmd(normalizedDate)
+            : getWeekRangeYmd(normalizedDate);
+          if (!dateRange) {
+            return NextResponse.json({ error: 'Invalid date format for submission' }, { status: 400 });
+          }
 
-              // If overwriting, exclude the entry for the current date from the count
-              // This assumes only one entry per day is allowed active
-              if (overwrite && normalizeDateOnly(row.date) === normalizedDate) {
-                return false;
-              }
+          const { data: periodEntries, error: periodError } = await supabase
+            .from('effortentry')
+            .select('date, status')
+            .eq('league_member_id', membership.league_member_id)
+            .eq('type', 'workout')
+            .eq('workout_type', workout_type)
+            .gte('date', dateRange.start)
+            .lte('date', dateRange.end);
 
-              return true;
-            })
-            .map((row: any) => normalizeDateOnly(row.date))
-            .filter(Boolean)
-        );
+          if (periodError) {
+            console.error('Period entries lookup error:', periodError);
+            return NextResponse.json({ error: 'Failed to validate activity limit' }, { status: 500 });
+          }
 
-        if (usedDates.size >= frequency) {
-          return NextResponse.json(
-            {
-              error: `This activity is limited to ${frequency} day${frequency === 1 ? '' : 's'} per ${frequencyType}. You have already used ${usedDates.size} day${usedDates.size === 1 ? '' : 's'} this ${frequencyType}.`,
-            },
-            { status: 409 }
+          const usedDates = new Set(
+            (periodEntries || [])
+              .filter((row: any) => {
+                if (row?.status === 'rejected') return false;
+                if (overwrite && normalizeDateOnly(row.date) === normalizedDate) return false;
+                return true;
+              })
+              .map((row: any) => normalizeDateOnly(row.date))
+              .filter(Boolean)
           );
+
+          if (usedDates.size >= frequency) {
+            return NextResponse.json(
+              {
+                error: `This activity is limited to ${frequency} day${frequency === 1 ? '' : 's'} per ${frequencyType}. You have already used ${usedDates.size} day${usedDates.size === 1 ? '' : 's'} this ${frequencyType}.`,
+              },
+              { status: 409 }
+            );
+          }
         }
+      }
+
+      // Store daily frequency info for later use in duplicate check bypass
+      if (frequencyType === 'daily' && typeof frequency === 'number' && frequency > 1) {
+        (body as any).__isDailyMulti = true;
       }
     }
 
@@ -294,18 +324,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Age-based thresholds
-    let baseDuration = 45;
-    let minSteps = 10000, maxSteps = 20000;
-    if (typeof userAge === 'number') {
-      if (userAge > 75) {
-        minSteps = 3000; maxSteps = 6000;
-        baseDuration = 30;
-      } else if (userAge > 65) {
-        minSteps = 5000; maxSteps = 10000;
-        baseDuration = 30;
-      }
-    }
+    // Age-based thresholds (used by standard formula and downstream logic)
+    const rrConfig: RRConfig = leagueRRConfig || { formula: 'standard', age_adjustments: true };
+    const { baseDuration, minSteps, maxSteps } = getAgeThresholds(userAge, rrConfig);
 
     // If this is a resubmission, ensure the original belongs to the user, is rejected, and has no approved resubmission.
     if (reupload_of) {
@@ -417,10 +438,7 @@ export async function POST(req: NextRequest) {
         activityPointsPerSession = activityConfigRow.points_per_session ?? 1;
         activityOutcomeConfig = activityConfigRow.outcome_config ?? null;
 
-        // Use league-configured minimum duration instead of hardcoded default
-        if (typeof activityConfigRow.min_value === 'number' && activityConfigRow.min_value > 0) {
-          baseDuration = activityConfigRow.min_value;
-        }
+        // min_value override for baseDuration is handled in calculateRR via overrideBaseDuration
       }
     }
 
@@ -477,19 +495,12 @@ export async function POST(req: NextRequest) {
       reupload_of: reupload_of || null,
     };
 
-    // Calculate RR value based on activity type
-    if (type === 'rest') {
-      payload.rr_value = 1.0;
-    } else {
-      // Check if this is a custom activity with measurement_type='none'
+    // Calculate RR value based on activity type using shared calculator
+    {
+      // Resolve measurement_type for the activity
       let measurementType: string | null = null;
 
-      if (workout_type) {
-        // Strategy:
-        // 1. If it looks like a UUID, try to find it as a custom activity ID.
-        // 2. If not found (or not UUID), try to find it as a custom activity Name.
-        // 3. If still not found, try to find it as a regular activity Name.
-
+      if (type === 'workout' && workout_type) {
         const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(workout_type);
         let customActivity = null;
 
@@ -499,90 +510,59 @@ export async function POST(req: NextRequest) {
             .select('measurement_type')
             .eq('custom_activity_id', workout_type)
             .maybeSingle();
-
           if (data) customActivity = data;
         }
 
-        // If not found by ID (or input provided was a Name), try looking up by Name
         if (!customActivity) {
           const { data } = await supabase
             .from('custom_activities')
             .select('measurement_type')
             .eq('activity_name', workout_type)
             .maybeSingle();
-
           if (data) customActivity = data;
         }
 
         if (customActivity) {
           measurementType = customActivity.measurement_type;
         } else {
-          // Try regular activity by name
           const { data: regularActivity } = await supabase
             .from('activities')
             .select('measurement_type')
             .eq('activity_name', workout_type)
             .maybeSingle();
-
           if (regularActivity) {
             measurementType = regularActivity.measurement_type;
           }
         }
       }
 
-      // If measurement_type is 'none', auto-approve with RR 1.0
-      if (measurementType === 'none') {
-        payload.rr_value = 1.0;
-      } else {
-        // Calculate RR for each metric if present
-        let rrSteps = 0;
-        let rrHoles = 0;
-        let rrDuration = 0;
-        let rrDistance = 0;
-
-        // Steps Calculation
-        if (typeof steps === 'number') {
-          if (steps >= minSteps) {
-            const capped = Math.min(steps, maxSteps);
-            rrSteps = Math.min(1 + (capped - minSteps) / (maxSteps - minSteps), 2.0);
-          }
-        }
-
-        // Holes Calculation
-        if (typeof holes === 'number') {
-          rrHoles = Math.min(holes / 9, 2.0);
-        }
-
-        // Duration Calculation
-        if (typeof duration === 'number' && duration > 0) {
-          rrDuration = Math.min(duration / baseDuration, 2.0);
-        }
-
-        // Distance Calculation
-        if (typeof distance === 'number' && distance > 0) {
-          // Use activity-specific logic if available for distance scaling
-          let distanceDivisor = 4; // Default for running/walking (4km = 1 RR)
-
-          if (workout_type === 'cycling') {
-            distanceDivisor = 10; // 10km = 1 RR for cycling
-          }
-
-          rrDistance = Math.min(distance / distanceDivisor, 2.0);
-        }
-
-        // Take the maximum of all calculated RRs
-        // This allows users to qualify via whichever metric is strongest
-        payload.rr_value = Math.max(rrSteps, rrHoles, rrDuration, rrDistance);
+      // Use per-activity min_value override for baseDuration if set
+      let overrideBaseDuration: number | null = null;
+      if (activityConfigRow && typeof activityConfigRow.min_value === 'number' && activityConfigRow.min_value > 0) {
+        overrideBaseDuration = activityConfigRow.min_value;
       }
-    }
 
-    // Enforce RR rules: workouts must have RR between 1 and 2.
-    // Skip validation for measurement_type='none' activities (they already have RR 1.0)
-    if (type === 'workout' && (typeof payload.rr_value !== 'number' || payload.rr_value < 1.0)) {
-      return NextResponse.json(
-        { error: 'Workout RR must be at least 1.0 to submit. Please increase duration/distance/steps.' },
-        { status: 400 }
+      const rrResult = calculateRR(
+        rrConfig,
+        type as 'workout' | 'rest',
+        { duration, distance, steps, holes },
+        workout_type || null,
+        userAge,
+        measurementType,
+        overrideBaseDuration,
       );
+
+      payload.rr_value = rrResult.rr_value;
+
+      // Enforce RR rules: for standard formula, workouts must have RR >= 1.0
+      if (type === 'workout' && !rrResult.canSubmit) {
+        return NextResponse.json(
+          { error: rrConfig.formula === 'simple'
+            ? 'Please provide at least one metric (duration, distance, steps, or holes) to submit.'
+            : 'Workout RR must be at least 1.0 to submit. Please increase duration/distance/steps.' },
+          { status: 400 }
+        );
+      }
     }
 
     // If the only existing entry is an auto-assigned rest day and the user is now
@@ -614,12 +594,17 @@ export async function POST(req: NextRequest) {
     const effectiveHasNonRejected = (existingRows ?? []).some((r: any) => r?.status && r.status !== 'rejected');
     const effectiveCanReplaceRejected = !!effectiveExisting && !effectiveHasNonRejected;
 
+    // For daily multi-frequency activities, skip the duplicate check entirely
+    // (frequency validation above already enforces the limit)
+    const isDailyMulti = !!(body as any).__isDailyMulti;
+
     // If an entry already exists for the day:
+    // - If daily multi-frequency, allow inserting additional entries (skip duplicate block)
     // - If overwrite is true, allow updating regardless of status (unless it's a reupload flow)
     // - If this is a reupload (reupload_of is set), always create a new entry (handled below)
     // - Otherwise, block if any existing entry is pending/approved
     // - Allow update/replace only when previous submissions for that day are rejected
-    if (effectiveExisting && !reupload_of) {
+    if (effectiveExisting && !reupload_of && !isDailyMulti) {
       // Logic: Allow update if overwrite is requested OR if we are replacing a rejected entry
       // Note: overwrite flag comes from frontend when user confirms they want to update
       if (overwrite || effectiveCanReplaceRejected) {

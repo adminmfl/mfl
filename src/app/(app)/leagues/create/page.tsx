@@ -40,6 +40,7 @@ import {
 import { LeagueFormSection } from '@/components/league/league-form-section';
 import { TierRecommendationCard } from '@/components/league/tier-recommendation-card';
 import { TiersModal } from '@/components/league/tiers-modal';
+import { LeagueCreatorChat } from '@/components/ai-coach/league-creator-chat';
 
 declare global {
   interface Window {
@@ -662,6 +663,9 @@ export default function CreateLeaguePage() {
           </div>
         </div>
       </div>
+
+      {/* AI League Creation Assistant */}
+      <LeagueCreatorChat />
     </div>
   );
 }

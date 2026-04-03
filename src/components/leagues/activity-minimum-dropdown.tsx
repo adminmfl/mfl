@@ -51,7 +51,7 @@ interface ActivityMinimumProps {
   symbol: string;
   measurementType: string;
   frequency?: number | null;
-  frequencyType?: 'weekly' | 'monthly' | null;
+  frequencyType?: 'daily' | 'weekly' | 'monthly' | null;
   supportsFrequency?: boolean;
   initialConfig?: {
     min_value: number | null;
@@ -70,7 +70,7 @@ interface ActivityMinimumProps {
     age_group_overrides: Record<string, any>;
   }) => void;
   onFrequencyChange?: (activityId: string, frequency: string) => void;
-  onFrequencyTypeChange?: (activityId: string, frequencyType: 'weekly' | 'monthly') => void;
+  onFrequencyTypeChange?: (activityId: string, frequencyType: 'daily' | 'weekly' | 'monthly') => void;
   onFrequencyBlur?: (activityId: string) => void;
   onActivityConfigChange?: (config: {
     activity_id: string;
@@ -113,7 +113,7 @@ export function ActivityMinimumDropdown({
   const [frequencyDraft, setFrequencyDraft] = useState<string>(
     typeof frequency === 'number' && frequency > 0 ? String(frequency) : ''
   );
-  const [frequencyTypeDraft, setFrequencyTypeDraft] = useState<'weekly' | 'monthly'>(
+  const [frequencyTypeDraft, setFrequencyTypeDraft] = useState<'daily' | 'weekly' | 'monthly'>(
     frequencyType ?? 'weekly'
   );
   const [proofDraft, setProofDraft] = useState<'not_required' | 'optional' | 'mandatory'>(proofRequirement);
@@ -153,7 +153,7 @@ export function ActivityMinimumDropdown({
 
   useEffect(() => {
     if (frequencyDraft === '') return;
-    const maxAllowed = frequencyTypeDraft === 'monthly' ? 10 : 7;
+    const maxAllowed = frequencyTypeDraft === 'monthly' ? 28 : frequencyTypeDraft === 'daily' ? 10 : 7;
     const current = Number(frequencyDraft);
     if (Number.isFinite(current) && current > maxAllowed) {
       const nextValue = String(maxAllowed);
@@ -271,7 +271,7 @@ export function ActivityMinimumDropdown({
                 <Select
                   value={frequencyTypeDraft}
                   onValueChange={(value) => {
-                    const nextType = value as 'weekly' | 'monthly';
+                    const nextType = value as 'daily' | 'weekly' | 'monthly';
                     setFrequencyTypeDraft(nextType);
                     onFrequencyTypeChange?.(activityId, nextType);
                   }}
@@ -280,6 +280,7 @@ export function ActivityMinimumDropdown({
                     <SelectValue placeholder="Type" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="daily">Daily</SelectItem>
                     <SelectItem value="weekly">Weekly</SelectItem>
                     <SelectItem value="monthly">Monthly</SelectItem>
                   </SelectContent>
@@ -297,7 +298,7 @@ export function ActivityMinimumDropdown({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="unlimited">Unlimited</SelectItem>
-                    {Array.from({ length: frequencyTypeDraft === 'monthly' ? 10 : 7 }, (_, idx) => {
+                    {Array.from({ length: frequencyTypeDraft === 'monthly' ? 28 : frequencyTypeDraft === 'daily' ? 10 : 7 }, (_, idx) => {
                       const value = String(idx + 1);
                       return (
                         <SelectItem key={value} value={value}>
@@ -308,7 +309,7 @@ export function ActivityMinimumDropdown({
                   </SelectContent>
                 </Select>
                 <span className="text-xs text-muted-foreground break-words">
-                  submissions per {frequencyTypeDraft === 'monthly' ? 'month' : 'week'}
+                  {frequencyTypeDraft === 'daily' ? 'times per day' : `submissions per ${frequencyTypeDraft === 'monthly' ? 'month' : 'week'}`}
                 </span>
               </div>
             </div>

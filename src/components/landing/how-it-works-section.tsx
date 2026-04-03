@@ -1,108 +1,44 @@
 'use client';
 
-import {
-  PlusCircle,
-  UserPlus,
-  Activity,
-  Medal,
-} from 'lucide-react';
-
 import { Card, CardContent } from '@/components/ui/card';
 
-// ============================================================================
-// Types
-// ============================================================================
-
-interface Step {
-  number: string;
-  icon: React.ElementType;
-  title: string;
-  description: string;
-}
-
-// ============================================================================
-// Steps Data
-// ============================================================================
-
-const steps: Step[] = [
-  {
-    number: '01',
-    icon: PlusCircle,
-    title: 'Create a League',
-    description: 'Choose duration, teams, captains. MFL sets structure.',
-  },
-  {
-    number: '02',
-    icon: UserPlus,
-    title: 'Play Together',
-    description: 'Daily movement, sports, challenges, team support.',
-  },
-  {
-    number: '03',
-    icon: Activity,
-    title: 'Track Progress',
-    description: 'Leaderboards, team points, streaks.',
-  },
-  {
-    number: '04',
-    icon: Medal,
-    title: 'Finish & Repeat',
-    description: 'Celebrate and start next season.',
-  },
+const steps = [
+  { num: '01', emoji: '🏟️', title: 'Create your league', desc: 'Name it, choose your challenge type, set the dates. About two minutes, start to finish.' },
+  { num: '02', emoji: '🔗', title: 'Invite your people', desc: 'Share one link. Everyone joins in a tap — no downloads required to get started.' },
+  { num: '03', emoji: '🏃', title: 'Move. Log. Cheer.', desc: 'Teams log any activity, climb the table, and cheer each other on. Energy builds fast.' },
+  { num: '04', emoji: '🌱', title: 'Habits & bonds form', desc: "By week three, movement is routine. The friendships made in the league? Those last far longer." },
 ];
-
-// ============================================================================
-// How It Works Section Component
-// ============================================================================
 
 export function HowItWorksSection() {
   return (
-    <section id="how-it-works" className="py-20 md:py-28 bg-muted/30">
-      <div className="container max-w-7xl mx-auto px-6 md:px-12 lg:px-16">
-        {/* Section Header */}
-        <div className="text-center max-w-2xl mx-auto mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            How It Works
+    <section id="how-it-works" className="py-20 md:py-28 bg-foreground text-background">
+      <div className="container max-w-6xl mx-auto px-6 md:px-12 lg:px-16">
+        <div className="text-center max-w-2xl mx-auto mb-14">
+          <p className="text-xs font-bold tracking-widest uppercase text-primary mb-3">
+            Getting started
+          </p>
+          <h2 className="text-3xl md:text-4xl font-bold text-background mb-4">
+            From idea to league in under 10 minutes
           </h2>
-          <p className="text-lg text-muted-foreground">
-            Get started in minutes. No complex setup required.
+          <p className="text-background/60 leading-relaxed">
+            No procurement. No six-month implementations. No app stores. Just your team, ready to move.
           </p>
         </div>
 
-        {/* Steps */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3">
-          {steps.map((step, index) => (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {steps.map((s) => (
             <Card
-              key={step.number}
-              className="relative overflow-hidden group hover:shadow-lg transition-all duration-300"
+              key={s.num}
+              className="bg-background/5 border-background/10 hover:bg-background/10 hover:border-primary/30 hover:-translate-y-1 transition-all duration-300 text-center"
             >
-              {/* Step number background */}
-              <div className="absolute -top-4 -right-4 text-8xl font-bold text-primary/5 group-hover:text-primary/10 transition-colors">
-                {step.number}
-              </div>
-
-              <CardContent className="pt-3 pb-4 px-4 relative">
-                {/* Icon */}
-                <div className="size-9 rounded-full bg-primary/10 flex items-center justify-center mb-2">
-                  <step.icon className="size-5 text-primary" />
-                </div>
-
-                {/* Step indicator */}
-                <div className="text-xs font-semibold text-primary mb-2">
-                  STEP {step.number}
-                </div>
-
-                {/* Content */}
-                <h3 className="font-semibold text-lg mb-1.5">{step.title}</h3>
-                <p className="text-sm text-muted-foreground leading-snug">
-                  {step.description}
+              <CardContent className="p-6">
+                <p className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-primary to-primary/60 mb-3">
+                  {s.num}
                 </p>
+                <span className="text-2xl mb-3 block">{s.emoji}</span>
+                <h4 className="font-bold text-sm text-background mb-2">{s.title}</h4>
+                <p className="text-sm text-background/60 leading-relaxed">{s.desc}</p>
               </CardContent>
-
-              {/* Connector line (except last) */}
-              {index < steps.length - 1 && (
-                <div className="hidden lg:block absolute top-1/2 -right-3 w-6 h-0.5 bg-border" />
-              )}
             </Card>
           ))}
         </div>
