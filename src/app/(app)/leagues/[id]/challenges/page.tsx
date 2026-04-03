@@ -106,7 +106,6 @@ export default function ChallengesPage({ params }: { params: Promise<{ id: strin
   const tzOffsetMinutes = React.useMemo(() => new Date().getTimezoneOffset(), []);
 
   const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
   const [challenges, setChallenges] = React.useState<Challenge[]>([]);
 
   // Submit dialog state
@@ -145,12 +144,14 @@ export default function ChallengesPage({ params }: { params: Promise<{ id: strin
 
   const fetchChallenges = React.useCallback(async () => {
     setLoading(true);
-    setError(null);
     try {
       const res = await fetch(`/api/leagues/${leagueId}/challenges`);
       const json = await res.json();
       if (!res.ok || !json.success) {
-        throw new Error(json.error || 'Failed to load challenges');
+        // Treat fetch failures gracefully — show empty state instead of raw error
+        console.warn('Challenges fetch returned non-success:', json.error);
+        setChallenges([]);
+        return;
       }
       // Filter to only show non-draft challenges to players
       const visibleChallenges = (json.data?.active || []).filter(
@@ -158,7 +159,9 @@ export default function ChallengesPage({ params }: { params: Promise<{ id: strin
       );
       setChallenges(visibleChallenges);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load challenges');
+      console.error('Failed to fetch challenges:', err);
+      // Don't show raw error to user — fall through to empty state
+      setChallenges([]);
     } finally {
       setLoading(false);
     }
@@ -365,13 +368,12 @@ export default function ChallengesPage({ params }: { params: Promise<{ id: strin
 
       <div className="px-4 lg:px-6 space-y-4">
         {loading && <p className="text-muted-foreground">Loading challenges...</p>}
-        {error && <p className="text-destructive">{error}</p>}
 
-        {!loading && !error && challenges.length === 0 && (
+        {!loading && challenges.length === 0 && (
           <div className="text-center py-12 border rounded-lg bg-muted/30">
-            <FileText className="mx-auto mb-3 text-muted-foreground size-8" />
-            <p className="text-muted-foreground">No active challenges at the moment.</p>
-            <p className="text-sm text-muted-foreground mt-1">Check back later for new challenges.</p>
+            <Trophy className="mx-auto mb-3 text-muted-foreground size-8" />
+            <p className="font-medium text-muted-foreground">No challenges yet</p>
+            <p className="text-sm text-muted-foreground mt-1">Your captain will add one soon!</p>
           </div>
         )}
 

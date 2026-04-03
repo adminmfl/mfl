@@ -218,7 +218,7 @@ export function AppHeader() {
                       <AvatarImage src={activeLeague.logo_url} alt={activeLeague.name} />
                     ) : (
                       <AvatarFallback className="rounded-md bg-primary/10 text-primary font-semibold text-xs sm:text-sm">
-                        {activeLeague.name.slice(0, 2).toUpperCase()}
+                        {(activeLeague.name || 'LG').slice(0, 2).toUpperCase()}
                       </AvatarFallback>
                     )}
                   </Avatar>

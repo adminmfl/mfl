@@ -109,7 +109,7 @@ export default function MyTeamPage({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isUnallocatedDialogOpen, setIsUnallocatedDialogOpen] = useState(false);
-  const [selectedTeamForAssignment, setSelectedTeamForAssignment] = useState<string>('');
+  // Team selector removed - captains can only add to their own team
   const [unallocatedSearchQuery, setUnallocatedSearchQuery] = useState('');
   const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set());
   const [assigningMembers, setAssigningMembers] = useState<Set<string>>(new Set());
@@ -240,11 +240,12 @@ export default function MyTeamPage({
   // Get captain info
   const captain = members.find((m) => m.is_captain);
 
-  // Handle bulk assigning selected members to team
+  // Handle bulk assigning selected members to captain's own team only
   const handleBulkAssignMembers = async () => {
-    const teamId = selectedTeamForAssignment;
+    // Captains can only add to their own team
+    const teamId = userTeamId;
     if (!teamId) {
-      toast.error('Please select a team first');
+      toast.error('You are not assigned to a team');
       return;
     }
 
@@ -253,7 +254,7 @@ export default function MyTeamPage({
       return;
     }
 
-    const teamName = teamsData?.teams.find(t => t.team_id === teamId)?.team_name;
+    const teamName = userTeamName;
     const memberCount = selectedMemberIds.size;
 
     setIsBulkAssigning(true);
@@ -807,44 +808,28 @@ export default function MyTeamPage({
           </DialogHeader>
 
           <div className="flex flex-col gap-4 flex-1 overflow-hidden">
-            {/* Team Selector and Actions */}
-            <div className="space-y-2">
-              <Label>Select Team to Add To</Label>
-              <div className="flex gap-2">
-                <Select
-                  value={selectedTeamForAssignment}
-                  onValueChange={setSelectedTeamForAssignment}
-                  disabled={isBulkAssigning}
-                >
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Choose a team..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {teamsData?.teams.map((team) => (
-                      <SelectItem key={team.team_id} value={team.team_id}>
-                        {team.team_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  onClick={handleBulkAssignMembers}
-                  disabled={!selectedTeamForAssignment || selectedMemberIds.size === 0 || isBulkAssigning}
-                  className="shrink-0"
-                >
-                  {isBulkAssigning ? (
-                    <>
-                      <Loader2 className="size-4 mr-2 animate-spin" />
-                      Assigning...
-                    </>
-                  ) : (
-                    <>
-                      <Users className="size-4 mr-2" />
-                      Add Selected ({selectedMemberIds.size})
-                    </>
-                  )}
-                </Button>
-              </div>
+            {/* Add to own team action */}
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Add members to <span className="font-medium text-foreground">{userTeamName}</span>
+              </p>
+              <Button
+                onClick={handleBulkAssignMembers}
+                disabled={selectedMemberIds.size === 0 || isBulkAssigning}
+                className="shrink-0"
+              >
+                {isBulkAssigning ? (
+                  <>
+                    <Loader2 className="size-4 mr-2 animate-spin" />
+                    Assigning...
+                  </>
+                ) : (
+                  <>
+                    <Users className="size-4 mr-2" />
+                    Add Selected ({selectedMemberIds.size})
+                  </>
+                )}
+              </Button>
             </div>
 
             {/* Search and Select All */}

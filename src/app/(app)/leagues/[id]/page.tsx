@@ -1175,6 +1175,17 @@ export default function LeagueDashboardPage({
                       const you = typeof mySummary?.avgRR === 'number' ? mySummary.avgRR : null;
                       const team = typeof mySummary?.teamAvgRR === 'number' ? mySummary.teamAvgRR : null;
                       const teamPoints = typeof mySummary?.teamPoints === 'number' ? mySummary.teamPoints : null;
+
+                      // If neither value is available, show an empty state instead of a broken chart
+                      if (you === null && team === null) {
+                        return (
+                          <div className="flex flex-col items-center justify-center py-4 text-center text-muted-foreground">
+                            <span className="text-sm">No run-rate data available yet.</span>
+                            <span className="text-xs mt-1">Submit workouts to see your Avg RR compared to the team.</span>
+                          </div>
+                        );
+                      }
+
                       const min = 1.0;
                       const max = 2.0;
                       const span = max - min;
@@ -1194,39 +1205,28 @@ export default function LeagueDashboardPage({
                         return { left: `${clamped}%`, transform };
                       };
 
-                      const youMarkerPct = typeof youPct === 'number' ? youPct : 0;
-                      const teamMarkerPct = typeof teamPct === 'number' ? teamPct : 0;
-
                       return (
                         <div>
                           <div className="relative h-2 rounded-full bg-muted">
-                            <span
-                              className="absolute top-1/2"
-                              style={markerStyle(youMarkerPct)}
-                              aria-label="Your RR"
-                            >
+                            {typeof youPct === 'number' && (
                               <span
-                                className={
-                                  typeof you === 'number'
-                                    ? 'block w-2.5 h-2.5 rounded-full bg-destructive border-2 border-background'
-                                    : 'block w-2.5 h-2.5 rounded-full bg-muted-foreground/40 border-2 border-background'
-                                }
-                              />
-                            </span>
+                                className="absolute top-1/2"
+                                style={markerStyle(youPct)}
+                                aria-label="Your RR"
+                              >
+                                <span className="block w-2.5 h-2.5 rounded-full bg-destructive border-2 border-background" />
+                              </span>
+                            )}
 
-                            <span
-                              className="absolute top-1/2"
-                              style={markerStyle(teamMarkerPct)}
-                              aria-label="Team RR"
-                            >
+                            {typeof teamPct === 'number' && (
                               <span
-                                className={
-                                  typeof team === 'number'
-                                    ? 'block w-2.5 h-2.5 rounded-full bg-primary border-2 border-background'
-                                    : 'block w-2.5 h-2.5 rounded-full bg-muted-foreground/40 border-2 border-background'
-                                }
-                              />
-                            </span>
+                                className="absolute top-1/2"
+                                style={markerStyle(teamPct)}
+                                aria-label="Team RR"
+                              >
+                                <span className="block w-2.5 h-2.5 rounded-full bg-primary border-2 border-background" />
+                              </span>
+                            )}
                           </div>
 
                           <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground mt-2.5">

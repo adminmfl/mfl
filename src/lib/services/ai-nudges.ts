@@ -65,31 +65,33 @@ function categorizeMembers(
 const SYSTEM_PROMPT = `You are Coach MFL, a friendly fitness motivation coach. Generate a short motivational message template (2-3 sentences max) for a category of players.
 
 Rules:
-- Use {name} as placeholder for the player's first name
-- Use {streak} for their current streak days
-- Use {points} for their total points
+- NEVER use individual player names — these messages are posted in team chat visible to everyone
 - Use {team} for their team name
+- Use {streak} for current streak days
+- Use {points} for total points
 - Use {days_inactive} for inactive day count
+- Address the team collectively (e.g., "Hey team!", "Team {team}!", "Everyone")
 - Be warm, specific, and action-driven
 - No hashtags, max 1 emoji
 - Never guilt-trip inactive players — be encouraging
+- Never single out or call out specific individuals
 - Return ONLY the message template, nothing else`;
 
 const CATEGORY_PROMPTS: Record<NudgeCategory, string> = {
   streak_hero:
-    'Player has a {streak}-day streak going. Celebrate their consistency and push them to keep it alive.',
+    'Some team members have great streaks going. Celebrate consistency and push the whole team to keep it alive. Do NOT name individuals.',
   consistent:
-    'Player logged activity recently and has a small streak. Encourage them to stay consistent.',
+    'The team has been logging activity recently. Encourage everyone to stay consistent. Do NOT name individuals.',
   mild_inactive:
-    'Player has been inactive for {days_inactive} days. Gently nudge them back without pressure.',
+    'Some team members have been less active recently. Gently nudge the whole team to get back on track without singling anyone out.',
   serious_inactive:
-    'Player has been inactive for {days_inactive} days. Warmly reach out — they might be struggling. Be empathetic.',
+    'Team participation has dropped. Warmly encourage the whole team — some members might be struggling. Be empathetic. Do NOT name individuals.',
   streak_broken:
-    'Player just broke their streak. Acknowledge it happens and motivate a fresh start today.',
+    'Some team streaks have been broken. Acknowledge it happens and motivate the team to start fresh today. Do NOT name individuals.',
   new_player:
-    'Player is new to the league (first few days). Welcome them and encourage their first activities.',
+    'The team has new members in their first few days. Welcome and encourage the whole team to be active together. Do NOT name individuals.',
   challenge_push:
-    'There\'s an active challenge happening. Remind the player to participate and earn bonus points today.',
+    'There\'s an active challenge happening. Remind the team to participate and earn bonus points today. Do NOT name individuals.',
 };
 
 async function generateTemplates(
@@ -133,9 +135,8 @@ async function generateTemplates(
 // ---------------------------------------------------------------------------
 
 function personalize(template: string, member: MemberSnapshot): string {
-  const firstName = member.username?.split(' ')[0] || 'Player';
   return template
-    .replace(/\{name\}/g, firstName)
+    .replace(/\{name\}/g, 'team')
     .replace(/\{streak\}/g, String(member.consecutiveDaysActive))
     .replace(/\{points\}/g, String(Math.round(member.totalPoints)))
     .replace(/\{team\}/g, member.teamName || 'your team')
@@ -168,7 +169,10 @@ export async function runNudgesForLeague(
   let sent = 0;
   let skipped = 0;
 
-  // Send personalized message to each member
+  // Group by team+category to send ONE message per team per category
+  // (avoids flooding team chat with duplicate messages and naming individuals)
+  const teamCategorySent = new Set<string>();
+
   for (const { member, category } of categorized) {
     const template = templates[category];
     if (!template) {
@@ -176,18 +180,29 @@ export async function runNudgesForLeague(
       continue;
     }
 
+    if (!member.teamId) {
+      skipped++;
+      continue;
+    }
+
+    // Only send one message per team per category
+    const teamCatKey = `${member.teamId}:${category}`;
+    if (teamCategorySent.has(teamCatKey)) {
+      skipped++;
+      continue;
+    }
+
     const message = personalize(template, member);
 
-    // Send as host to the member's team chat
-    if (member.teamId) {
-      const result = await sendMessage(leagueId, hostUserId, {
-        content: `💪 ${message}`,
-        teamId: member.teamId,
-        messageType: 'chat',
-        visibility: 'all',
-      });
-      if (result) sent++;
-      else skipped++;
+    const result = await sendMessage(leagueId, hostUserId, {
+      content: `💪 ${message}`,
+      teamId: member.teamId,
+      messageType: 'chat',
+      visibility: 'all',
+    });
+    if (result) {
+      sent++;
+      teamCategorySent.add(teamCatKey);
     } else {
       skipped++;
     }

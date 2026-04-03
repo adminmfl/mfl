@@ -63,6 +63,11 @@ export function LeaderboardStats({ stats }: LeaderboardStatsProps) {
 
   return (
     <div className="flex flex-wrap items-center justify-center gap-2 rounded-xl border bg-card/60 p-2 sm:p-3">
+      <div className="w-full text-center mb-1">
+        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Your Activity Submissions
+        </span>
+      </div>
       <StatItem
         label="Submissions"
         value={stats.total_submissions}

@@ -96,9 +96,9 @@ export function buildTeamNudgePrompt(data: {
 League: ${data.leagueName}
 Rank: #${data.rank} of ${data.totalTeams}
 Today's participation: ${data.membersLogged}/${data.totalMembers} (${Math.round(data.participationPct)}%)
-Inactive members: ${data.inactiveNames.length > 0 ? data.inactiveNames.join(', ') : 'None'}
+Inactive member count: ${data.inactiveNames.length}
 
-Generate a short team motivation message.`;
+Generate a short team motivation message. IMPORTANT: Do NOT name or call out any individual players — address the team collectively.`;
 }
 
 export function buildInterventionPrompt(data: {

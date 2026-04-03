@@ -286,7 +286,7 @@ export default function HelpPage() {
               <Zap className="size-4 text-teal-600 dark:text-teal-400" />
             </div>
             <div className="text-center">
-              <p className="text-xs font-medium group-hover:text-primary transition-colors line-clamp-2">Getting Started</p>
+              <p className="text-xs font-medium group-hover:text-primary transition-colors line-clamp-2">Guided Tour</p>
             </div>
           </div>
 
