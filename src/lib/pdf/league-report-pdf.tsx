@@ -358,6 +358,11 @@ interface LeagueReportPDFProps {
 }
 
 export function LeagueReportPDF({ data }: LeagueReportPDFProps) {
+    // RR / Rest Day visibility
+    const rrFormula = data.league.rrConfig?.formula || 'standard';
+    const showRR = rrFormula !== 'points_only';
+    const showRestDays = (data.league.restDaysConfig ?? 1) > 0;
+
     // Count challenges by type
     const individualChallenges = data.challenges.filter(c => c.type === 'individual' && c.status === 'Completed').length;
     const teamChallenges = data.challenges.filter(c => c.type === 'team' && c.status === 'Completed').length;
@@ -404,10 +409,12 @@ export function LeagueReportPDF({ data }: LeagueReportPDFProps) {
                             <Text style={styles.statLabel}>Total Points</Text>
                             <Text style={styles.statValue}>{totalPoints}</Text>
                         </View>
+                        {showRR && (
                         <View style={styles.statBox}>
                             <Text style={styles.statLabel}>Avg RR</Text>
                             <Text style={styles.statValue}>{data.averageRR > 0 ? data.averageRR.toFixed(2) : '-'}</Text>
                         </View>
+                        )}
                     </View>
                 </View>
 
@@ -421,7 +428,7 @@ export function LeagueReportPDF({ data }: LeagueReportPDFProps) {
                         <View style={styles.sectionContent}>
                             <MetricRow label="Workouts Completed" value={data.performance.totalActivities} />
                             <MetricRow label="Points earned for team" value={totalPoints} />
-                            <MetricRow label="Rest Days Taken" value={`${data.restDays.total}${data.restDays.donated ? ` (+ ${data.restDays.donated} donated)` : ''}${data.restDays.received ? ` (+ ${data.restDays.received} received)` : ''}`} />
+                            {showRestDays && <MetricRow label="Rest Days Taken" value={`${data.restDays.total}${data.restDays.donated ? ` (+ ${data.restDays.donated} donated)` : ''}${data.restDays.received ? ` (+ ${data.restDays.received} received)` : ''}`} />}
                             <MetricRow label="Active Days" value={data.performance.totalActiveDays} />
                             <MetricRow label="Missed Days" value={data.performance.totalMissedDays} />
                             <MetricRow label="Best Streak (consecutive workout days)" value={`${bestStreak} Days`} isLast />
@@ -440,7 +447,7 @@ export function LeagueReportPDF({ data }: LeagueReportPDFProps) {
                                 </View>
                                 <Text style={styles.standingMainText}>{standingText}</Text>
                                 <Text style={styles.standingSubText}>
-                                    {totalPoints} Total Points | {data.averageRR > 0 ? data.averageRR.toFixed(2) : '-'} Avg RR
+                                    {totalPoints} Total Points{showRR ? ` | ${data.averageRR > 0 ? data.averageRR.toFixed(2) : '-'} Avg RR` : ''}
                                 </Text>
                                 {data.team && (
                                     <Text style={styles.standingSubText}>

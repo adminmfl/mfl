@@ -190,6 +190,8 @@ export default function ManualEntryPage({
 }) {
   const { id: leagueId } = React.use(params);
   const { activeLeague } = useLeague();
+  const rrFormula = (activeLeague as any)?.rr_config?.formula || 'standard';
+  const showRR = rrFormula === 'standard';
   const { isLoading: roleLoading, isHost, isGovernor } = useRole();
   const {
     data: activitiesData,
@@ -306,7 +308,7 @@ export default function ManualEntryPage({
           else if (status === 'rejected') state = 'rejected';
 
           const rr = typeof entry?.rr_value === 'number' ? entry.rr_value : null;
-          const pointsLabel = rr === null ? '0 pt' : `${rr.toFixed(1)} RR`;
+          const pointsLabel = rr === null ? '0 pt' : (showRR ? `${rr.toFixed(1)} RR` : `${rr.toFixed(1)} pt`);
 
           rows.push({ date: ymd, label, entry, state, pointsLabel });
         }
@@ -479,7 +481,7 @@ export default function ManualEntryPage({
           else if (status === 'pending') state = 'pending';
           else if (status === 'rejected') state = 'rejected';
           const rr = typeof entry?.rr_value === 'number' ? entry.rr_value : null;
-          const pointsLabel = rr === null ? '0 pt' : `${rr.toFixed(1)} RR`;
+          const pointsLabel = rr === null ? '0 pt' : (showRR ? `${rr.toFixed(1)} RR` : `${rr.toFixed(1)} pt`);
           rows.push({ date: ymd, label, entry, state, pointsLabel });
         }
         setWeekRows(rows);
@@ -826,6 +828,7 @@ export default function ManualEntryPage({
               </div>
             )}
 
+            {showRR && (
             <div className="space-y-2">
               <Label htmlFor="rr_value">Run Rate (RR)</Label>
               <Input
@@ -839,6 +842,7 @@ export default function ManualEntryPage({
               />
               <p className="text-xs text-muted-foreground">Auto-calculated from workout type, duration, distance, steps, or holes.</p>
             </div>
+            )}
 
             {dialogForm.type !== 'rest' && (
               <div className="space-y-2 md:col-span-2">

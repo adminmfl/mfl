@@ -960,6 +960,7 @@ export default function LeagueDashboardPage({
                   Log Today's Activity
                 </Link>
               </Button>
+              {league.rest_days > 0 && (
               <Button
                 asChild
                 size="sm"
@@ -971,6 +972,7 @@ export default function LeagueDashboardPage({
                   Mark Rest Day
                 </Link>
               </Button>
+              )}
             </div>
           </div>
           <div className="px-4 lg:px-6 mt-2">
@@ -1053,6 +1055,7 @@ export default function LeagueDashboardPage({
                   Log Today's Activity
                 </Link>
               </Button>
+              {league.rest_days > 0 && (
               <Button
                 asChild
                 size="sm"
@@ -1064,6 +1067,7 @@ export default function LeagueDashboardPage({
                   Mark Rest Day
                 </Link>
               </Button>
+              )}
             </div>
             {aiInsights.coach_insight && (
               <p className="text-xs text-muted-foreground mt-1.5 px-1 flex items-center gap-1">
@@ -1115,6 +1119,7 @@ export default function LeagueDashboardPage({
                       {mySummary?.points.toLocaleString() ?? '—'}
                     </div>
                   </div>
+                  {((league as any)?.rr_config?.formula || 'standard') === 'standard' && (
                   <div className="rounded-md border border-primary/20 bg-primary/10 dark:bg-primary/20 px-3 py-2.5 text-center">
                     <div className="text-xs text-muted-foreground">Avg RR</div>
                     <div className="text-base font-semibold text-foreground tabular-nums">
@@ -1126,7 +1131,9 @@ export default function LeagueDashboardPage({
                       <div className="text-[10px] text-amber-600 mt-0.5">{aiInsights.stat_label_rr}</div>
                     )}
                   </div>
+                  )}
                 </div>
+                {league.rest_days > 0 && (
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-md border border-primary/20 bg-primary/10 dark:bg-primary/20 px-3 py-2.5 text-center">
                     <div className="text-[11px] text-muted-foreground">Rest Days Used</div>
@@ -1143,6 +1150,7 @@ export default function LeagueDashboardPage({
                     </div>
                   </div>
                 </div>
+                )}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-md border border-border/60 bg-muted/40 px-2.5 py-2.5 text-center">
                     <div className="text-[11px] text-muted-foreground">Days Missed</div>
@@ -1164,6 +1172,7 @@ export default function LeagueDashboardPage({
                   </div>
                 </div>
 
+                {((league as any)?.rr_config?.formula || 'standard') === 'standard' && (
                 <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
                   <div className="flex flex-row items-center justify-between gap-4">
                     <span className="text-sm font-medium text-foreground">Avg RR — You vs Team</span>
@@ -1250,6 +1259,7 @@ export default function LeagueDashboardPage({
                     })()}
                   </div>
                 </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -1268,6 +1278,7 @@ export default function LeagueDashboardPage({
                         : '—'}
                     </div>
                   </div>
+                  {((league as any)?.rr_config?.formula || 'standard') === 'standard' && (
                   <div className="rounded-md border border-border/60 bg-muted/40 px-3 py-2.5 text-center">
                     <div className="text-xs text-muted-foreground">Run Rate</div>
                     <div className="text-base font-semibold text-foreground tabular-nums">
@@ -1276,6 +1287,7 @@ export default function LeagueDashboardPage({
                         : '—'}
                     </div>
                   </div>
+                  )}
                   <div className="rounded-md border border-border/60 bg-muted/40 px-3 py-2.5 text-center">
                     <div className="text-xs text-muted-foreground">Team Rank</div>
                     <div className="text-base font-semibold text-foreground tabular-nums">
@@ -1452,6 +1464,7 @@ export default function LeagueDashboardPage({
       )}
 
       {/* Donate Rest Days Button */}
+      {league.rest_days > 0 && (
       <div className="px-4 lg:px-6">
         <Link href={`/leagues/${id}/rest-day-donations`} className="block">
           <Card className="hover:shadow-md transition-all hover:border-primary/30 cursor-pointer group">
@@ -1468,6 +1481,7 @@ export default function LeagueDashboardPage({
           </Card>
         </Link>
       </div>
+      )}
 
       {/* League Information */}
       <div className="px-4 lg:px-6">
@@ -1523,6 +1537,7 @@ export default function LeagueDashboardPage({
               <p className="text-2xl font-bold tabular-nums">{totalDays}</p>
               <p className="text-xs text-muted-foreground">Days Total</p>
             </div>
+            {league.rest_days > 0 && (
             <div className="p-4 flex flex-col items-center text-center md:border-t">
               <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
                 <Moon className="size-5 text-primary" />
@@ -1530,6 +1545,7 @@ export default function LeagueDashboardPage({
               <p className="text-2xl font-bold tabular-nums">{league.rest_days}</p>
               <p className="text-xs text-muted-foreground">Rest Days</p>
             </div>
+            )}
             <div className="p-4 flex flex-col items-center text-center border-t">
               <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
                 <Users className="size-5 text-primary" />
