@@ -99,7 +99,8 @@ export async function GET(
         created_date,
         modified_date,
         reupload_of,
-        rejection_reason
+        rejection_reason,
+        outcome
       `)
       .eq('league_member_id', leagueMember.league_member_id)
       .order('date', { ascending: false });

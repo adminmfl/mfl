@@ -184,6 +184,7 @@ export default function LeagueDashboardPage({
   const [hostName, setHostName] = React.useState<string | null>(null);
   const [recentDays, setRecentDays] = React.useState<RecentDayRow[] | null>(null);
   const [weekOffset, setWeekOffset] = React.useState(0);
+  const [isMonthlyFrequency, setIsMonthlyFrequency] = React.useState(false);
   const [detailDialogOpen, setDetailDialogOpen] = React.useState(false);
   const [selectedSubmission, setSelectedSubmission] = React.useState<MySubmission | null>(null);
   const [mySummaryLoading, setMySummaryLoading] = React.useState(true);
@@ -348,7 +349,7 @@ export default function LeagueDashboardPage({
     fetchLeagueData();
   }, [fetchLeagueData]);
 
-  // Week view anchored to league start weekday (e.g., Thu→Wed)
+  // Week/month view anchored to league start weekday
   React.useEffect(() => {
     if (!league) return;
 
@@ -357,6 +358,17 @@ export default function LeagueDashboardPage({
 
     const run = async () => {
       try {
+        // Check if all activities are monthly frequency
+        try {
+          const actRes = await fetch(`/api/leagues/${id}/activities`);
+          if (actRes.ok) {
+            const actData = await actRes.json();
+            const activities = actData?.data?.activities || actData?.activities || [];
+            const allMonthly = activities.length > 0 && activities.every((a: any) => a.frequency_type === 'monthly');
+            if (!cancelled) setIsMonthlyFrequency(allMonthly);
+          }
+        } catch { /* ignore */ }
+
         const todayLocal = new Date();
         const todayStr = localYmd(todayLocal);
 
@@ -365,8 +377,22 @@ export default function LeagueDashboardPage({
         const anchorDay = leagueStartLocal ? leagueStartLocal.getDay() : 0; // default Sunday
         const currentWeekStart = startOfWeekAnchored(todayLocal, anchorDay);
         const weekStartLocal = addDays(currentWeekStart, -weekOffset * 7);
-        const startDate = localYmd(weekStartLocal);
-        const endDate = localYmd(addDays(weekStartLocal, 6));
+
+        // For monthly: use full month range; for weekly: use 7-day range
+        let startDate: string;
+        let endDate: string;
+        let numDays: number;
+        if (isMonthlyFrequency) {
+          const monthStart = new Date(weekStartLocal.getFullYear(), weekStartLocal.getMonth(), 1);
+          const monthEnd = new Date(weekStartLocal.getFullYear(), weekStartLocal.getMonth() + 1, 0);
+          startDate = localYmd(monthStart);
+          endDate = localYmd(monthEnd);
+          numDays = monthEnd.getDate();
+        } else {
+          startDate = localYmd(weekStartLocal);
+          endDate = localYmd(addDays(weekStartLocal, 6));
+          numDays = 7;
+        }
 
         const recentUrl = `/api/leagues/${id}/my-submissions?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
         const recentRes = await fetch(recentUrl);
@@ -398,8 +424,12 @@ export default function LeagueDashboardPage({
         const leagueStart = typeof league.start_date === 'string' ? league.start_date : null;
         const leagueEnd = typeof league.end_date === 'string' ? league.end_date : null;
 
-        for (let offset = 0; offset <= 6; offset += 1) {
-          const d = addDays(weekStartLocal, offset);
+        const rangeStart = isMonthlyFrequency
+          ? new Date(weekStartLocal.getFullYear(), weekStartLocal.getMonth(), 1)
+          : weekStartLocal;
+
+        for (let offset = 0; offset < numDays; offset += 1) {
+          const d = addDays(rangeStart, offset);
           const ymd = localYmd(d);
           const label = d.toLocaleDateString(undefined, {
             weekday: 'short',
@@ -416,19 +446,20 @@ export default function LeagueDashboardPage({
           const isAfterEnd = leagueEnd && ymd > leagueEnd;
           const isBeforeStart = leagueStart && ymd < leagueStart;
 
+          // Monthly view: skip any day without a submission
+          if (isMonthlyFrequency && !entry) {
+            continue;
+          }
+
           if (isAfterEnd) {
             rows.push({ date: ymd, label, subtitle: '—', pointsLabel: '—', submission: null });
             continue;
           }
 
           if (isBeforeStart && !entry) {
-            // If before start and NO submission, show '—' instead of 'Missed day'
             rows.push({ date: ymd, label, subtitle: '—', pointsLabel: '—', submission: null });
             continue;
           }
-
-          // If before start AND has entry, we proceed to render it (Trial Submission)
-          // If in normal range, we proceed to render (Entry or Missed Day)
 
           if (!entry) {
             if (ymd > todayStr) {
@@ -459,13 +490,12 @@ export default function LeagueDashboardPage({
             subtitle = `(Trial) ${subtitle}`;
           }
 
-          const rr = typeof entry.rr_value === 'number' ? entry.rr_value : null;
           const leagueFormula = (league as any)?.rr_config?.formula || 'standard';
-          const pointsLabel = rr === null
-            ? '0 pt'
-            : leagueFormula === 'standard'
-              ? `${rr.toFixed(1)} RR`
-              : `${Math.round(rr)} pt`;
+          const effectivePts = (entry as any).effective_points;
+          const rr = typeof entry.rr_value === 'number' ? entry.rr_value : null;
+          const pointsLabel = leagueFormula === 'standard'
+            ? (rr !== null ? `${rr.toFixed(1)} RR` : '0 pt')
+            : `${effectivePts != null ? effectivePts : (rr !== null ? Math.round(rr) : 0)} pt`;
 
           const entryCount = countByDate.get(ymd) || 1;
           rows.push({ date: ymd, label, subtitle, status: statusLabel, pointsLabel, submission: entry, entryCount });
@@ -481,7 +511,7 @@ export default function LeagueDashboardPage({
     return () => {
       cancelled = true;
     };
-  }, [id, league, weekOffset]);
+  }, [id, league, weekOffset, isMonthlyFrequency]);
 
   // Player summary (mirrors the metrics shown on /league-dashboard)
   React.useEffect(() => {
@@ -1303,46 +1333,65 @@ export default function LeagueDashboardPage({
         </>
       )}
 
-      {/* Date-wise Progress (This Week: Sun–Sat) */}
+      {/* Date-wise Progress */}
       <div className="px-4 lg:px-6">
         <Card>
           {(() => {
             const leagueStartLocal = league?.start_date ? parseLocalYmd(league.start_date) : null;
-            const anchorDay = leagueStartLocal ? leagueStartLocal.getDay() : 0; // default Sunday if not available
+            const anchorDay = leagueStartLocal ? leagueStartLocal.getDay() : 0;
             const currentWeekStart = startOfWeekAnchored(new Date(), anchorDay);
             const weekStartLocal = addDays(currentWeekStart, -weekOffset * 7);
 
-            const leagueStartWeek = leagueStartLocal ? startOfWeekAnchored(leagueStartLocal, anchorDay) : null;
-            const maxWeekOffset = leagueStartWeek
-              ? Math.max(0, Math.floor((currentWeekStart.getTime() - leagueStartWeek.getTime()) / (7 * MS_PER_DAY)))
-              : Infinity;
+            let headerLabel: string;
+            let canGoPrev: boolean;
+            let canGoNext: boolean;
 
-            const canGoPrev = Number.isFinite(maxWeekOffset) ? weekOffset < maxWeekOffset : true;
-            const canGoNext = weekOffset > 0;
+            if (isMonthlyFrequency) {
+              const monthDate = new Date(weekStartLocal.getFullYear(), weekStartLocal.getMonth(), 1);
+              headerLabel = monthDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+              const leagueStartMonth = leagueStartLocal
+                ? new Date(leagueStartLocal.getFullYear(), leagueStartLocal.getMonth(), 1)
+                : null;
+              const currentMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+              canGoNext = weekOffset > 0;
+              canGoPrev = leagueStartMonth
+                ? monthDate.getTime() > leagueStartMonth.getTime()
+                : true;
+            } else {
+              headerLabel = formatWeekRange(weekStartLocal);
+              const leagueStartWeek = leagueStartLocal ? startOfWeekAnchored(leagueStartLocal, anchorDay) : null;
+              const maxWeekOffset = leagueStartWeek
+                ? Math.max(0, Math.floor((currentWeekStart.getTime() - leagueStartWeek.getTime()) / (7 * MS_PER_DAY)))
+                : Infinity;
+              canGoPrev = Number.isFinite(maxWeekOffset) ? weekOffset < maxWeekOffset : true;
+              canGoNext = weekOffset > 0;
+            }
+
+            const stepSize = isMonthlyFrequency ? 4 : 1; // ~4 weeks per month
 
             return (
               <CardHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b flex items-center justify-between py-3">
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary" className="text-sm px-3 py-1 font-semibold">
-                    {formatWeekRange(weekStartLocal)}
+                    {headerLabel}
                   </Badge>
                 </div>
                 <div className="flex items-center gap-1">
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => setWeekOffset((w) => (canGoPrev ? w + 1 : w))}
+                    onClick={() => setWeekOffset((w) => (canGoPrev ? w + stepSize : w))}
                     disabled={!canGoPrev}
-                    aria-label="Previous week"
+                    aria-label={isMonthlyFrequency ? "Previous month" : "Previous week"}
                   >
                     <ChevronLeft className="size-4" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => setWeekOffset((w) => (canGoNext ? Math.max(0, w - 1) : w))}
+                    onClick={() => setWeekOffset((w) => (canGoNext ? Math.max(0, w - stepSize) : w))}
                     disabled={!canGoNext}
-                    aria-label="Next week"
+                    aria-label={isMonthlyFrequency ? "Next month" : "Next week"}
                   >
                     <ChevronRight className="size-4" />
                   </Button>
@@ -1356,7 +1405,7 @@ export default function LeagueDashboardPage({
               {recentDays === null ? (
                 <div className="px-4 py-6 text-sm text-muted-foreground">Loading…</div>
               ) : recentDays.length === 0 ? (
-                <div className="px-4 py-6 text-sm text-muted-foreground">No recent activity.</div>
+                <div className="px-4 py-6 text-sm text-muted-foreground">{isMonthlyFrequency ? 'No submissions this month.' : 'No recent activity.'}</div>
               ) : (
                 recentDays.map((row) => (
                   <div key={row.date} className="flex items-center justify-between px-4 py-3 gap-3">

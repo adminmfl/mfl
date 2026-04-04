@@ -185,7 +185,8 @@ export async function GET(
         created_date,
         modified_date,
         modified_by,
-        reupload_of
+        reupload_of,
+        outcome
       `)
       .in('league_member_id', memberIds)
       .order('date', { ascending: false });
