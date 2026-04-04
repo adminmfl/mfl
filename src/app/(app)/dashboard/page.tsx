@@ -76,8 +76,8 @@ export default function DashboardPage() {
   const leagueStats = React.useMemo(() => {
     const activeLeagues = userLeagues.filter((l) => l.status === 'active').length;
     const hostingCount = userLeagues.filter((l) => l.is_host).length;
-    const governorCount = userLeagues.filter((l) => l.roles.includes('governor')).length;
-    const captainCount = userLeagues.filter((l) => l.roles.includes('captain')).length;
+    const governorCount = userLeagues.filter((l) => (l.roles || []).includes('governor')).length;
+    const captainCount = userLeagues.filter((l) => (l.roles || []).includes('captain')).length;
     return { totalLeagues: userLeagues.length, activeLeagues, hostingCount, leadershipRoles: governorCount + captainCount };
   }, [userLeagues]);
 
@@ -415,7 +415,7 @@ function LeagueCard({
 
           {/* Roles */}
           <div className="flex flex-wrap gap-1">
-            {league.roles.map((role) => {
+            {(league.roles || []).map((role) => {
               const RoleIcon = roleIcons[role];
               return (
                 <Badge key={role} variant="outline" className="gap-1 text-[9px] lg:text-xs">

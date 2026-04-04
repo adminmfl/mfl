@@ -78,17 +78,17 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
           const logoSrc = branding?.logo_url || activeLeague?.logo_url || '/img/mfl-logo.jpg';
           return (
             <div className={`flex items-center py-2 ${isCollapsed ? 'justify-center' : 'gap-3 md:justify-start'}`}>
-              <Link href="/dashboard" className={`flex items-center font-semibold ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
+              <Link href="/dashboard" className={`flex items-center font-semibold min-w-0 overflow-hidden ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
                 <img
                   src={logoSrc}
                   alt={displayName}
                   className="size-10 rounded-md object-cover shadow-sm shrink-0"
                 />
                 {!isCollapsed && (
-                  <div className="flex flex-col leading-tight min-w-0">
+                  <div className="flex flex-col leading-tight min-w-0 overflow-hidden">
                     <span className="text-lg truncate">{displayName}</span>
                     {activeLeague && (
-                      <span className="text-xs text-muted-foreground truncate">
+                      <span className="text-xs text-muted-foreground truncate block max-w-full" title={activeRole ? `Viewing ${activeLeague.name} as ${activeRole}` : activeLeague.name}>
                         {activeRole ? `Viewing ${activeLeague.name} as ${activeRole}` : activeLeague.name}
                       </span>
                     )}

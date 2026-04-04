@@ -176,6 +176,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "type must be 'workout' or 'rest'" }, { status: 400 });
     }
 
+    // Validate numeric field ranges to prevent extremely high values
+    if (typeof duration === 'number' && (!Number.isFinite(duration) || duration < 0 || duration > 1440)) {
+      return NextResponse.json({ error: 'Duration must be between 0 and 1440 minutes (24 hours)' }, { status: 400 });
+    }
+    if (typeof distance === 'number' && (!Number.isFinite(distance) || distance < 0 || distance > 1000)) {
+      return NextResponse.json({ error: 'Distance must be between 0 and 1000 km' }, { status: 400 });
+    }
+    if (typeof steps === 'number' && (!Number.isFinite(steps) || steps < 0 || steps > 500000)) {
+      return NextResponse.json({ error: 'Steps must be between 0 and 500,000' }, { status: 400 });
+    }
+    if (typeof holes === 'number' && (!Number.isFinite(holes) || holes < 0 || holes > 36)) {
+      return NextResponse.json({ error: 'Holes must be between 0 and 36' }, { status: 400 });
+    }
+
     // Get user's league membership for the specified league
     const { data: membership, error: memberError } = await supabase
       .from('leaguemembers')

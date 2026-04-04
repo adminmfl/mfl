@@ -351,6 +351,24 @@ export default function ManualEntryPage({
     const stepsNum = toNumber(dialogForm.steps);
     const holesNum = toNumber(dialogForm.holes);
 
+    // Validate max values to prevent unreasonable entries
+    if (typeof durationNum === 'number' && (durationNum < 0 || durationNum > 1440)) {
+      toast.error('Duration must be between 0 and 1440 minutes (24 hours).');
+      return;
+    }
+    if (typeof distanceNum === 'number' && (distanceNum < 0 || distanceNum > 1000)) {
+      toast.error('Distance must be between 0 and 1000 km.');
+      return;
+    }
+    if (typeof stepsNum === 'number' && (stepsNum < 0 || stepsNum > 500000)) {
+      toast.error('Steps must be between 0 and 500,000.');
+      return;
+    }
+    if (typeof holesNum === 'number' && (holesNum < 0 || holesNum > 36)) {
+      toast.error('Holes must be between 0 and 36.');
+      return;
+    }
+
     if (dialogForm.type === 'workout') {
       if (workoutCategory === 'steps') {
         if (typeof stepsNum !== 'number' || stepsNum <= 0) {
@@ -751,6 +769,7 @@ export default function ManualEntryPage({
                   id="duration"
                   type="number"
                   min={0}
+                  max={1440}
                   step="1"
                   value={dialogForm.duration}
                   onChange={(e) => setDialogForm((p) => ({ ...p, duration: e.target.value }))}
@@ -768,6 +787,7 @@ export default function ManualEntryPage({
                   id="distance"
                   type="number"
                   min={0}
+                  max={1000}
                   step="0.1"
                   value={dialogForm.distance}
                   onChange={(e) => setDialogForm((p) => ({ ...p, distance: e.target.value }))}
@@ -783,6 +803,7 @@ export default function ManualEntryPage({
                   id="steps"
                   type="number"
                   min={0}
+                  max={500000}
                   step="1"
                   value={dialogForm.steps}
                   onChange={(e) => setDialogForm((p) => ({ ...p, steps: e.target.value }))}
@@ -797,6 +818,7 @@ export default function ManualEntryPage({
                   id="holes"
                   type="number"
                   min={0}
+                  max={36}
                   step="1"
                   value={dialogForm.holes}
                   onChange={(e) => setDialogForm((p) => ({ ...p, holes: e.target.value }))}

@@ -83,6 +83,40 @@ function formatRelativeTime(dateStr: string): string {
   });
 }
 
+/**
+ * Map an internal deep_link path to a user-friendly label.
+ * Strips UUIDs / league IDs so raw database identifiers are never shown.
+ */
+function deepLinkLabel(path: string): string {
+  // Normalise: remove trailing slash
+  const p = path.replace(/\/+$/, '');
+
+  // Match /leagues/<id>/<section> patterns
+  const match = p.match(/\/leagues\/[^/]+\/(.+)/);
+  if (match) {
+    const section = match[1].split('/')[0]; // first segment after league id
+    const labels: Record<string, string> = {
+      submit: 'Submit Workout',
+      challenges: 'Challenges',
+      leaderboard: 'Leaderboard',
+      activities: 'Activities',
+      'manual-entry': 'Manual Entry',
+      'my-team': 'My Team',
+      rules: 'Rules',
+      settings: 'Settings',
+      analytics: 'Analytics',
+      validate: 'Validate',
+      submissions: 'Submissions',
+    };
+    return labels[section] || section.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+
+  // Fallback: return last meaningful segment, titlecased
+  const segments = p.split('/').filter(Boolean);
+  const last = segments[segments.length - 1] || 'Link';
+  return last.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 /** Very lightweight markdown-lite: **bold**, [text](url) links, @[name] mentions */
 function renderContent(content: string) {
   const parts: (string | JSX.Element)[] = [];
@@ -264,7 +298,7 @@ export function MessageBubble({ message, isOwn, currentUserId, onReply, onReact 
         {/* Content */}
         <p>{renderContent(message.content)}</p>
 
-        {/* Deep link card */}
+        {/* Deep link card — show friendly label, never raw URLs/UUIDs */}
         {message.deep_link && (
           <Link
             href={message.deep_link}
@@ -274,7 +308,7 @@ export function MessageBubble({ message, isOwn, currentUserId, onReply, onReact 
             )}
           >
             <ExternalLink className="size-3.5 shrink-0" />
-            <span className="truncate">{message.deep_link}</span>
+            <span className="truncate">{deepLinkLabel(message.deep_link)}</span>
           </Link>
         )}
 

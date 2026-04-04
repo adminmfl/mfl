@@ -179,7 +179,16 @@ export async function GET() {
 
       // Get league_capacity from tier map
       const leagueCapacity = league?.tier_id ? (tierCapacityMap.get(league.tier_id) || 20) : 20;
-      const { derivedStatus, shouldPersist } = deriveLeagueStatus(league || {});
+
+      let derivedStatus = 'draft';
+      let shouldPersist = false;
+      try {
+        const result = deriveLeagueStatus(league || {});
+        derivedStatus = result.derivedStatus;
+        shouldPersist = result.shouldPersist;
+      } catch (e) {
+        console.error(`Error deriving status for league ${leagueId}:`, e);
+      }
 
       if (shouldPersist && leagueId) {
         pendingStatusUpdates.push(
@@ -200,7 +209,7 @@ export async function GET() {
         is_public: league?.is_public || false,
         is_exclusive: league?.is_exclusive || true,
         invite_code: league?.invite_code || null,
-        roles: roles,
+        roles: Array.isArray(roles) ? roles : [],
         team_id: team?.team_id || membership.team_id || null,
         team_name: team?.team_name || null,
         team_logo_url: membership.team_id ? teamLogoMap.get(`${membership.team_id}_${leagueId}`) || null : null,
