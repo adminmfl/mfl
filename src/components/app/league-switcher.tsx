@@ -101,13 +101,14 @@ export function LeagueSwitcher({ trigger, onOpenChange }: LeagueSwitcherProps) {
   const handleLeagueSelect = (league: LeagueWithRoles) => {
     setActiveLeague(league);
 
-    const preferredRole = league.roles.includes('captain')
+    const roles = league.roles || [];
+    const preferredRole = roles.includes('captain')
       ? 'captain'
-      : league.roles.includes('player')
+      : roles.includes('player')
         ? 'player'
         : null;
 
-    const nextRole = preferredRole || (highestRole(league.roles) as LeagueRole | null);
+    const nextRole = preferredRole || (highestRole(roles) as LeagueRole | null);
 
     if (nextRole) {
       setActiveRole(nextRole);
@@ -219,8 +220,8 @@ export function LeagueSwitcher({ trigger, onOpenChange }: LeagueSwitcherProps) {
                     )}
                   </div>
                   <div className="flex items-center gap-0.5 mt-0.5 flex-wrap">
-                    {league.roles
-                      .filter((role) => !(role === 'player' && league.roles.includes('captain')))
+                    {(league.roles || [])
+                      .filter((role) => !(role === 'player' && (league.roles || []).includes('captain')))
                       .map((role) => (
                       <Badge
                         key={role}
@@ -327,8 +328,8 @@ export function LeagueSwitcher({ trigger, onOpenChange }: LeagueSwitcherProps) {
                       <span className="truncate font-medium">{league.name}</span>
                     </div>
                     <div className="flex items-center gap-1 mt-0.5 flex-wrap">
-                      {league.roles
-                        .filter((role) => !(role === 'player' && league.roles.includes('captain')))
+                      {(league.roles || [])
+                        .filter((role) => !(role === 'player' && (league.roles || []).includes('captain')))
                         .slice(0, 2)
                         .map((role) => (
                         <Badge
@@ -347,9 +348,9 @@ export function LeagueSwitcher({ trigger, onOpenChange }: LeagueSwitcherProps) {
                           Completed
                         </Badge>
                       )}
-                      {league.roles.length > 2 && (
+                      {(league.roles || []).length > 2 && (
                         <span className="text-[10px] text-muted-foreground">
-                          +{league.roles.length - 2}
+                          +{(league.roles || []).length - 2}
                         </span>
                       )}
                     </div>

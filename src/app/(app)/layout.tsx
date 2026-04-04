@@ -6,9 +6,11 @@ import { usePathname, useRouter } from 'next/navigation';
 
 import { LeagueProvider } from '@/contexts/league-context';
 import { RoleProvider } from '@/contexts/role-context';
+import { LeagueBrandingProvider } from '@/components/providers/league-branding-provider';
 import { AppSidebar } from '@/components/app/app-sidebar';
 import { AppHeader } from '@/components/app/app-header';
 import { MobileBottomTabs } from '@/components/app/mobile-bottom-tabs';
+import { GuidedTour } from '@/components/onboarding/guided-tour';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ShieldAlert, LogOut } from 'lucide-react';
@@ -132,6 +134,7 @@ export default function AppLayout({
   return (
     <LeagueProvider>
       <RoleProvider>
+        <LeagueBrandingProvider>
         <SidebarProvider>
           {/* Sidebar - Hidden on mobile */}
           <AppSidebar user={user} className="hidden md:flex" />
@@ -183,7 +186,11 @@ export default function AppLayout({
 
           {/* Mobile Bottom Tabs */}
           <MobileBottomTabs />
+
+          {/* Guided Tour (first-time users) */}
+          <GuidedTour />
         </SidebarProvider>
+        </LeagueBrandingProvider>
       </RoleProvider>
     </LeagueProvider>
   );

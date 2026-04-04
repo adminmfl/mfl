@@ -14,6 +14,23 @@ import {
 } from '@/lib/services/leagues';
 import { z } from 'zod';
 
+const rrConfigSchema = z.object({
+  formula: z.enum(['standard', 'simple', 'points_only']),
+  base_duration: z.number().optional(),
+  distance_divisor: z.number().optional(),
+  steps_min: z.number().optional(),
+  steps_max: z.number().optional(),
+  age_adjustments: z.boolean().optional(),
+}).optional();
+
+const brandingSchema = z.object({
+  display_name: z.string().optional(),
+  tagline: z.string().optional(),
+  primary_color: z.string().optional(),
+  logo_url: z.string().nullable().optional(),
+  powered_by_visible: z.boolean().optional(),
+}).nullable().optional();
+
 const updateLeagueSchema = z.object({
   league_name: z.string().optional(),
   start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -28,6 +45,8 @@ const updateLeagueSchema = z.object({
   normalize_points_by_team_size: z.boolean().optional(),
   max_team_capacity: z.number().int().min(1).optional(),
   description: z.string().optional(),
+  rr_config: rrConfigSchema,
+  branding: brandingSchema,
 }).transform((input) => {
   const { normalize_points_by_capacity, normalize_points_by_team_size, ...rest } = input;
   return {

@@ -20,6 +20,8 @@ import {
   BookOpen,
   HelpCircle,
   CreditCard,
+  MessageCircle,
+  Brain,
 } from 'lucide-react';
 
 // ============================================================================
@@ -141,6 +143,11 @@ export function getSidebarNavItems(
         icon: Users,
       },
       {
+        title: 'Team Chat',
+        url: leagueUrl('/messages'),
+        icon: MessageCircle,
+      },
+      {
         title: 'Leaderboard',
         url: leagueUrl('/leaderboard'),
         icon: BarChart3,
@@ -204,6 +211,16 @@ export function getSidebarNavItems(
         title: 'Approve Donations',
         url: leagueUrl('/rest-day-donations'),
         icon: HeartHandshake,
+      },
+      {
+        title: 'Team Chat',
+        url: leagueUrl('/messages'),
+        icon: MessageCircle,
+      },
+      {
+        title: 'AI Manager',
+        url: leagueUrl('/ai-manager'),
+        icon: Brain,
       },
     ];
 
@@ -313,9 +330,9 @@ export function getMobileTabItems(
         icon: BarChart3,
       },
       {
-        title: 'Submit',
-        url: leagueUrl('/submit'),
-        icon: Dumbbell,
+        title: 'Team Chat',
+        url: leagueUrl('/messages'),
+        icon: MessageCircle,
       }
     );
     if (role === 'captain') {

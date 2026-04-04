@@ -40,6 +40,7 @@ import {
 import { LeagueFormSection } from '@/components/league/league-form-section';
 import { TierRecommendationCard } from '@/components/league/tier-recommendation-card';
 import { TiersModal } from '@/components/league/tiers-modal';
+import { LeagueCreatorChat } from '@/components/ai-coach/league-creator-chat';
 
 declare global {
   interface Window {
@@ -53,6 +54,7 @@ type FormData = {
   num_teams: string;
   max_participants: string;
   rest_days: string;
+  rr_formula: 'standard' | 'simple' | 'points_only';
   is_public: boolean;
   is_exclusive: boolean;
 };
@@ -78,6 +80,7 @@ export default function CreateLeaguePage() {
     num_teams: '',
     max_participants: '',
     rest_days: '',
+    rr_formula: 'standard',
     is_public: false,
     is_exclusive: true,
   });
@@ -318,6 +321,7 @@ export default function CreateLeaguePage() {
         num_teams: parseInt(formData.num_teams),
         max_participants: parseInt(formData.max_participants),
         rest_days: parseInt(formData.rest_days),
+        rr_config: { formula: formData.rr_formula },
         is_public: formData.is_public,
         is_exclusive: formData.is_exclusive,
       };
@@ -485,6 +489,7 @@ export default function CreateLeaguePage() {
               endDate={endDate}
               duration={duration}
               onFormChange={handleFormChange}
+              onRRFormulaChange={(v) => setFormData((prev) => ({ ...prev, rr_formula: v }))}
               onStartDateChange={setStartDate}
               onDurationChange={setDuration}
               maxDuration={365}
@@ -662,6 +667,9 @@ export default function CreateLeaguePage() {
           </div>
         </div>
       </div>
+
+      {/* AI League Creation Assistant */}
+      <LeagueCreatorChat />
     </div>
   );
 }

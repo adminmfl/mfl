@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { getPublicTourApi } from '@/components/onboarding/guided-tour';
 
 export default function HelpPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -274,6 +275,18 @@ export default function HelpPage() {
             </div>
             <div className="text-center">
               <p className="text-xs font-medium group-hover:text-primary transition-colors line-clamp-2">For Hosts</p>
+            </div>
+          </div>
+
+          <div
+            className="h-20 rounded-lg border border-primary/10 hover:border-primary/30 hover:shadow-md transition-all cursor-pointer group flex flex-col items-center justify-center gap-2 p-3 hover:bg-muted/50"
+            onClick={() => getPublicTourApi().open()}
+          >
+            <div className="size-8 rounded-lg bg-teal-100 dark:bg-teal-950 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+              <Zap className="size-4 text-teal-600 dark:text-teal-400" />
+            </div>
+            <div className="text-center">
+              <p className="text-xs font-medium group-hover:text-primary transition-colors line-clamp-2">Guided Tour</p>
             </div>
           </div>
 

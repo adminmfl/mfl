@@ -28,6 +28,7 @@ import {
   Eye,
   MessageSquareHeart,
   ExternalLink,
+  Sparkles,
 } from 'lucide-react';
 
 import { useLeague } from '@/contexts/league-context';
@@ -57,6 +58,7 @@ import { DynamicReportDialog } from '@/components/leagues/dynamic-report-dialog'
 import { SubmissionDetailDialog } from '@/components/submissions';
 import { WhatsAppReminderButton } from '@/components/league/whatsapp-reminder-button';
 import { useRouter } from 'next/navigation';
+import { useAiInsights } from '@/hooks/use-ai-insights';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -148,6 +150,7 @@ type RecentDayRow = {
   status?: string;
   pointsLabel: string;
   submission?: MySubmission | null;
+  entryCount?: number; // Number of entries for this day (for daily multi-frequency)
 };
 
 // ============================================================================
@@ -161,8 +164,17 @@ export default function LeagueDashboardPage({
 }) {
   const { id } = React.use(params);
   const { activeLeague, setActiveLeague, userLeagues } = useLeague();
-  const { isHost, isCaptain, activeRole } = useRole();
+  const { isHost, isGovernor, isCaptain, activeRole } = useRole();
   const router = useRouter();
+
+  // Host/Governor should not see the player dashboard — redirect to their first action
+  React.useEffect(() => {
+    if (isHost) {
+      router.replace(`/leagues/${id}/settings`);
+    } else if (isGovernor) {
+      router.replace(`/leagues/${id}/submissions`);
+    }
+  }, [isHost, isGovernor, id, router]);
 
   const [league, setLeague] = React.useState<LeagueDetails | null>(null);
   const [stats, setStats] = React.useState<LeagueStats | null>(null);
@@ -187,6 +199,14 @@ export default function LeagueDashboardPage({
 
 
   const { user } = useAuth();
+
+  // AI inline insights
+  const { insights: aiInsights } = useAiInsights(id, 'my_activity', [
+    'welcome_text',
+    'coach_insight',
+    'stat_label_rr',
+    'stat_label_missed',
+  ]);
 
   const [mySummary, setMySummary] = React.useState<{
     points: number; // approved workout points
@@ -360,8 +380,10 @@ export default function LeagueDashboardPage({
           recentData?.success && recentData?.data?.submissions ? (recentData.data.submissions as MySubmission[]) : [];
 
         const byDate = new Map<string, MySubmission>();
+        const countByDate = new Map<string, number>();
         for (const s of submissions) {
           if (!s?.date) continue;
+          countByDate.set(s.date, (countByDate.get(s.date) || 0) + 1);
           const existing = byDate.get(s.date);
           if (!existing) {
             byDate.set(s.date, s);
@@ -438,9 +460,15 @@ export default function LeagueDashboardPage({
           }
 
           const rr = typeof entry.rr_value === 'number' ? entry.rr_value : null;
-          const pointsLabel = rr === null ? '0 pt' : `${rr.toFixed(1)} RR`;
+          const leagueFormula = (league as any)?.rr_config?.formula || 'standard';
+          const pointsLabel = rr === null
+            ? '0 pt'
+            : leagueFormula === 'standard'
+              ? `${rr.toFixed(1)} RR`
+              : `${Math.round(rr)} pt`;
 
-          rows.push({ date: ymd, label, subtitle, status: statusLabel, pointsLabel, submission: entry });
+          const entryCount = countByDate.get(ymd) || 1;
+          rows.push({ date: ymd, label, subtitle, status: statusLabel, pointsLabel, submission: entry, entryCount });
         }
 
         if (!cancelled) setRecentDays(rows.reverse());
@@ -809,10 +837,10 @@ export default function LeagueDashboardPage({
         icon: Zap,
       },
       {
-        title: 'RR',
+        title: (league as any)?.rr_config?.formula === 'standard' || !(league as any)?.rr_config?.formula ? 'RR' : 'Score',
         value: mySummary.avgRR !== null ? mySummary.avgRR.toFixed(2) : '—',
         changeLabel: 'Your Performance',
-        description: 'Run Rate (approved)',
+        description: (league as any)?.rr_config?.formula === 'standard' || !(league as any)?.rr_config?.formula ? 'Run Rate (approved)' : 'Average score',
         icon: TrendingUp,
       },
       {
@@ -855,7 +883,9 @@ export default function LeagueDashboardPage({
               </div>
             )}
           </div>
-          <p className="text-muted-foreground">Add today's effort. Push your team forward.</p>
+          <p className="text-muted-foreground">
+            {aiInsights.welcome_text || "Add today's effort. Push your team forward."}
+          </p>
           {isTrialPeriod && (
             <Badge className="mt-2 bg-amber-50 text-amber-700 border-amber-200">
               Trial Period
@@ -930,6 +960,7 @@ export default function LeagueDashboardPage({
                   Log Today's Activity
                 </Link>
               </Button>
+              {league.rest_days > 0 && (
               <Button
                 asChild
                 size="sm"
@@ -941,6 +972,7 @@ export default function LeagueDashboardPage({
                   Mark Rest Day
                 </Link>
               </Button>
+              )}
             </div>
           </div>
           <div className="px-4 lg:px-6 mt-2">
@@ -1023,6 +1055,7 @@ export default function LeagueDashboardPage({
                   Log Today's Activity
                 </Link>
               </Button>
+              {league.rest_days > 0 && (
               <Button
                 asChild
                 size="sm"
@@ -1034,7 +1067,14 @@ export default function LeagueDashboardPage({
                   Mark Rest Day
                 </Link>
               </Button>
+              )}
             </div>
+            {aiInsights.coach_insight && (
+              <p className="text-xs text-muted-foreground mt-1.5 px-1 flex items-center gap-1">
+                <Sparkles className="size-3 text-primary/60 shrink-0" />
+                {aiInsights.coach_insight}
+              </p>
+            )}
           </div>
           <div className="px-4 lg:px-6 mt-2">
             <Card className="py-4 gap-2">
@@ -1079,6 +1119,7 @@ export default function LeagueDashboardPage({
                       {mySummary?.points.toLocaleString() ?? '—'}
                     </div>
                   </div>
+                  {((league as any)?.rr_config?.formula || 'standard') === 'standard' && (
                   <div className="rounded-md border border-primary/20 bg-primary/10 dark:bg-primary/20 px-3 py-2.5 text-center">
                     <div className="text-xs text-muted-foreground">Avg RR</div>
                     <div className="text-base font-semibold text-foreground tabular-nums">
@@ -1086,8 +1127,13 @@ export default function LeagueDashboardPage({
                         ? mySummary.avgRR.toFixed(2)
                         : '—'}
                     </div>
+                    {aiInsights.stat_label_rr && (
+                      <div className="text-[10px] text-amber-600 mt-0.5">{aiInsights.stat_label_rr}</div>
+                    )}
                   </div>
+                  )}
                 </div>
+                {league.rest_days > 0 && (
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-md border border-primary/20 bg-primary/10 dark:bg-primary/20 px-3 py-2.5 text-center">
                     <div className="text-[11px] text-muted-foreground">Rest Days Used</div>
@@ -1104,12 +1150,16 @@ export default function LeagueDashboardPage({
                     </div>
                   </div>
                 </div>
+                )}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-md border border-border/60 bg-muted/40 px-2.5 py-2.5 text-center">
                     <div className="text-[11px] text-muted-foreground">Days Missed</div>
                     <div className="text-sm font-semibold text-foreground tabular-nums">
                       {mySummary?.missedDays.toLocaleString() ?? '—'}
                     </div>
+                    {aiInsights.stat_label_missed && (
+                      <div className="text-[10px] text-red-500 mt-0.5">{aiInsights.stat_label_missed}</div>
+                    )}
                   </div>
                   <div
                     className={`rounded-md border border-border/60 px-3 py-2.5 text-center ${rejectedCount > 0 ? 'bg-destructive/10 dark:bg-destructive/20' : 'bg-muted/40'
@@ -1122,6 +1172,7 @@ export default function LeagueDashboardPage({
                   </div>
                 </div>
 
+                {((league as any)?.rr_config?.formula || 'standard') === 'standard' && (
                 <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
                   <div className="flex flex-row items-center justify-between gap-4">
                     <span className="text-sm font-medium text-foreground">Avg RR — You vs Team</span>
@@ -1133,6 +1184,17 @@ export default function LeagueDashboardPage({
                       const you = typeof mySummary?.avgRR === 'number' ? mySummary.avgRR : null;
                       const team = typeof mySummary?.teamAvgRR === 'number' ? mySummary.teamAvgRR : null;
                       const teamPoints = typeof mySummary?.teamPoints === 'number' ? mySummary.teamPoints : null;
+
+                      // If neither value is available, show an empty state instead of a broken chart
+                      if (you === null && team === null) {
+                        return (
+                          <div className="flex flex-col items-center justify-center py-4 text-center text-muted-foreground">
+                            <span className="text-sm">No run-rate data available yet.</span>
+                            <span className="text-xs mt-1">Submit workouts to see your Avg RR compared to the team.</span>
+                          </div>
+                        );
+                      }
+
                       const min = 1.0;
                       const max = 2.0;
                       const span = max - min;
@@ -1152,39 +1214,28 @@ export default function LeagueDashboardPage({
                         return { left: `${clamped}%`, transform };
                       };
 
-                      const youMarkerPct = typeof youPct === 'number' ? youPct : 0;
-                      const teamMarkerPct = typeof teamPct === 'number' ? teamPct : 0;
-
                       return (
                         <div>
                           <div className="relative h-2 rounded-full bg-muted">
-                            <span
-                              className="absolute top-1/2"
-                              style={markerStyle(youMarkerPct)}
-                              aria-label="Your RR"
-                            >
+                            {typeof youPct === 'number' && (
                               <span
-                                className={
-                                  typeof you === 'number'
-                                    ? 'block w-2.5 h-2.5 rounded-full bg-destructive border-2 border-background'
-                                    : 'block w-2.5 h-2.5 rounded-full bg-muted-foreground/40 border-2 border-background'
-                                }
-                              />
-                            </span>
+                                className="absolute top-1/2"
+                                style={markerStyle(youPct)}
+                                aria-label="Your RR"
+                              >
+                                <span className="block w-2.5 h-2.5 rounded-full bg-destructive border-2 border-background" />
+                              </span>
+                            )}
 
-                            <span
-                              className="absolute top-1/2"
-                              style={markerStyle(teamMarkerPct)}
-                              aria-label="Team RR"
-                            >
+                            {typeof teamPct === 'number' && (
                               <span
-                                className={
-                                  typeof team === 'number'
-                                    ? 'block w-2.5 h-2.5 rounded-full bg-primary border-2 border-background'
-                                    : 'block w-2.5 h-2.5 rounded-full bg-muted-foreground/40 border-2 border-background'
-                                }
-                              />
-                            </span>
+                                className="absolute top-1/2"
+                                style={markerStyle(teamPct)}
+                                aria-label="Team RR"
+                              >
+                                <span className="block w-2.5 h-2.5 rounded-full bg-primary border-2 border-background" />
+                              </span>
+                            )}
                           </div>
 
                           <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground mt-2.5">
@@ -1208,6 +1259,7 @@ export default function LeagueDashboardPage({
                     })()}
                   </div>
                 </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -1226,6 +1278,7 @@ export default function LeagueDashboardPage({
                         : '—'}
                     </div>
                   </div>
+                  {((league as any)?.rr_config?.formula || 'standard') === 'standard' && (
                   <div className="rounded-md border border-border/60 bg-muted/40 px-3 py-2.5 text-center">
                     <div className="text-xs text-muted-foreground">Run Rate</div>
                     <div className="text-base font-semibold text-foreground tabular-nums">
@@ -1234,6 +1287,7 @@ export default function LeagueDashboardPage({
                         : '—'}
                     </div>
                   </div>
+                  )}
                   <div className="rounded-md border border-border/60 bg-muted/40 px-3 py-2.5 text-center">
                     <div className="text-xs text-muted-foreground">Team Rank</div>
                     <div className="text-base font-semibold text-foreground tabular-nums">
@@ -1344,6 +1398,11 @@ export default function LeagueDashboardPage({
                       })()}
                     </div>
                     <div className="flex items-center gap-2">
+                      {(row.entryCount || 0) > 1 && (
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                          {row.entryCount}x
+                        </Badge>
+                      )}
                       <div className="font-medium tabular-nums min-w-[56px] text-right">{row.pointsLabel}</div>
                       {row.submission ? (
                         <Button
@@ -1405,6 +1464,7 @@ export default function LeagueDashboardPage({
       )}
 
       {/* Donate Rest Days Button */}
+      {league.rest_days > 0 && (
       <div className="px-4 lg:px-6">
         <Link href={`/leagues/${id}/rest-day-donations`} className="block">
           <Card className="hover:shadow-md transition-all hover:border-primary/30 cursor-pointer group">
@@ -1421,15 +1481,15 @@ export default function LeagueDashboardPage({
           </Card>
         </Link>
       </div>
+      )}
 
       {/* League Information */}
       <div className="px-4 lg:px-6">
-        <div className="mb-4">
-          <h2 className="text-lg font-semibold">League Information</h2>
-          <p className="text-sm text-muted-foreground">Configuration and settings overview</p>
-        </div>
-
         <div className="rounded-lg border">
+          <div className="p-4 border-b">
+            <h2 className="text-lg font-semibold">League Information</h2>
+            <p className="text-sm text-muted-foreground">Configuration and settings overview</p>
+          </div>
           {/* Progress Bar (for launched/active leagues) */}
           {(league.status === 'active' || league.status === 'launched') && (
             <div className="p-4 border-b">
@@ -1477,6 +1537,7 @@ export default function LeagueDashboardPage({
               <p className="text-2xl font-bold tabular-nums">{totalDays}</p>
               <p className="text-xs text-muted-foreground">Days Total</p>
             </div>
+            {league.rest_days > 0 && (
             <div className="p-4 flex flex-col items-center text-center md:border-t">
               <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
                 <Moon className="size-5 text-primary" />
@@ -1484,6 +1545,7 @@ export default function LeagueDashboardPage({
               <p className="text-2xl font-bold tabular-nums">{league.rest_days}</p>
               <p className="text-xs text-muted-foreground">Rest Days</p>
             </div>
+            )}
             <div className="p-4 flex flex-col items-center text-center border-t">
               <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
                 <Users className="size-5 text-primary" />
@@ -1523,6 +1585,7 @@ export default function LeagueDashboardPage({
           </div>
         </div>
       </div>
+
     </div>
   );
 }

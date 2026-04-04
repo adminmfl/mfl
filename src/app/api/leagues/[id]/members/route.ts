@@ -8,7 +8,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth/config';
 import {
-  getLeagueMembersForLeague,
   addLeagueMember,
 } from '@/lib/services/memberships';
 import { getUserRolesInLeague } from '@/lib/services/leagues';
@@ -38,9 +37,22 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Fetch members using service role (bypasses RLS since we use NextAuth, not Supabase Auth)
+    const supabase = getSupabaseServiceRole();
+    const { data: membersRaw, error: membersError } = await supabase
+      .from('leaguemembers')
+      .select('*')
+      .eq('league_id', id);
+
+    if (membersError) {
+      console.error('Error fetching league members:', membersError);
+      return NextResponse.json({ error: 'Failed to fetch members' }, { status: 500 });
+    }
+
+    const members = membersRaw || [];
+
     // Check if user is member of league
-    const members = await getLeagueMembersForLeague(id);
-    const isUserMember = members.some((m) => m.user_id === session.user.id);
+    const isUserMember = members.some((m: any) => m.user_id === session.user.id);
     if (!isUserMember) {
       return NextResponse.json(
         { error: 'You are not a member of this league' },
@@ -48,10 +60,21 @@ export async function GET(
       );
     }
 
-    // Fetch members with their roles
+    // Fetch usernames for all members
+    const userIds = members.map((m: any) => m.user_id);
+    const { data: users } = await supabase
+      .from('users')
+      .select('user_id, username')
+      .in('user_id', userIds);
+    const usernameMap = new Map(
+      (users || []).map((u: any) => [u.user_id, u.username])
+    );
+
+    // Fetch members with their roles and usernames
     const membersWithRoles = await Promise.all(
       members.map(async (member) => ({
         ...member,
+        username: usernameMap.get(member.user_id) || null,
         roles: await getUserRolesInLeague(member.user_id, id),
       }))
     );

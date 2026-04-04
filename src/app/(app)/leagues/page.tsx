@@ -77,7 +77,7 @@ export default function LeaguesPage() {
       // Search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
-        const matchesName = league.name.toLowerCase().includes(query);
+        const matchesName = (league.name || '').toLowerCase().includes(query);
         const matchesDescription = league.description?.toLowerCase().includes(query);
         if (!matchesName && !matchesDescription) return false;
       }
@@ -88,7 +88,7 @@ export default function LeaguesPage() {
       }
 
       // Role filter
-      if (roleFilter !== 'all' && !league.roles.includes(roleFilter as any)) {
+      if (roleFilter !== 'all' && !(league.roles || []).includes(roleFilter as any)) {
         return false;
       }
 
@@ -106,7 +106,7 @@ export default function LeaguesPage() {
   // Calculate stats
   const stats = React.useMemo(() => {
     const activeCount = userLeagues.filter((l) => l.status === 'active').length;
-    const hostCount = userLeagues.filter((l) => l.roles.includes('host')).length;
+    const hostCount = userLeagues.filter((l) => (l.roles || []).includes('host')).length;
     return { total: userLeagues.length, active: activeCount, hosting: hostCount };
   }, [userLeagues]);
 
@@ -335,7 +335,7 @@ function LeaguesTable({
           {leagues.map((league) => {
             const roleHierarchy = ['host', 'governor', 'captain', 'player'];
             const highestRole =
-              roleHierarchy.find((r) => league.roles.includes(r)) || 'player';
+              roleHierarchy.find((r) => (league.roles || []).includes(r)) || 'player';
             const RoleIcon = roleIcons[highestRole];
 
             return (
@@ -351,7 +351,7 @@ function LeaguesTable({
                         <AvatarImage src={league.logo_url} alt={league.name} />
                       ) : (
                         <AvatarFallback className="rounded-lg bg-primary/10 text-primary font-semibold">
-                          {league.name.slice(0, 2).toUpperCase()}
+                          {(league.name || 'LG').slice(0, 2).toUpperCase()}
                         </AvatarFallback>
                       )}
                     </Avatar>
@@ -372,9 +372,9 @@ function LeaguesTable({
                   <div className="flex items-center gap-2">
                     <RoleIcon className="size-4 text-muted-foreground" />
                     <span className="capitalize">{highestRole}</span>
-                    {league.roles.length > 1 && (
+                    {(league.roles || []).length > 1 && (
                       <Badge variant="outline" className="text-xs">
-                        +{league.roles.length - 1}
+                        +{(league.roles || []).length - 1}
                       </Badge>
                     )}
                   </div>
@@ -413,7 +413,7 @@ function LeaguesTable({
                           View League
                         </Link>
                       </DropdownMenuItem>
-                      {league.roles.includes('host') && (
+                      {(league.roles || []).includes('host') && (
                         <>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem asChild>

@@ -116,12 +116,12 @@ export default function SignupPage() {
         </div>
       </div>
 
-      {/* Right Side - Image */}
-      <div className="bg-muted relative hidden lg:block">
+      {/* Right Side - Illustration */}
+      <div className="relative hidden lg:flex items-center justify-center p-12">
         <img
-          src="/images/auth-bg.jpg"
-          alt="Fitness"
-          className="absolute h-full w-full object-cover"
+          src="/img/auth-illustration.svg"
+          alt="My Fitness League"
+          className="w-full max-w-lg drop-shadow-xl"
         />
       </div>
     </div>

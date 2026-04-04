@@ -2,88 +2,77 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight, Zap, Users, TrendingUp } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
-// ============================================================================
-// Hero Section Component
-// ============================================================================
-
 export function HeroSection() {
   return (
     <section className="relative overflow-hidden">
-      {/* Background gradient */}
       <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-background to-background" />
+      <div className="absolute top-[-100px] right-[-150px] w-[600px] h-[400px] rounded-full bg-primary/5 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-[-100px] w-[400px] h-[400px] rounded-full bg-orange-500/5 blur-3xl pointer-events-none" />
 
-      <div className="container relative max-w-7xl mx-auto px-2 md:px-2 lg:px-2 py-12 md:py-16">
-        <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-          {/* Left: Image */}
-          <div className="relative order-2 lg:order-1">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5 rounded-3xl blur-2xl" />
-            <div className="relative aspect-[4/3] lg:aspect-square bg-muted rounded-2xl overflow-hidden border shadow-xl">
-              {/* Replace src with your image */}
-              <Image
-                src="/images/auth-bg.jpg"
-                alt="My Fitness League App"
-                fill
-                className="object-cover"
-                priority
-              />
-            </div>
-          </div>
-
-          {/* Right: Content */}
-          <div className="order-1 lg:order-2 text-center lg:text-left">
-            <Badge variant="secondary" className="mb-4 px-4 py-1.5">
-              <Zap className="size-3.5 mr-1.5" />
-              Fitness Competitions Made Simple
+      <div className="container relative max-w-7xl mx-auto px-6 md:px-12 lg:px-16 py-16 md:py-24 lg:py-32">
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+          {/* Left: Content */}
+          <div className="text-center lg:text-left">
+            <Badge variant="secondary" className="mb-6 px-4 py-1.5 gap-2">
+              <span className="size-2 rounded-full bg-primary animate-pulse" />
+              Teams moving together every day
             </Badge>
 
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight mb-4">
-              Fitness Challenges{' '}
-              <span className="text-primary">For Teams</span>
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight mb-6">
+              Fitness that builds{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-orange-500 to-primary">
+                habits, bonds & real friendship.
+              </span>
             </h1>
 
-            <p className="text-base md:text-lg text-muted-foreground mb-6 max-w-lg mx-auto lg:mx-0">
-              Create leagues, build teams, and track workouts together. Simple
-              tools to keep your community motivated and accountable.
+            <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-xl mx-auto lg:mx-0 leading-relaxed">
+              MFL is the team fitness league where moving together becomes something
+              your people actually look forward to — full of shared victories,
+              friendly rivalry, and the kind of connection that turns colleagues
+              into friends.
             </p>
 
-            {/* CTA Buttons */}
-            <div className="flex flex-col gap-4 justify-center lg:justify-start mb-8">
-              <div className="flex flex-row gap-3 justify-center lg:justify-start">
-                <Button size="lg" asChild className="flex-1 sm:flex-none px-6 shadow-lg shadow-primary/20">
-                  <Link href="/signup">
-                    Get Started
-                    <ArrowRight className="ml-2 size-4" />
-                  </Link>
-                </Button>
-                <Button size="lg" variant="outline" asChild className="flex-1 sm:flex-none px-6 bg-background/50 backdrop-blur-sm">
-                  <Link href="/login">Login</Link>
-                </Button>
-              </div>
-              <Button size="lg" variant="ghost" asChild className="text-muted-foreground hover:text-foreground">
+            <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-10">
+              <Button size="lg" asChild className="px-8 shadow-lg shadow-primary/20 text-base bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 border-0">
+                <Link href="/signup">
+                  Start Your League Free
+                  <ArrowRight className="ml-2 size-4" />
+                </Link>
+              </Button>
+              <Button size="lg" variant="outline" asChild className="px-8 text-base">
                 <a href="#how-it-works">See How It Works</a>
               </Button>
             </div>
 
-            {/* Feature pills */}
-            <div className="flex flex-wrap justify-center lg:justify-start gap-2">
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-sm">
-                <Zap className="size-3.5" />
-                <span className="font-medium">Setup in minutes</span>
+            <div className="flex items-center gap-4">
+              <div className="flex -space-x-2">
+                {['bg-orange-200', 'bg-violet-200', 'bg-emerald-200', 'bg-sky-200'].map((bg, i) => (
+                  <div key={i} className={`size-8 rounded-full ${bg} border-2 border-background`} />
+                ))}
               </div>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 text-sm">
-                <Users className="size-3.5" />
-                <span className="font-medium">Team leaderboards</span>
-              </div>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400 text-sm">
-                <TrendingUp className="size-3.5" />
-                <span className="font-medium">Live tracking</span>
-              </div>
+              <p className="text-sm text-muted-foreground">
+                <strong className="text-foreground">Thousands of teams</strong> in 40+ countries in the league.
+                <br />Rated 4.8 ★ by team leaders.
+              </p>
             </div>
+          </div>
+
+          {/* Right: Hero Illustration */}
+          <div className="relative flex items-center justify-center order-first lg:order-last">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-orange-500/10 rounded-full blur-3xl scale-75" />
+            <Image
+              src="/img/mfl-hero.svg"
+              alt="My Fitness League — teams moving together"
+              width={500}
+              height={500}
+              className="relative w-full max-w-md lg:max-w-lg drop-shadow-xl"
+              priority
+            />
           </div>
         </div>
       </div>
