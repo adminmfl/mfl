@@ -417,11 +417,10 @@ export async function POST(req: NextRequest) {
     let activityNotesRequirement: 'not_required' | 'optional' | 'mandatory' = 'optional';
     let activityPointsPerSession: number = 1;
     let activityOutcomeConfig: { label: string; points: number }[] | null = null;
+    let activityConfigRow: any = null;
 
     if (type === 'workout' && workout_type) {
       const isUuidWorkoutType = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(workout_type);
-
-      let activityConfigRow: any = null;
 
       if (isUuidWorkoutType) {
         // Custom activity — lookup by custom_activity_id

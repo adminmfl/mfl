@@ -162,12 +162,39 @@ export async function GET(
       }
     }
 
-    // Attach names to submissions
+    // Fetch activity points config for effective_points calculation
+    const { data: leagueActivities } = await supabase
+      .from('leagueactivities')
+      .select('activity_id, custom_activity_id, points_per_session, outcome_config, activities(activity_name)')
+      .eq('league_id', leagueId);
+
+    const activityPointsMap = new Map<string, { points_per_session: number; outcome_config: any[] | null }>();
+    (leagueActivities || []).forEach((row: any) => {
+      const config = { points_per_session: row.points_per_session ?? 1, outcome_config: row.outcome_config };
+      const key = row.custom_activity_id || row.activity_id;
+      if (key) activityPointsMap.set(key, config);
+      const actName = row.activities?.activity_name;
+      if (actName) activityPointsMap.set(actName, config);
+    });
+
+    const getEffectivePoints = (entry: any): number => {
+      if (!entry.workout_type) return entry.rr_value ?? 1;
+      const config = activityPointsMap.get(entry.workout_type);
+      if (!config) return entry.rr_value ?? 1;
+      if (config.outcome_config && Array.isArray(config.outcome_config) && entry.outcome) {
+        const match = config.outcome_config.find((o: any) => o.label === entry.outcome);
+        if (match) return match.points;
+      }
+      return config.points_per_session;
+    };
+
+    // Attach names and effective_points to submissions
     const enrichedSubmissions = (submissions || []).map(sub => {
       const customName = sub.workout_type ? activityMap.get(sub.workout_type) : undefined;
       return {
         ...sub,
-        custom_activity_name: customName // Add this field
+        custom_activity_name: customName,
+        effective_points: getEffectivePoints(sub),
       };
     });
 

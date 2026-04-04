@@ -250,6 +250,7 @@ CREATE TABLE IF NOT EXISTS public.activities (
   description text,
   category_id uuid REFERENCES public.activity_categories(category_id) ON DELETE SET NULL,
   measurement_type activity_measurement_type DEFAULT 'duration' NOT NULL,
+  settings jsonb DEFAULT NULL,
   admin_info text DEFAULT NULL,
   created_by uuid REFERENCES public.users(user_id) ON DELETE SET NULL,
   created_date timestamptz DEFAULT CURRENT_TIMESTAMP,
@@ -318,9 +319,15 @@ CREATE TABLE IF NOT EXISTS public.leagueactivities (
   modified_by uuid REFERENCES public.users(user_id) ON DELETE SET NULL,
   modified_date timestamptz DEFAULT CURRENT_TIMESTAMP,
   created_at timestamptz DEFAULT CURRENT_TIMESTAMP,
+  proof_requirement text DEFAULT 'mandatory',
+  notes_requirement text DEFAULT 'optional',
+  points_per_session numeric DEFAULT 1,
+  outcome_config jsonb DEFAULT NULL,
+  max_images integer DEFAULT 1,
+  custom_field_label text DEFAULT NULL,
   created_by uuid REFERENCES public.users(user_id) ON DELETE SET NULL,
   CONSTRAINT check_activity_xor_custom CHECK (
-    (activity_id IS NOT NULL AND custom_activity_id IS NULL) OR 
+    (activity_id IS NOT NULL AND custom_activity_id IS NULL) OR
     (activity_id IS NULL AND custom_activity_id IS NOT NULL)
   )
 );
@@ -475,6 +482,9 @@ CREATE TABLE IF NOT EXISTS public.effortentry (
   notes text,
   reupload_of uuid REFERENCES public.effortentry(id) ON DELETE SET NULL,
   rejection_reason text,
+  outcome text DEFAULT NULL,
+  proof_url_2 varchar DEFAULT NULL,
+  custom_field_value text DEFAULT NULL,
   created_by uuid REFERENCES public.users(user_id) ON DELETE SET NULL,
   created_date timestamptz DEFAULT CURRENT_TIMESTAMP,
   modified_by uuid REFERENCES public.users(user_id) ON DELETE SET NULL,

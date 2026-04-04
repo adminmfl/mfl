@@ -31,6 +31,7 @@ import {
 } from '@tabler/icons-react';
 import Link from 'next/link';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useLeague } from '@/contexts/league-context';
 
 interface Donation {
     id: string;
@@ -69,6 +70,9 @@ export default function RestDayDonationsPage() {
     const router = useRouter();
     const { data: session } = useSession();
     const leagueId = params.id as string;
+
+    const { activeLeague } = useLeague();
+    const showRestDays = ((activeLeague as any)?.rest_days ?? 1) > 0;
 
     const [donations, setDonations] = useState<Donation[]>([]);
     const [members, setMembers] = useState<LeagueMember[]>([]);
@@ -240,6 +244,18 @@ export default function RestDayDonationsPage() {
     const myDonations = donations.filter(
         d => d.donor.member_id === userMemberId || d.receiver.member_id === userMemberId
     );
+
+    if (!showRestDays) {
+        return (
+            <div className="container max-w-4xl mx-auto py-6 text-center space-y-4">
+                <h1 className="text-2xl font-bold">Rest Day Donations</h1>
+                <p className="text-muted-foreground">Rest days are not enabled for this league.</p>
+                <Link href={`/leagues/${leagueId}`}>
+                    <Button variant="outline">Back to League</Button>
+                </Link>
+            </div>
+        );
+    }
 
     if (isLoading) {
         return (

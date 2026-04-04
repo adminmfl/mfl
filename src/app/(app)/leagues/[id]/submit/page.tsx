@@ -103,6 +103,12 @@ export default function SubmitActivityPage({
   const { activeLeague, isLoading: leagueLoading } = useLeague();
   const { canSubmitWorkouts } = useRole();
 
+  // RR / Rest Day display config
+  const pageRRFormula = (activeLeague as any)?.rr_config?.formula || 'standard';
+  const showRR = pageRRFormula !== 'points_only';
+  const showRestDays = ((activeLeague as any)?.rest_days ?? 1) > 0;
+  const pointsUnit = showRR ? 'RR' : 'pts';
+
   // Fetch user profile for age calculation
   const [userAge, setUserAge] = React.useState<number | null>(null);
 
@@ -1361,15 +1367,17 @@ export default function SubmitActivityPage({
         <TabsContent value="workout" className="mt-3">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="rounded-lg border bg-card/70 shadow-sm p-4 space-y-4 max-w-2xl">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className={`grid w-full ${showRestDays ? 'grid-cols-2' : 'grid-cols-1'}`}>
                 <TabsTrigger value="workout" className="flex items-center gap-2">
                   <Dumbbell className="size-4" />
                   Activity
                 </TabsTrigger>
+                {showRestDays && (
                 <TabsTrigger value="rest" className="flex items-center gap-2">
                   <Moon className="size-4" />
                   Rest Day
                 </TabsTrigger>
+                )}
               </TabsList>
 
               {/* Activity Type - Dropdown */}
@@ -1683,12 +1691,14 @@ export default function SubmitActivityPage({
 
               {/* Summary and Submit */}
               <div className="pt-4 border-t space-y-4">
+                {((activeLeague as any)?.rr_config?.formula || 'standard') === 'standard' && (
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">RR Value</span>
                   <span className="text-lg font-bold text-primary">
                     {estimatedRR.toFixed(2)}
                   </span>
                 </div>
+                )}
                 <div className="flex gap-2">
                   <Button
                     type="button"
@@ -1729,15 +1739,17 @@ export default function SubmitActivityPage({
         <TabsContent value="rest" className="mt-3">
           <form onSubmit={handleRestDaySubmit} className="space-y-6">
             <div className="rounded-lg border p-4 space-y-4 max-w-2xl">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className={`grid w-full ${showRestDays ? 'grid-cols-2' : 'grid-cols-1'}`}>
                 <TabsTrigger value="workout" className="flex items-center gap-2">
                   <Dumbbell className="size-4" />
                   Activity
                 </TabsTrigger>
+                {showRestDays && (
                 <TabsTrigger value="rest" className="flex items-center gap-2">
                   <Moon className="size-4" />
                   Rest Day
                 </TabsTrigger>
+                )}
               </TabsList>
 
               {/* Rest Day Stats */}
@@ -1834,8 +1846,8 @@ export default function SubmitActivityPage({
                 {/* Summary and Submit */}
                 <div className="pt-4 border-t space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">RR Points</span>
-                    <span className="text-lg font-bold text-primary">+1.0 RR</span>
+                    <span className="text-sm text-muted-foreground">{showRR ? 'RR Points' : 'Points'}</span>
+                    <span className="text-lg font-bold text-primary">+1.0 {pointsUnit}</span>
                   </div>
                   <div className="flex gap-2">
                     <Button
@@ -1873,7 +1885,7 @@ export default function SubmitActivityPage({
                   <p className="text-xs text-muted-foreground text-center">
                     {restDayStats?.isAtLimit
                       ? 'Requires approval from Captain or Governor'
-                      : 'Rest days earn 1.0 RR when approved'}
+                      : `Rest days earn 1.0 ${pointsUnit} when approved`}
                   </p>
                 </div>
               </div>
@@ -1953,10 +1965,12 @@ export default function SubmitActivityPage({
                   </div>
                 )}
 
+                {((activeLeague as any)?.rr_config?.formula || 'standard') === 'standard' && (
                 <div>
                   <span className="text-muted-foreground block text-xs">Estimated RR</span>
                   <span className="font-medium">{estimatedRR.toFixed(2)}</span>
                 </div>
+                )}
               </div>
             ) : (
               <div className="rounded-md border bg-card/70 p-3 space-y-2">
@@ -2186,11 +2200,13 @@ export default function SubmitActivityPage({
                     "text-2xl font-bold",
                     submittedData?.isExemption ? "text-amber-600" : "text-green-600"
                   )}>
-                    {isSimpleOrPoints ? '+1' : `+${submittedData?.rr_value?.toFixed(1) || '1.0'}`}
+                    +{isSimpleOrPoints
+                      ? (submittedData?.points_per_session ?? Math.round(submittedData?.rr_value || 1))
+                      : (submittedData?.rr_value?.toFixed(1) || '1.0')}
                   </span>
                   <span className="text-sm text-muted-foreground">
                     {isSimpleOrPoints
-                      ? `point${submittedData?.isExemption ? ' (if approved)' : ''}`
+                      ? `point${(submittedData?.points_per_session ?? 1) !== 1 ? 's' : ''}${submittedData?.isExemption ? ' (if approved)' : ''}`
                       : `RR points${submittedData?.isExemption ? ' (if approved)' : ''}`}
                   </span>
                 </div>

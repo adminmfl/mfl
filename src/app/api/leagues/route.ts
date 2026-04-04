@@ -17,6 +17,7 @@ const createLeagueSchema = z.object({
   num_teams: z.number().int().positive().optional(),
   max_participants: z.number().int().positive().optional(),
   rest_days: z.number().int().min(0).optional(),
+  rr_config: z.object({ formula: z.enum(['standard', 'simple', 'points_only']) }).optional(),
   is_public: z.boolean().optional(),
   is_exclusive: z.boolean().optional(),
 });

@@ -65,6 +65,8 @@ export interface LeagueReportData {
         startDate: string;
         endDate: string;
         logoUrl: string | null;
+        rrConfig: { formula: string } | null;
+        restDaysConfig: number;
     };
     team: {
         teamId: string;
@@ -134,7 +136,7 @@ export async function getLeagueReportData(
     // 3. Get league info
     const { data: league, error: leagueError } = await supabase
         .from('leagues')
-        .select('league_id, league_name, start_date, end_date, logo_url, normalize_points_by_team_size')
+        .select('league_id, league_name, start_date, end_date, logo_url, normalize_points_by_team_size, rr_config, rest_days')
         .eq('league_id', leagueId)
         .single();
 
@@ -280,6 +282,8 @@ export async function getLeagueReportData(
             startDate: league.start_date,
             endDate: league.end_date,
             logoUrl: league.logo_url,
+            rrConfig: league.rr_config as { formula: string } | null,
+            restDaysConfig: (league.rest_days as number) ?? 1,
         },
         team: teamInfo,
         finalIndividualScore: rankings.userTotalPoints,

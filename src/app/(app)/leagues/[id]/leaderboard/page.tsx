@@ -151,6 +151,8 @@ export default function LeaderboardPage({ params }: { params: Promise<{ id: stri
 
   // Calculate week presets based on league dates
   const league = data?.league;
+  const rrFormula = league?.rr_config?.formula || 'standard';
+  const showRR = rrFormula === 'standard';
   const weekPresets = useMemo(() => {
     if (!league?.start_date || !league?.end_date) return [];
     return calculateWeekPresets(league.start_date, league.end_date);
@@ -415,7 +417,7 @@ export default function LeaderboardPage({ params }: { params: Promise<{ id: stri
                 {aiInsights.leaderboard_cta || 'Log today to move up the rankings.'}
               </p>
               <div className="overflow-hidden">
-                <LeagueTeamsTable teams={teams} showAvgRR={true} />
+                <LeagueTeamsTable teams={teams} showAvgRR={showRR} />
               </div>
             </div>
           </TabsContent>
@@ -468,7 +470,7 @@ export default function LeaderboardPage({ params }: { params: Promise<{ id: stri
               <p className="text-xs sm:text-sm text-muted-foreground">Today's and yesterday's scores (subject to change)</p>
             </div>
             <div className="overflow-hidden">
-              <RealTimeScoreboardTable dates={pendingWindow.dates} teams={pendingWindow.teams || []} />
+              <RealTimeScoreboardTable dates={pendingWindow.dates} teams={pendingWindow.teams || []} showAvgRR={showRR} />
             </div>
           </div>
         </div>
@@ -482,7 +484,7 @@ export default function LeaderboardPage({ params }: { params: Promise<{ id: stri
             <p className="text-xs sm:text-sm text-muted-foreground">Top performers</p>
           </div>
           <div className="overflow-hidden">
-            <LeagueIndividualsTable individuals={individuals} showAvgRR={true} />
+            <LeagueIndividualsTable individuals={individuals} showAvgRR={showRR} />
           </div>
         </div>
       </div>

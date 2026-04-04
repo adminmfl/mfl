@@ -82,6 +82,8 @@ export interface LeagueInfo {
   league_name: string;
   start_date: string;
   end_date: string;
+  rr_config?: { formula: string };
+  rest_days?: number;
 }
 
 export interface LeaderboardData {

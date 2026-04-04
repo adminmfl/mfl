@@ -48,6 +48,7 @@ export interface LeagueWithRoles {
   creator_name?: string | null;
   branding?: LeagueBranding | null;
   rr_config?: LeagueRRConfig | null;
+  rest_days?: number;
 }
 
 
