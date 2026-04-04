@@ -401,7 +401,8 @@ export default function LeagueAnalyticsPage({ params }: { params: Promise<{ id: 
         </div>
       </div>
 
-      {/* 5. Rest Day Analytics */}
+      {/* 5. Rest Day Analytics — hidden when rest_days = 0 */}
+      {data.restDayAnalytics.totalUsed > 0 && (
       <div>
         <h2 className="text-lg font-semibold mb-4">😴 Rest Day Analytics</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -424,6 +425,7 @@ export default function LeagueAnalyticsPage({ params }: { params: Promise<{ id: 
           </Card>
         </div>
       </div>
+      )}
     </div>
   );
 }

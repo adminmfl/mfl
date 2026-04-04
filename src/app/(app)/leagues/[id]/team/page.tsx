@@ -11,6 +11,16 @@ import {
 import { useLeague } from '@/contexts/league-context';
 import { useRole } from '@/contexts/role-context';
 
+// RR/Rest Day visibility helpers (used in TeamMemberView)
+function useLeagueDisplayConfig() {
+  const { activeLeague } = useLeague();
+  const rrFormula = (activeLeague as any)?.rr_config?.formula || 'standard';
+  return {
+    showRR: rrFormula === 'standard',
+    showRestDays: ((activeLeague as any)?.rest_days ?? 1) > 0,
+  };
+}
+
 import {
   Card,
   CardDescription,
@@ -134,6 +144,8 @@ function TeamMemberView({
     fetchData();
   }, [leagueId, teamId]);
 
+  const { showRR, showRestDays } = useLeagueDisplayConfig();
+
   if (isLoading) return <PageSkeleton />;
 
   /* ========================================================================= */
@@ -177,9 +189,9 @@ function TeamMemberView({
             <TableRow>
               <TableHead>#</TableHead>
               <TableHead>Member</TableHead>
-              <TableHead className="text-center">Rest Days</TableHead>
+              {showRestDays && <TableHead className="text-center">Rest Days</TableHead>}
               <TableHead className="text-center">Points</TableHead>
-              <TableHead className="text-center">RR</TableHead>
+              {showRR && <TableHead className="text-center">RR</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -200,15 +212,19 @@ function TeamMemberView({
                     {m.is_captain && <Crown className="size-4 text-yellow-500" />}
                   </div>
                 </TableCell>
+                {showRestDays && (
                 <TableCell className="text-center text-muted-foreground text-sm">
                   {(m as any).rest_days_used ?? 0}
                 </TableCell>
+                )}
                 <TableCell className="text-center font-medium">
                   {m.points}
                 </TableCell>
+                {showRR && (
                 <TableCell className="text-center font-medium">
                   {(m.avg_rr ?? 0).toFixed(2)}
                 </TableCell>
+                )}
               </TableRow>
             ))}
           </TableBody>

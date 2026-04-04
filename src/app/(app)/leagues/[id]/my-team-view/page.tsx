@@ -152,6 +152,10 @@ export default function MyTeamViewPage({
   // Get captain info
   const captain = members.find((m) => m.is_captain);
 
+  const rrFormula = (activeLeague as any)?.rr_config?.formula || 'standard';
+  const showRR = rrFormula === 'standard';
+  const showRestDays = ((activeLeague as any)?.rest_days ?? 1) > 0;
+
   // Stats cards data
   const stats = [
     {
@@ -172,12 +176,12 @@ export default function MyTeamViewPage({
       description: 'Total score',
       icon: Target,
     },
-    {
+    ...(showRR ? [{
       title: 'RR',
       value: parseFloat(teamAvgRR).toFixed(1),
       description: 'Run Rate',
       icon: Flame,
-    },
+    }] : []),
     {
       title: 'Activity Points',
       value: typeof teamActivityPoints === 'number' ? teamActivityPoints.toLocaleString() : '—',
@@ -190,12 +194,12 @@ export default function MyTeamViewPage({
       description: 'Bonus points',
       icon: Star,
     },
-    {
+    ...(showRestDays ? [{
       title: 'Rest Days Used',
       value: typeof teamRestUsed === 'number' ? teamRestUsed.toLocaleString() : '—',
       description: 'Team total',
       icon: Moon,
-    },
+    }] : []),
     {
       title: 'Days Missed',
       value: typeof teamMissedDays === 'number' ? teamMissedDays.toLocaleString() : '—',
@@ -388,9 +392,9 @@ export default function MyTeamViewPage({
                 <TableHead className="w-12">#</TableHead>
                 <TableHead>Member</TableHead>
                 <TableHead className="hidden sm:table-cell">Role</TableHead>
-                <TableHead className="text-center">Rest Days</TableHead>
+                {showRestDays && <TableHead className="text-center">Rest Days</TableHead>}
                 <TableHead className="text-center">Points</TableHead>
-                <TableHead className="text-center">RR</TableHead>
+                {showRR && <TableHead className="text-center">RR</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -437,18 +441,22 @@ export default function MyTeamViewPage({
                         <Badge variant="outline">Player</Badge>
                       )}
                     </TableCell>
+                    {showRestDays && (
                     <TableCell className="text-center text-muted-foreground tabular-nums">
                       {(member as any).rest_days_used ?? 0}
                     </TableCell>
+                    )}
                     <TableCell className="text-center font-medium tabular-nums">
                       {(member as any).points ?? 0}
                     </TableCell>
+                    {showRR && (
                     <TableCell className="text-center font-medium tabular-nums">
                       <div className="flex items-center justify-center gap-1">
                         <Star className="size-3 text-yellow-500" />
                         {((member as any).avg_rr ?? 0).toFixed(2)}
                       </div>
                     </TableCell>
+                    )}
                   </TableRow>
                 ))
               ) : (

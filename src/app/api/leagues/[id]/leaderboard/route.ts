@@ -157,7 +157,7 @@ export async function GET(
     // Verify league exists and get its date range and status
     const { data: league, error: leagueError } = await supabase
       .from('leagues')
-      .select('league_id, league_name, start_date, end_date, status')
+      .select('league_id, league_name, start_date, end_date, status, rr_config, rest_days')
       .eq('league_id', leagueId)
       .single();
 
@@ -1014,6 +1014,8 @@ export async function GET(
           league_name: league.league_name,
           start_date: league.start_date,
           end_date: league.end_date,
+          rr_config: (league as any).rr_config || { formula: 'standard' },
+          rest_days: (league as any).rest_days ?? 0,
         },
       },
     });

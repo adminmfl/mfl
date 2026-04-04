@@ -47,6 +47,7 @@ import type { MySubmission } from '@/hooks/use-my-submissions';
 import { isExemptionRequest } from '@/hooks/use-my-submissions';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { isReuploadWindowOpen } from '@/lib/utils/reupload-window';
+import { useLeague } from '@/contexts/league-context';
 
 // ============================================================================
 // Types
@@ -222,6 +223,11 @@ export function SubmissionDetailDialog({
   isOwner = false,
   onReupload,
 }: SubmissionDetailDialogProps) {
+  const { activeLeague } = useLeague();
+  const rrFormula = (activeLeague as any)?.rr_config?.formula || 'standard';
+  const showRR = rrFormula === 'standard';
+  const pointsUnit = showRR ? 'RR' : 'pts';
+
   if (!submission) return null;
 
   const isPending = submission.status === 'pending';
@@ -423,7 +429,7 @@ export function SubmissionDetailDialog({
                   <div>
                     <p className="text-sm text-muted-foreground">Points Earned</p>
                     <p className="text-2xl font-bold text-primary">
-                      {submission.rr_value.toFixed(1)} RR
+                      {submission.rr_value.toFixed(1)} {pointsUnit}
                     </p>
                   </div>
                   <Target className="size-8 text-primary/50" />

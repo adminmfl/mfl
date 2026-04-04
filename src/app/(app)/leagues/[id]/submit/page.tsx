@@ -1683,12 +1683,14 @@ export default function SubmitActivityPage({
 
               {/* Summary and Submit */}
               <div className="pt-4 border-t space-y-4">
+                {((activeLeague as any)?.rr_config?.formula || 'standard') === 'standard' && (
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">RR Value</span>
                   <span className="text-lg font-bold text-primary">
                     {estimatedRR.toFixed(2)}
                   </span>
                 </div>
+                )}
                 <div className="flex gap-2">
                   <Button
                     type="button"
@@ -1953,10 +1955,12 @@ export default function SubmitActivityPage({
                   </div>
                 )}
 
+                {((activeLeague as any)?.rr_config?.formula || 'standard') === 'standard' && (
                 <div>
                   <span className="text-muted-foreground block text-xs">Estimated RR</span>
                   <span className="font-medium">{estimatedRR.toFixed(2)}</span>
                 </div>
+                )}
               </div>
             ) : (
               <div className="rounded-md border bg-card/70 p-3 space-y-2">

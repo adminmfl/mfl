@@ -61,6 +61,7 @@ import { SubmissionDetailDialog } from './submission-detail-dialog';
 import type { MySubmission, SubmissionStats } from '@/hooks/use-my-submissions';
 import { isExemptionRequest } from '@/hooks/use-my-submissions';
 import { useRouter } from 'next/navigation';
+import { useLeague } from '@/contexts/league-context';
 
 // ============================================================================
 // Loading Skeleton
@@ -74,7 +75,7 @@ function TableSkeleton() {
 // Stats Cards Component
 // ============================================================================
 
-function StatsCards({ stats, restDaysUsed }: { stats: SubmissionStats; restDaysUsed: number }) {
+function StatsCards({ stats, restDaysUsed, showRestDays = true }: { stats: SubmissionStats; restDaysUsed: number; showRestDays?: boolean }) {
   const cards = [
     {
       label: 'Total',
@@ -100,16 +101,16 @@ function StatsCards({ stats, restDaysUsed }: { stats: SubmissionStats; restDaysU
       icon: XCircle,
       color: 'text-red-600 bg-red-100 dark:bg-red-900/30',
     },
-    {
+    ...(showRestDays ? [{
       label: 'Rest Days',
       value: restDaysUsed,
       icon: Moon,
       color: 'text-blue-600 bg-blue-100 dark:bg-blue-900/30',
-    },
+    }] : []),
   ];
 
   return (
-    <div className="grid grid-cols-5 gap-2">
+    <div className={cn("grid gap-2", showRestDays ? "grid-cols-5" : "grid-cols-4")}>
       {cards.map((card) => (
         <div
           key={card.label}
@@ -191,6 +192,11 @@ export function MySubmissionsTable({
   onRefresh,
 }: MySubmissionsTableProps) {
   const router = useRouter();
+  const { activeLeague } = useLeague();
+  const rrFormula = (activeLeague as any)?.rr_config?.formula || 'standard';
+  const showRR = rrFormula === 'standard';
+  const showRestDays = ((activeLeague as any)?.rest_days ?? 1) > 0;
+  const pointsUnit = showRR ? 'RR' : 'pts';
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'date', desc: true },
   ]);
@@ -317,7 +323,7 @@ export function MySubmissionsTable({
               </p>
               {row.original.rr_value != null && (
                 <p className="text-xs text-muted-foreground">
-                  {row.original.rr_value.toFixed(1)} RR
+                  {row.original.rr_value.toFixed(1)} {pointsUnit}
                 </p>
               )}
             </div>
@@ -403,6 +409,7 @@ export function MySubmissionsTable({
       <StatsCards
         stats={stats}
         restDaysUsed={submissions.filter(s => s.type === 'rest' && s.status === 'approved').length}
+        showRestDays={showRestDays}
       />
 
       {/* Filters */}

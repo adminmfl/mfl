@@ -329,6 +329,10 @@ export default function MyTeamPage({
     );
   }, [teamsData?.members?.unallocated, unallocatedSearchQuery]);
 
+  const rrFormula = (activeLeague as any)?.rr_config?.formula || 'standard';
+  const showRR = rrFormula === 'standard';
+  const showRestDays = ((activeLeague as any)?.rest_days ?? 1) > 0;
+
   // Stats cards data
   const stats = [
     {
@@ -348,17 +352,17 @@ export default function MyTeamPage({
     {
       title: 'Team Points',
       value: String(teamPoints),
-      description: 'Total RR',
+      description: 'Total points',
       detail: 'Combined team effort',
       icon: Target,
     },
-    {
+    ...(showRR ? [{
       title: 'Team RR',
       value: String(teamAvgRR),
       description: 'RR',
       detail: 'Average RR per approved entry',
       icon: Flame,
-    },
+    }] : []),
   ];
 
   // Fetch leaderboard to populate team rank/points/avg rr
@@ -645,8 +649,8 @@ export default function MyTeamPage({
               <TableRow>
                 <TableHead className="w-8 text-center">#</TableHead>
                 <TableHead>Member</TableHead>
-                <TableHead className="w-16 text-center">Avg RR</TableHead>
-                <TableHead className="w-16 text-center">Rest Days</TableHead>
+                {showRR && <TableHead className="w-16 text-center">Avg RR</TableHead>}
+                {showRestDays && <TableHead className="w-16 text-center">Rest Days</TableHead>}
                 <TableHead className="w-16 text-center">Points</TableHead>
               </TableRow>
             </TableHeader>
@@ -679,12 +683,16 @@ export default function MyTeamPage({
                         <span className="font-medium text-sm truncate">{member.username}</span>
                       </div>
                     </TableCell>
+                    {showRR && (
                     <TableCell className="text-center text-sm tabular-nums">
                       {((member as any).avg_rr ?? 0).toFixed(1)}
                     </TableCell>
+                    )}
+                    {showRestDays && (
                     <TableCell className="text-center text-sm tabular-nums">
                       {(member as any).rest_days_used ?? 0}
                     </TableCell>
+                    )}
                     <TableCell className="text-center text-sm font-medium tabular-nums">
                       {(member as any).points ?? 0}
                     </TableCell>
