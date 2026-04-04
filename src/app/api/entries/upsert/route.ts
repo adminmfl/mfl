@@ -639,7 +639,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({
           success: true,
-          data: { ...updated, points_per_session: activityPointsPerSession },
+          data: { ...updated, points_per_session: activityOutcomeConfig && outcome ? (activityOutcomeConfig.find((o: any) => o.label === outcome)?.points ?? activityPointsPerSession) : activityPointsPerSession },
           updated: true,
           replacedRejected: effectiveCanReplaceRejected,
           overwritten: !!overwrite
@@ -675,7 +675,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: { ...created, points_per_session: activityPointsPerSession },
+      data: { ...created, points_per_session: activityOutcomeConfig && outcome ? (activityOutcomeConfig.find((o: any) => o.label === outcome)?.points ?? activityPointsPerSession) : activityPointsPerSession },
       created: true
     });
   } catch (error) {

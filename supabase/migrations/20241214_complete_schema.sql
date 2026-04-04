@@ -126,6 +126,7 @@ CREATE TABLE IF NOT EXISTS public.league_tiers (
   pricing_id uuid REFERENCES public.pricing(id) ON DELETE RESTRICT,
   is_active boolean DEFAULT true,
   display_order integer DEFAULT 0,
+  is_featured boolean DEFAULT false,
   features jsonb,
   created_by uuid REFERENCES public.users(user_id) ON DELETE SET NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
