@@ -484,8 +484,8 @@ export async function GET(
             min_value,
             age_group_overrides,
             activities(
-              activity_id, 
-              activity_name, 
+              activity_id,
+              activity_name,
               description,
               category_id,
               measurement_type,
@@ -516,8 +516,8 @@ export async function GET(
             min_value,
             age_group_overrides,
             activities(
-              activity_id, 
-              activity_name, 
+              activity_id,
+              activity_name,
               description,
               category_id,
               measurement_type,
@@ -569,7 +569,7 @@ export async function GET(
             category: null,
             value: customAct.custom_activity_id, // Use ID as value for custom activities to ensure correct lookup
             measurement_type: customAct.measurement_type,
-            settings: null,
+            settings: activity.settings,
             admin_info: null,
             is_custom: true,
             requires_proof: customAct.requires_proof,
@@ -615,8 +615,8 @@ export async function GET(
       const { data: allActs, error: allError } = await supabase
         .from('activities')
         .select(`
-          activity_id, 
-          activity_name, 
+          activity_id,
+          activity_name,
           description,
           category_id,
           measurement_type,

@@ -105,11 +105,11 @@ CREATE POLICY "ai_host_digest_read" ON ai_host_digest FOR SELECT
       SELECT 1 FROM leaguemembers lm
       WHERE lm.league_id = ai_host_digest.league_id
         AND lm.user_id = auth.uid()
-        AND lm.role IN ('host', 'governor')
+        AND EXISTS (SELECT 1 FROM assignedrolesforleague arf JOIN roles r ON r.role_id = arf.role_id WHERE arf.user_id = lm.user_id AND arf.league_id = lm.league_id AND r.role_name IN ('host', 'governor'))
     )
     OR EXISTS (
       SELECT 1 FROM leagues l
-      WHERE l.id = ai_host_digest.league_id
+      WHERE l.league_id = ai_host_digest.league_id
         AND l.created_by = auth.uid()
     )
   );
@@ -128,11 +128,11 @@ CREATE POLICY "ai_interventions_read" ON ai_interventions FOR SELECT
       SELECT 1 FROM leaguemembers lm
       WHERE lm.league_id = ai_interventions.league_id
         AND lm.user_id = auth.uid()
-        AND lm.role IN ('host', 'governor')
+        AND EXISTS (SELECT 1 FROM assignedrolesforleague arf JOIN roles r ON r.role_id = arf.role_id WHERE arf.user_id = lm.user_id AND arf.league_id = lm.league_id AND r.role_name IN ('host', 'governor'))
     )
     OR EXISTS (
       SELECT 1 FROM leagues l
-      WHERE l.id = ai_interventions.league_id
+      WHERE l.league_id = ai_interventions.league_id
         AND l.created_by = auth.uid()
     )
   );
@@ -146,7 +146,7 @@ CREATE POLICY "challenge_comm_read" ON challenge_comm_schedule FOR SELECT
   USING (
     EXISTS (
       SELECT 1 FROM leagues l
-      WHERE l.id = challenge_comm_schedule.league_id
+      WHERE l.league_id = challenge_comm_schedule.league_id
         AND l.created_by = auth.uid()
     )
   );
