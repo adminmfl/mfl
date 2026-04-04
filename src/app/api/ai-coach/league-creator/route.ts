@@ -172,7 +172,14 @@ Today's date: ${new Date().toISOString().split('T')[0]}
     const jsonMatch = assistantMessage.match(/```json\s*\n?([\s\S]*?)\n?```/);
     if (jsonMatch) {
       try {
-        extractedFields = JSON.parse(jsonMatch[1]);
+        const parsed = JSON.parse(jsonMatch[1]);
+        // Filter out null/undefined/empty values so they don't overwrite
+        // previously collected fields (AI sometimes emits null for unknown fields)
+        for (const [key, value] of Object.entries(parsed)) {
+          if (value !== null && value !== undefined && value !== '') {
+            (extractedFields as any)[key] = value;
+          }
+        }
       } catch {
         // If JSON parsing fails, keep empty
       }

@@ -71,6 +71,51 @@ declare global {
 }
 
 // ---------------------------------------------------------------------------
+// Lightweight markdown renderer for AI assistant messages
+// ---------------------------------------------------------------------------
+
+function renderMarkdown(text: string): (string | JSX.Element)[] {
+  const parts: (string | JSX.Element)[] = [];
+  // Match **bold**, *italic*, and `code`
+  const regex = /(\*\*(.+?)\*\*)|(\*(.+?)\*)|(`(.+?)`)/g;
+  let lastIdx = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIdx) {
+      parts.push(text.slice(lastIdx, match.index));
+    }
+    if (match[1]) {
+      // **bold**
+      parts.push(
+        <strong key={match.index} className="font-semibold">
+          {match[2]}
+        </strong>
+      );
+    } else if (match[3]) {
+      // *italic*
+      parts.push(
+        <em key={match.index}>
+          {match[4]}
+        </em>
+      );
+    } else if (match[5]) {
+      // `code`
+      parts.push(
+        <code key={match.index} className="bg-muted-foreground/10 rounded px-1 py-0.5 text-xs font-mono">
+          {match[6]}
+        </code>
+      );
+    }
+    lastIdx = match.index + match[0].length;
+  }
+  if (lastIdx < text.length) {
+    parts.push(text.slice(lastIdx));
+  }
+  return parts;
+}
+
+// ---------------------------------------------------------------------------
 // Required fields check
 // ---------------------------------------------------------------------------
 
@@ -522,7 +567,7 @@ export function LeagueCreatorChat() {
                           <span className="text-[10px] font-semibold text-primary">Assistant</span>
                         </div>
                       )}
-                      <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                      <p className="whitespace-pre-wrap leading-relaxed">{msg.role === 'assistant' ? renderMarkdown(msg.content) : msg.content}</p>
                     </div>
                   </div>
                 ))}

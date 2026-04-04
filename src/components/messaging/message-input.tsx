@@ -14,6 +14,7 @@ import {
   Dumbbell,
   Zap,
   Loader2,
+  Link2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLeague } from '@/contexts/league-context';
@@ -25,6 +26,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { CannedMessagePicker } from './canned-message-picker';
 import { MentionDropdown, type MentionMember } from './mention-dropdown';
@@ -410,23 +416,77 @@ export function MessageInput({
           </Button>
         )}
 
-        {/* Link workout */}
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className={cn('size-8 shrink-0', deepLink && 'text-green-600 dark:text-green-400')}
-          title="Attach workout link"
-          onClick={() => {
-            if (deepLink) {
-              setDeepLink(null);
-            } else {
-              setDeepLink(`/leagues/${leagueId}/submit`);
-            }
-          }}
-        >
-          <Dumbbell className="size-4" />
-        </Button>
+        {/* Attach link — popover with selectable options */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className={cn('size-8 shrink-0', deepLink && 'text-green-600 dark:text-green-400')}
+              title="Attach a link"
+            >
+              <Dumbbell className="size-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="start" side="top" className="w-56 p-1">
+            <p className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Attach a link</p>
+            {deepLink && (
+              <button
+                type="button"
+                className="w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent text-red-600 dark:text-red-400"
+                onClick={() => setDeepLink(null)}
+              >
+                <X className="size-3.5" />
+                Remove attached link
+              </button>
+            )}
+            <button
+              type="button"
+              className={cn(
+                'w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent',
+                deepLink === `/leagues/${leagueId}/submit` && 'bg-accent font-medium'
+              )}
+              onClick={() => setDeepLink(`/leagues/${leagueId}/submit`)}
+            >
+              <Dumbbell className="size-3.5" />
+              Submit Workout
+            </button>
+            <button
+              type="button"
+              className={cn(
+                'w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent',
+                deepLink === `/leagues/${leagueId}/challenges` && 'bg-accent font-medium'
+              )}
+              onClick={() => setDeepLink(`/leagues/${leagueId}/challenges`)}
+            >
+              <Link2 className="size-3.5" />
+              Challenges
+            </button>
+            <button
+              type="button"
+              className={cn(
+                'w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent',
+                deepLink === `/leagues/${leagueId}/leaderboard` && 'bg-accent font-medium'
+              )}
+              onClick={() => setDeepLink(`/leagues/${leagueId}/leaderboard`)}
+            >
+              <Link2 className="size-3.5" />
+              Leaderboard
+            </button>
+            <button
+              type="button"
+              className={cn(
+                'w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent',
+                deepLink === `/leagues/${leagueId}/activities` && 'bg-accent font-medium'
+              )}
+              onClick={() => setDeepLink(`/leagues/${leagueId}/activities`)}
+            >
+              <Link2 className="size-3.5" />
+              Activities
+            </button>
+          </PopoverContent>
+        </Popover>
 
         {/* Textarea wrapper with mention dropdown */}
         <div className="relative flex-1">

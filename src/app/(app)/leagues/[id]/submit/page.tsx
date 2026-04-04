@@ -819,6 +819,28 @@ export default function SubmitActivityPage({
       }
     }
 
+    // Validate max values to prevent unreasonable entries
+    const maxLimits: Record<string, { max: number; label: string }> = {
+      duration: { max: 1440, label: 'Duration cannot exceed 1440 minutes (24 hours)' },
+      distance: { max: 1000, label: 'Distance cannot exceed 1000 km' },
+      steps: { max: 500000, label: 'Steps cannot exceed 500,000' },
+      holes: { max: 36, label: 'Holes cannot exceed 36' },
+    };
+    for (const [field, config] of Object.entries(maxLimits)) {
+      const rawValue = formData[field as keyof typeof formData];
+      if (rawValue) {
+        const numValue = parseFloat(rawValue);
+        if (!Number.isFinite(numValue) || numValue < 0) {
+          toast.error(`${field.charAt(0).toUpperCase() + field.slice(1)} must be a valid positive number`);
+          return;
+        }
+        if (numValue > config.max) {
+          toast.error(config.label);
+          return;
+        }
+      }
+    }
+
     // Skip RR Validation for 'none' measurement type or non-standard formulas
     const rrFormula = (activeLeague as any)?.rr_config?.formula || 'standard';
     if (primaryMetric !== 'none' && rrFormula === 'standard') {
@@ -1440,6 +1462,7 @@ export default function SubmitActivityPage({
                           id={type}
                           type="number"
                           min="0"
+                          max={type === 'duration' ? '1440' : type === 'distance' ? '1000' : type === 'steps' ? '500000' : type === 'hole' ? '36' : undefined}
                           step={type === 'distance' ? '0.01' : '1'}
                           value={formData[formKey as keyof typeof formData]}
                           onChange={(e) =>
