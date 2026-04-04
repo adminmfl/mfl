@@ -321,9 +321,9 @@ export function MySubmissionsTable({
                   ? (row.original.workout_type ? formatWorkoutType(row.original.workout_type) : 'Workout')
                   : isExemption ? 'Exemption' : 'Rest'}
               </p>
-              {row.original.rr_value != null && (
+              {((row.original as any).effective_points ?? row.original.rr_value) != null && (
                 <p className="text-xs text-muted-foreground">
-                  {row.original.rr_value.toFixed(1)} {pointsUnit}
+                  {(row.original as any).effective_points ?? row.original.rr_value} {pointsUnit}
                 </p>
               )}
             </div>

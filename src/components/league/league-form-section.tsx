@@ -6,7 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Calendar, Users, AlertCircle, Info, HelpCircle, FileText, Clock, UserPlus, UsersRound, Bed, Trophy } from 'lucide-react';
+import { Calendar, Users, AlertCircle, Info, HelpCircle, FileText, Clock, UserPlus, UsersRound, Bed, Trophy, Gauge } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
@@ -18,6 +19,7 @@ interface LeagueFormData {
   num_teams: string;
   max_participants: string;
   rest_days: string;
+  rr_formula: 'standard' | 'simple' | 'points_only';
 }
 
 interface LeagueFormSectionProps {
@@ -30,6 +32,7 @@ interface LeagueFormSectionProps {
   onDurationChange: (duration: number) => void;
   maxDuration?: number;
   minDate?: Date;
+  onRRFormulaChange?: (value: 'standard' | 'simple' | 'points_only') => void;
   error?: string | null;
 }
 
@@ -43,6 +46,7 @@ export function LeagueFormSection({
   onDurationChange,
   maxDuration = 365,
   minDate = new Date(),
+  onRRFormulaChange,
   error,
 }: LeagueFormSectionProps) {
   return (
@@ -280,6 +284,31 @@ export function LeagueFormSection({
             <p className="text-xs text-muted-foreground flex items-center gap-1">
               <Clock className="size-3" />
               Number of days participants can skip workout submissions during the league. (auto-calculated as 20% of duration, can be adjusted)
+            </p>
+          </div>
+
+          {/* Scoring Formula */}
+          <div className="space-y-2">
+            <Label htmlFor="rr_formula" className="font-semibold flex items-center gap-2">
+              <Gauge className="size-4 text-primary" />
+              Scoring Formula
+            </Label>
+            <Select
+              value={formData.rr_formula || 'standard'}
+              onValueChange={(v) => onRRFormulaChange?.(v as 'standard' | 'simple' | 'points_only')}
+            >
+              <SelectTrigger className="h-10">
+                <SelectValue placeholder="Select scoring formula" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="standard">Standard (Run Rate)</SelectItem>
+                <SelectItem value="simple">Simple (1 point per activity)</SelectItem>
+                <SelectItem value="points_only">Points Only (no Run Rate)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <Info className="size-3" />
+              Standard calculates Run Rate based on workout metrics. Simple and Points Only award flat points per activity.
             </p>
           </div>
 

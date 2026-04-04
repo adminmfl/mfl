@@ -429,7 +429,7 @@ export function SubmissionDetailDialog({
                   <div>
                     <p className="text-sm text-muted-foreground">Points Earned</p>
                     <p className="text-2xl font-bold text-primary">
-                      {submission.rr_value.toFixed(1)} {pointsUnit}
+                      {(submission as any).effective_points ?? submission.rr_value.toFixed(1)} {pointsUnit}
                     </p>
                   </div>
                   <Target className="size-8 text-primary/50" />

@@ -611,9 +611,9 @@ export default function AllSubmissionsPage({
       accessorKey: 'rr_value',
       header: 'Points',
       cell: ({ row }) => {
-        const value = row.original.rr_value;
+        const value = (row.original as any).effective_points ?? row.original.rr_value;
         if (value === null) return <span className="text-muted-foreground">-</span>;
-        return <span className="font-semibold text-primary">{value.toFixed(1)} {pointsUnit}</span>;
+        return <span className="font-semibold text-primary">{value} {pointsUnit}</span>;
       },
     },
     {
@@ -984,7 +984,7 @@ export default function AllSubmissionsPage({
                       </div>
                     </div>
                     <div className="text-right shrink-0 ml-2">
-                      <div className="text-sm font-bold text-primary">{submission.rr_value !== null ? `${submission.rr_value.toFixed(1)} ${pointsUnit}` : '-'}</div>
+                      <div className="text-sm font-bold text-primary">{(submission as any).effective_points != null ? `${(submission as any).effective_points} ${pointsUnit}` : (submission.rr_value !== null ? `${submission.rr_value.toFixed(1)} ${pointsUnit}` : '-')}</div>
                       <div className="text-[10px] text-muted-foreground">{format(parseISO(submission.date), 'MMM d')}</div>
                     </div>
                   </div>
