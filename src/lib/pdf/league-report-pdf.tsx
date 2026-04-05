@@ -390,7 +390,7 @@ export function LeagueReportPDF({ data }: LeagueReportPDFProps) {
                     <Logo src={data.league.logoUrl} placeholderText="MFL" />
                     <View style={styles.headerCenter}>
                         <Text style={styles.brandText}>MY FITNESS LEAGUE</Text>
-                        <Text style={styles.reportTitle}>My League Record</Text>
+                        <Text style={styles.reportTitle}>My League Summary</Text>
                         <Text style={styles.reportSubtitle}>
                             {formatDate(data.league.startDate)} - {formatDate(data.league.endDate)}
                         </Text>

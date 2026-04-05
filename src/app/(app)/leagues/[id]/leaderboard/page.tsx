@@ -245,21 +245,11 @@ export default function LeaderboardPage({ params }: { params: Promise<{ id: stri
           <div className="flex items-center justify-between gap-2 mb-2">
             <div>
               <h1 className="text-xl font-bold tracking-tight">Leaderboard</h1>
-              <div className="flex items-center gap-2">
-                <p className="text-sm text-muted-foreground mr-auto leading-none">
-                  {league?.league_name || 'Rankings'}
-                </p>
-                {normalizationActive && (
-                  <Badge variant="secondary" className="text-[10px] h-5 px-1.5 pointer-events-none">Normalized</Badge>
-                )}
-              </div>
+              <p className="text-sm text-muted-foreground leading-none truncate max-w-[200px]">
+                {league?.league_name || 'Rankings'}
+              </p>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
-              {normalizationActive && canToggleRaw && (
-                <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => setViewRawTotals(v => !v)}>
-                  {viewRawTotals ? 'Normalized' : 'Raw'}
-                </Button>
-              )}
               <Popover open={filterOpen} onOpenChange={setFilterOpen}>
                 <PopoverTrigger asChild>
                   <Button variant="outline" size="sm" className="h-8 text-xs font-normal shadow-sm hover:shadow">
@@ -366,17 +356,12 @@ export default function LeaderboardPage({ params }: { params: Promise<{ id: stri
               </Button>
             </div>
           </div>
-        </div>
-      </div>
+          <div className="border-t mt-2 pt-3">
 
-      {/* Leaderboards */}
-      <div className="px-4 lg:px-6">
-        
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-3">
 
           {/* Teams Leaderboard (Overall) */}
           <TabsContent value="teams" className="mt-0">
-            <div className="rounded-lg border bg-card shadow-sm p-3 sm:p-4">
               <div className="mb-3">
                 <div className="flex items-center justify-between gap-2">
                   <h2 className="text-base sm:text-lg font-semibold">League standings</h2>
@@ -419,7 +404,6 @@ export default function LeaderboardPage({ params }: { params: Promise<{ id: stri
               <div className="overflow-hidden">
                 <LeagueTeamsTable teams={teams} showAvgRR={showRR} />
               </div>
-            </div>
           </TabsContent>
 
           {/* Challenges Leaderboard */}
@@ -459,12 +443,10 @@ export default function LeaderboardPage({ params }: { params: Promise<{ id: stri
             />
           </TabsContent>
         </Tabs>
-      </div>
 
-      {/* Real-time Scoreboard - Always Visible Below Tabs */}
+      {/* Real-time Scoreboard */}
       {pendingWindow?.dates?.length ? (
-        <div className="px-4 lg:px-6">
-          <div className="rounded-lg border bg-card shadow-sm p-3 sm:p-4">
+          <div className="border-t mt-3 pt-3">
             <div className="mb-3">
               <h2 className="text-base sm:text-lg font-semibold">Real-time Scoreboard</h2>
               <p className="text-xs sm:text-sm text-muted-foreground">Today's and yesterday's scores (subject to change)</p>
@@ -473,19 +455,19 @@ export default function LeaderboardPage({ params }: { params: Promise<{ id: stri
               <RealTimeScoreboardTable dates={pendingWindow.dates} teams={pendingWindow.teams || []} showAvgRR={showRR} />
             </div>
           </div>
-        </div>
       ) : null}
 
-      {/* Individual Leaderboard - Always Visible Below Real-time */}
-      <div className="px-4 lg:px-6">
-        <div className="rounded-lg border bg-card shadow-sm p-3 sm:p-4">
-          <div className="mb-3">
-            <h2 className="text-base sm:text-lg font-semibold">Individual Rankings</h2>
-            <p className="text-xs sm:text-sm text-muted-foreground">Top performers</p>
+      {/* Individual Rankings */}
+          <div className="border-t mt-3 pt-3">
+            <div className="mb-3">
+              <h2 className="text-base sm:text-lg font-semibold">Individual Rankings</h2>
+              <p className="text-xs sm:text-sm text-muted-foreground">Top performers</p>
+            </div>
+            <div className="overflow-hidden">
+              <LeagueIndividualsTable individuals={individuals} showAvgRR={showRR} />
+            </div>
           </div>
-          <div className="overflow-hidden">
-            <LeagueIndividualsTable individuals={individuals} showAvgRR={showRR} />
-          </div>
+        </div>
         </div>
       </div>
 

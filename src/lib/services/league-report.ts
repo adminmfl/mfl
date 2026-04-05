@@ -187,8 +187,18 @@ export async function getLeagueReportData(
 
     const allEntries = entries || [];
 
-    // 6. Aggregate activity data
-    const activities = aggregateActivities(allEntries);
+    // 6. Build custom activity name map and aggregate activity data
+    const activityNameMap = new Map<string, string>();
+    const { data: laRows } = await supabase
+        .from('leagueactivities')
+        .select('activity_id, custom_activity_id, activities(activity_name), custom_activities(activity_name)')
+        .eq('league_id', leagueId);
+    for (const row of (laRows || [])) {
+        if ((row as any).custom_activity_id && (row as any).custom_activities?.activity_name) {
+            activityNameMap.set((row as any).custom_activity_id, (row as any).custom_activities.activity_name);
+        }
+    }
+    const activities = aggregateActivities(allEntries, activityNameMap);
 
     // 7. Get rest days + donation info
     const { data: donatedRows } = await supabase
@@ -320,7 +330,7 @@ function calculateBestStreak(activeDates: Set<string>, startDate: Date, endDate:
     return bestStreak;
 }
 
-function aggregateActivities(entries: any[]): ActivitySummary[] {
+function aggregateActivities(entries: any[], activityNameMap?: Map<string, string>): ActivitySummary[] {
     const workoutEntries = entries.filter(e => e.type === 'workout');
 
     const activityMap = new Map<string, {
@@ -332,7 +342,8 @@ function aggregateActivities(entries: any[]): ActivitySummary[] {
     }>();
 
     for (const entry of workoutEntries) {
-        const activityName = entry.workout_type || 'Unknown Activity';
+        const rawType = entry.workout_type || 'Unknown Activity';
+        const activityName = activityNameMap?.get(rawType) || rawType;
         const existing = activityMap.get(activityName) || {
             count: 0,
             totalDuration: 0,
