@@ -123,8 +123,10 @@ function TeamMemberView({
             (t: any) => String(t.team_id) === String(teamId)
           );
           if (team) {
+            const pendingTeam = (leaderboardJson.data?.pendingWindow?.teams || []).find((t: any) => String(t.team_id) === String(teamId));
+            const pendingPts = pendingTeam?.total_points ?? 0;
             setTeamRank(`#${team.rank ?? '--'}`);
-            setTeamPoints(String(team.total_points ?? 0));
+            setTeamPoints(String((team.total_points ?? 0) + pendingPts));
           }
         }
 

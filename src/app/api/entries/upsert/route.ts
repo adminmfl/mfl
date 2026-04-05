@@ -426,8 +426,8 @@ export async function POST(req: NextRequest) {
       .eq('league_member_id', membership.league_member_id)
       .eq('date', normalizedDate);
 
-    // For monthly/daily frequency with workouts, only check same activity type
-    if ((resolvedFrequencyType === 'monthly' || resolvedFrequencyType === 'daily') && type === 'workout' && workout_type) {
+    // For workouts, only check same activity type (different activities on same day are allowed)
+    if (type === 'workout' && workout_type) {
       existingQuery = existingQuery.eq('workout_type', workout_type);
     }
 
