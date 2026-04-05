@@ -426,12 +426,12 @@ export function LeagueReportPDF({ data }: LeagueReportPDFProps) {
                             <Text style={styles.sectionTitle}>Performance Overview</Text>
                         </View>
                         <View style={styles.sectionContent}>
-                            <MetricRow label="Workouts Completed" value={data.performance.totalActivities} />
+                            <MetricRow label="Activities Completed" value={data.performance.totalActivities} />
                             <MetricRow label="Points earned for team" value={totalPoints} />
                             {showRestDays && <MetricRow label="Rest Days Taken" value={`${data.restDays.total}${data.restDays.donated ? ` (+ ${data.restDays.donated} donated)` : ''}${data.restDays.received ? ` (+ ${data.restDays.received} received)` : ''}`} />}
                             <MetricRow label="Active Days" value={data.performance.totalActiveDays} />
-                            <MetricRow label="Missed Days" value={data.performance.totalMissedDays} />
-                            <MetricRow label="Best Streak (consecutive workout days)" value={`${bestStreak} Days`} isLast />
+                            {showRestDays && <MetricRow label="Missed Days" value={data.performance.totalMissedDays} />}
+                            <MetricRow label="Best Streak (consecutive activity days)" value={`${bestStreak} Days`} isLast />
                         </View>
                     </View>
 
