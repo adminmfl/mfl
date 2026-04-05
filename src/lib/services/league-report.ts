@@ -220,12 +220,13 @@ export async function getLeagueReportData(
     );
 
     // 10. Calculate performance summary
-    // Deduplicate workout entries by date (only one counts per day, matching leaderboard)
+    // Deduplicate workout entries by date+activity (multiple activities per day each count)
     const workoutEntries = allEntries.filter(e => e.type === 'workout');
     const totalChallengePoints = challenges.reduce((sum, c) => sum + c.pointsEarned, 0);
     const activeDatesSet = new Set(workoutEntries.map(e => e.date));
-    // totalActivities = unique workout dates (not raw entry count)
-    const uniqueWorkoutCount = activeDatesSet.size;
+    // totalActivities = unique date+activity combos (not just unique dates)
+    const uniqueWorkoutKeys = new Set(workoutEntries.map(e => `${e.date}_${(e as any).workout_type || ''}`));
+    const uniqueWorkoutCount = uniqueWorkoutKeys.size;
 
     // Calculate missed days
     // Use date range if provided, otherwise full league duration
@@ -460,7 +461,7 @@ async function getRankings(
     // LOGIC MATCH: Same as /api/leagues/[id]/leaderboard — use points_per_session from leagueactivities
     let entriesQuery = supabase
         .from('effortentry')
-        .select('league_member_id, date, rr_value, workout_type')
+        .select('league_member_id, date, rr_value, workout_type, outcome')
         .eq('status', 'approved')
         .in('league_member_id', memberIds);
 
@@ -470,39 +471,50 @@ async function getRankings(
 
     const { data: allEntries } = await entriesQuery;
 
-    // Fetch activity points configuration for this league
-    const activityPointsMap = new Map<string, number>();
+    // Fetch activity points configuration for this league (including outcome_config)
+    const activityPointsMap = new Map<string, { points_per_session: number; outcome_config: any[] | null }>();
     const { data: laRows } = await supabase
         .from('leagueactivities')
-        .select('activity_id, custom_activity_id, points_per_session, activities(activity_name)')
+        .select('activity_id, custom_activity_id, points_per_session, outcome_config, activities(activity_name)')
         .eq('league_id', leagueId);
     for (const row of (laRows || [])) {
-        const pts = (row as any).points_per_session ?? 1;
+        const config = { points_per_session: (row as any).points_per_session ?? 1, outcome_config: (row as any).outcome_config ?? null };
         if ((row as any).activities?.activity_name) {
-            activityPointsMap.set((row as any).activities.activity_name, pts);
+            activityPointsMap.set((row as any).activities.activity_name, config);
         }
         if (row.custom_activity_id) {
-            activityPointsMap.set(row.custom_activity_id, pts);
+            activityPointsMap.set(row.custom_activity_id, config);
         }
     }
 
-    // Deduplicate: only one entry per date per member (matches leaderboard logic)
+    // Helper to resolve points for an entry (matches leaderboard getEntryPoints)
+    const getEntryPoints = (entry: any): number => {
+        if (!entry.workout_type) return 1;
+        const config = activityPointsMap.get(entry.workout_type);
+        if (!config) return 1;
+        if (config.outcome_config && Array.isArray(config.outcome_config) && entry.outcome) {
+            const match = config.outcome_config.find((o: any) => o.label === entry.outcome);
+            if (match) return match.points;
+        }
+        return config.points_per_session;
+    };
+
+    // Deduplicate: one entry per date per member per activity (matches leaderboard logic)
     const seenMemberDate = new Set<string>();
     const dedupedEntries: typeof allEntries = [];
     for (const entry of (allEntries || [])) {
-        const key = `${entry.league_member_id}:${entry.date}`;
+        const key = `${entry.league_member_id}:${entry.date}:${(entry as any).workout_type || ''}`;
         if (!seenMemberDate.has(key)) {
             seenMemberDate.add(key);
             dedupedEntries.push(entry);
         }
     }
 
-    // Calculate points per member using configured points_per_session
+    // Calculate points per member using configured points (with outcome support)
     const memberPoints = new Map<string, number>();
     for (const entry of dedupedEntries) {
         const current = memberPoints.get(entry.league_member_id) || 0;
-        const pts = (entry as any).workout_type ? (activityPointsMap.get((entry as any).workout_type) ?? 1) : 1;
-        memberPoints.set(entry.league_member_id, current + pts);
+        memberPoints.set(entry.league_member_id, current + getEntryPoints(entry));
     }
 
     // Map user_id to points
