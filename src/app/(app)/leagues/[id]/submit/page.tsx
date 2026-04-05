@@ -444,7 +444,7 @@ export default function SubmitActivityPage({
     if (!selectedActivity) return null;
 
     // Get the league activity configuration with minimums
-    const leagueActivity = activitiesData?.activities.find(
+    const leagueActivity = activitiesData?.activities?.find(
       (a) => a.activity_id === selectedActivity.activity_id
     );
 
@@ -509,7 +509,7 @@ export default function SubmitActivityPage({
   const getConfiguredMinimum = React.useCallback((measurementType: string): number => {
     if (!selectedActivity) return 0;
 
-    const leagueActivity = activitiesData?.activities.find(
+    const leagueActivity = activitiesData?.activities?.find(
       (a) => a.activity_id === selectedActivity.activity_id
     );
 
