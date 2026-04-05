@@ -569,7 +569,7 @@ export async function GET(
             category: null,
             value: customAct.custom_activity_id, // Use ID as value for custom activities to ensure correct lookup
             measurement_type: customAct.measurement_type,
-            settings: activity.settings,
+            settings: null,
             admin_info: null,
             is_custom: true,
             requires_proof: customAct.requires_proof,
