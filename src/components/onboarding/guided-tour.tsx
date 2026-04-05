@@ -47,21 +47,21 @@ const FALLBACK_STEPS: TourStep[] = [
   {
     title: 'Submit Your Activity',
     description:
-      'Log your daily workouts — running, yoga, cycling, gym, and more. Upload a screenshot as proof and the app calculates your effort score (Run Rate) automatically. Consistency is key — submit every day to maximize your team\'s score!',
+      'Log your daily activities — running, yoga, cycling, gym, and more. Upload a screenshot as proof and the app calculates your effort score automatically. Consistency is key — submit every day to maximize your team\'s score!',
     icon_name: 'Dumbbell',
     icon_color: 'text-green-500',
   },
   {
     title: 'Points & Scoring',
     description:
-      'Every approved workout earns you points based on your Run Rate. The harder you push, the more points you earn (up to 2x). Your points add up to your team\'s total on the leaderboard. Team rankings are updated daily!',
+      'Every approved activity earns you points based on your effort. The harder you push, the more points you earn. Your points add up to your team\'s total on the leaderboard. Team rankings are updated daily!',
     icon_name: 'Trophy',
     icon_color: 'text-amber-500',
   },
   {
     title: 'Run Rate (RR)',
     description:
-      'Run Rate measures your workout intensity on a 0-2 scale. An RR of 1.0 means you met the minimum effort — anything above is bonus! RR is calculated from duration, distance, or steps depending on the activity. Age-adjusted thresholds ensure fairness for all.',
+      'Run Rate measures your activity intensity on a 0-2 scale. An RR of 1.0 means you met the minimum effort — anything above is bonus! RR is calculated from duration, distance, or steps depending on the activity. Age-adjusted thresholds ensure fairness for all.',
     icon_name: 'TrendingUp',
     icon_color: 'text-blue-500',
   },

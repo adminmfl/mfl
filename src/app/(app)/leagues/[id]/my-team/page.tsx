@@ -385,10 +385,13 @@ export default function MyTeamPage({
           const team = teams.find((t) => String(t.team_id) === String(userTeamId));
           console.debug('[MyTeamPage] matched team:', team);
           if (team) {
+            // Include pending window points so recently submitted entries are visible
+            const pendingTeam = (json.data?.pendingWindow?.teams || []).find((t: any) => String(t.team_id) === String(userTeamId));
+            const pendingPts = pendingTeam?.total_points ?? 0;
+
             setTeamRank(`#${team.rank ?? '--'}`);
-            // team.total_points is preferred
-            const pts = team.total_points ?? team.points ?? 0;
-            setTeamPoints(String(pts));
+            const mainPts = team.total_points ?? team.points ?? 0;
+            setTeamPoints(String(mainPts + pendingPts));
             setTeamAvgRR(String(team.avg_rr ?? 0));
           }
         }
