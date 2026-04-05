@@ -185,7 +185,7 @@ export default function MyTeamViewPage({
     {
       title: 'Activity Points',
       value: typeof teamActivityPoints === 'number' ? teamActivityPoints.toLocaleString() : '—',
-      description: 'Workout points',
+      description: 'Activity points',
       icon: Star,
     },
     {
@@ -200,12 +200,12 @@ export default function MyTeamViewPage({
       description: 'Team total',
       icon: Moon,
     }] : []),
-    {
+    ...(showRestDays ? [{
       title: 'Days Missed',
       value: typeof teamMissedDays === 'number' ? teamMissedDays.toLocaleString() : '—',
       description: 'No submission',
       icon: XCircle,
-    },
+    }] : []),
   ];
 
   // Fetch leaderboard stats for this team
@@ -218,11 +218,16 @@ export default function MyTeamViewPage({
         if (res.ok && json?.success && json.data?.teams) {
           const team = (json.data.teams || []).find((t: any) => String(t.team_id) === String(userTeamId));
           if (team) {
+            // Include pending window points so recently submitted entries are visible
+            const pendingTeam = (json.data?.pendingWindow?.teams || []).find((t: any) => String(t.team_id) === String(userTeamId));
+            const pendingPts = pendingTeam?.total_points ?? 0;
+
             setTeamRank(`#${team.rank ?? '--'}`);
-            const pts = team.total_points ?? team.points ?? 0;
-            setTeamPoints(String(pts));
+            const mainPts = team.total_points ?? team.points ?? 0;
+            setTeamPoints(String(mainPts + pendingPts));
             setTeamAvgRR(String(team.avg_rr ?? 0));
-            setTeamActivityPoints(typeof team.points === 'number' ? Math.max(0, team.points) : null);
+            const activityPts = typeof team.points === 'number' ? Math.max(0, team.points) : 0;
+            setTeamActivityPoints(activityPts + pendingPts);
             setTeamChallengePoints(typeof team.challenge_bonus === 'number' ? Math.max(0, team.challenge_bonus) : null);
           }
         }
