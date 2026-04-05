@@ -220,16 +220,37 @@ export async function POST(req: NextRequest) {
 
     // Enforce per-week activity frequency (if configured)
     if (type === 'workout' && workout_type && !reupload_of) {
-      const { data: leagueActivity, error: leagueActivityError } = await supabase
-        .from('leagueactivities')
-        .select('frequency, frequency_type, activities!inner(activity_name)')
-        .eq('league_id', league_id)
-        .eq('activities.activity_name', workout_type)
-        .maybeSingle();
+      // Try global activity lookup first, then custom activity fallback
+      let leagueActivity: any = null;
+      {
+        const { data, error } = await supabase
+          .from('leagueactivities')
+          .select('frequency, frequency_type, activities!inner(activity_name)')
+          .eq('league_id', league_id)
+          .eq('activities.activity_name', workout_type)
+          .maybeSingle();
 
-      if (leagueActivityError) {
-        console.error('League activity lookup error:', leagueActivityError);
-        return NextResponse.json({ error: 'Failed to validate activity frequency' }, { status: 500 });
+        if (error) {
+          console.error('League activity lookup error (global):', error);
+        } else {
+          leagueActivity = data;
+        }
+      }
+
+      // Fallback: custom activity lookup by custom_activity_id (workout_type is UUID for custom activities)
+      if (!leagueActivity) {
+        const { data, error } = await supabase
+          .from('leagueactivities')
+          .select('frequency, frequency_type')
+          .eq('league_id', league_id)
+          .eq('custom_activity_id', workout_type)
+          .maybeSingle();
+
+        if (error) {
+          console.error('League activity lookup error (custom):', error);
+        } else {
+          leagueActivity = data;
+        }
       }
 
       const rawFrequency = (leagueActivity as any)?.frequency ?? null;
