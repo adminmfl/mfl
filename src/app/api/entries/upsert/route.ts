@@ -215,6 +215,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Track frequency type for duplicate check logic
+    let resolvedFrequencyType: 'daily' | 'weekly' | 'monthly' = 'weekly';
+
     // Enforce per-week activity frequency (if configured)
     if (type === 'workout' && workout_type && !reupload_of) {
       const { data: leagueActivity, error: leagueActivityError } = await supabase
@@ -234,6 +237,7 @@ export async function POST(req: NextRequest) {
       const frequencyType: 'daily' | 'weekly' | 'monthly' =
         rawFrequencyType === 'monthly' ? 'monthly' :
         rawFrequencyType === 'daily' ? 'daily' : 'weekly';
+      resolvedFrequencyType = frequencyType;
       const normalizedFrequency = typeof rawFrequency === 'number' && Number.isFinite(rawFrequency)
         ? Math.floor(rawFrequency)
         : null;
@@ -391,13 +395,22 @@ export async function POST(req: NextRequest) {
     }
 
     // Check for existing entry on same date.
+    // For monthly/daily frequency: scope by workout_type so different activities
+    // can be submitted on the same day without conflict.
     // IMPORTANT: never use maybeSingle() here because duplicates in the database
     // will cause a "multiple rows" error and allow additional inserts.
-    const { data: existingRows, error: existingError } = await supabase
+    let existingQuery = supabase
       .from('effortentry')
       .select('id, type, status, proof_url, created_date, notes')
       .eq('league_member_id', membership.league_member_id)
-      .eq('date', normalizedDate)
+      .eq('date', normalizedDate);
+
+    // For monthly/daily frequency with workouts, only check same activity type
+    if ((resolvedFrequencyType === 'monthly' || resolvedFrequencyType === 'daily') && type === 'workout' && workout_type) {
+      existingQuery = existingQuery.eq('workout_type', workout_type);
+    }
+
+    const { data: existingRows, error: existingError } = await existingQuery
       .order('created_date', { ascending: false });
 
     if (existingError) {

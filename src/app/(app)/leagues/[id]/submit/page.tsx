@@ -153,6 +153,13 @@ export default function SubmitActivityPage({
     }));
   }, [activitiesData?.activities]);
 
+  // Check if all activities use monthly frequency
+  const isMonthlyFrequency = React.useMemo(() => {
+    const acts = activitiesData?.activities;
+    if (!acts || acts.length === 0) return false;
+    return acts.every((a: any) => a.frequency_type === 'monthly');
+  }, [activitiesData?.activities]);
+
   const [loading, setLoading] = React.useState(false);
   const [submitted, setSubmitted] = React.useState(false);
   const [submittedData, setSubmittedData] = React.useState<any>(null);
@@ -251,6 +258,7 @@ export default function SubmitActivityPage({
 
   // Clamp minimum to yesterday, but if the league ended before that, allow only up to the end date.
   // Exception: If league hasn't started, allow back to 3 days before start (Trial Window).
+  // For monthly frequency: allow any date from league start onwards.
   const minActivityDate = React.useMemo(() => {
     // Trial Mode check:
     if (leagueStartLocal && isBefore(today, leagueStartLocal)) {
@@ -258,10 +266,15 @@ export default function SubmitActivityPage({
       return trialStart;
     }
 
+    // Monthly frequency: allow any date from league start
+    if (isMonthlyFrequency && leagueStartLocal) {
+      return leagueStartLocal;
+    }
+
     if (!maxActivityDate) return yesterday;
     if (isBefore(maxActivityDate, yesterday)) return maxActivityDate;
     return yesterday;
-  }, [maxActivityDate, yesterday, leagueStartLocal, today]);
+  }, [maxActivityDate, yesterday, leagueStartLocal, today, isMonthlyFrequency]);
 
   // Effect to clamp activityDate into the allowed window (yesterday through maxActivityDate)
   // NOTE: activityDate is intentionally NOT in the dependency array to prevent infinite loops.
@@ -719,7 +732,7 @@ export default function SubmitActivityPage({
   const [overwriteDialogOpen, setOverwriteDialogOpen] = React.useState(false);
   const [viewProofUrl, setViewProofUrl] = React.useState<string | null>(null);
 
-  // Check for existing entries when date changes
+  // Check for existing entries when date or selected activity changes
   React.useEffect(() => {
     const checkExisting = async () => {
       if (!leagueId || !activityDate) return;
@@ -736,7 +749,17 @@ export default function SubmitActivityPage({
         if (res.ok && json.success && json.data.submissions.length > 0) {
           const submissions = json.data.submissions;
           setAllDayEntries(submissions);
-          setExistingEntry(submissions[0]);
+
+          // Always scope by activity type when checking for overwrite.
+          // For daily/weekly: only one entry per day exists anyway, so this is safe.
+          // For monthly: multiple activities per day, only flag same activity.
+          if (formData.activity_type) {
+            const sameActivity = submissions.find((s: any) => s.workout_type === formData.activity_type);
+            setExistingEntry(sameActivity || null);
+          } else {
+            // Activity not yet selected — don't flag any existing entry
+            setExistingEntry(null);
+          }
         } else {
           setAllDayEntries([]);
           setExistingEntry(null);
@@ -747,7 +770,7 @@ export default function SubmitActivityPage({
     };
 
     checkExisting();
-  }, [leagueId, activityDate, resubmitId]);
+  }, [leagueId, activityDate, resubmitId, formData.activity_type]);
 
   // For daily multi-frequency activities, determine if more entries are allowed
   const isDailyMultiFrequency = React.useMemo(() => {
@@ -1031,7 +1054,8 @@ export default function SubmitActivityPage({
         proof_url_2: proofUrl2,
         tzOffsetMinutes: new Date().getTimezoneOffset(),
         ianaTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone || null,
-        overwrite: overwrite
+        overwrite: overwrite,
+        ...(overwrite && existingEntry?.id ? { overwrite_entry_id: existingEntry.id } : {}),
       };
 
       // Add relevant metrics based on what was entered
@@ -1524,6 +1548,20 @@ export default function SubmitActivityPage({
                       <span>{format(activityDate, 'MMM d, yyyy')}</span>
                       <Badge variant="secondary" className="text-xs">Locked to original date</Badge>
                     </div>
+                  ) : isMonthlyFrequency ? (
+                    <Input
+                      type="date"
+                      value={format(activityDate, 'yyyy-MM-dd')}
+                      min={minActivityDate ? format(minActivityDate, 'yyyy-MM-dd') : undefined}
+                      max={maxActivityDate ? format(maxActivityDate, 'yyyy-MM-dd') : undefined}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val) {
+                          const parsed = startOfDay(parseISO(val));
+                          if (!isNaN(parsed.getTime())) setActivityDate(parsed);
+                        }
+                      }}
+                    />
                   ) : (
                     <Select
                       value={isTodaySelected ? 'today' : 'yesterday'}
@@ -2029,11 +2067,11 @@ export default function SubmitActivityPage({
       <AlertDialog open={overwriteDialogOpen} onOpenChange={setOverwriteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Replace Today's Entry?</AlertDialogTitle>
+            <AlertDialogTitle>Replace {existingEntry?.workout_type ? existingEntry.workout_type.replace(/_/g, ' ') : ''} Entry?</AlertDialogTitle>
             <AlertDialogDescription asChild className="space-y-4 pt-2 text-left">
               <div>
                 <p>
-                  You have already submitted an activity for <strong>{format(activityDate, 'MMMM d, yyyy')}</strong>.
+                  You have already submitted <strong>{existingEntry?.workout_type ? existingEntry.workout_type.replace(/_/g, ' ') : 'an activity'}</strong> for <strong>{format(activityDate, 'MMMM d, yyyy')}</strong>.
                 </p>
 
                 {existingEntry && (
@@ -2113,7 +2151,7 @@ export default function SubmitActivityPage({
                 )}
 
                 <p>
-                  This will replace your earlier entry for today.
+                  This will replace your earlier {existingEntry?.workout_type ? existingEntry.workout_type.replace(/_/g, ' ') : ''} entry for this date.
                 </p>
               </div>
             </AlertDialogDescription>
