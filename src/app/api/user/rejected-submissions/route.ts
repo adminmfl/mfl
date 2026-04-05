@@ -102,7 +102,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
     // Fetch all entries for these memberships so we can decide per-day latest status.
     const { data: entries, error: entriesError } = await supabase
       .from('effortentry')
-      .select('league_member_id, date, status, created_date, modified_date')
+      .select('league_member_id, date, status, created_date, modified_date, workout_type')
       .in('league_member_id', leagueMemberIds);
 
     if (entriesError) {
@@ -122,14 +122,14 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
       })
     );
 
-    // For each (league_member_id, date), take the latest entry and count it as rejected only if that latest status is rejected.
-    type EntryRow = { league_member_id: string; date: string; status: string; created_date: string | null; modified_date: string | null };
+    // For each (league_member_id, date, activity), take the latest entry and count it as rejected only if that latest status is rejected.
+    type EntryRow = { league_member_id: string; date: string; status: string; created_date: string | null; modified_date: string | null; workout_type?: string | null };
     const latestByMemberDate = new Map<string, EntryRow>();
 
     const allEntries = (entries || []) as EntryRow[];
     for (const row of allEntries) {
       if (!row.date || !row.league_member_id) continue;
-      const key = `${row.league_member_id}::${row.date}`;
+      const key = `${row.league_member_id}::${row.date}::${row.workout_type || ''}`;
       const existing = latestByMemberDate.get(key);
       const ts = (row.modified_date || row.created_date || '').toString();
       if (!existing) {
