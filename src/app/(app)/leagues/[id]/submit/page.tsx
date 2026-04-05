@@ -2188,7 +2188,7 @@ export default function SubmitActivityPage({
         )
       }
 
-      <Dialog open={submitted} onOpenChange={(open) => !open && handleSubmitAnother()}>
+      <Dialog open={submitted} onOpenChange={(open) => !open && router.push(`/leagues/${leagueId}`)}>
         <DialogContent className="sm:max-w-md py-5" onInteractOutside={(e) => e.preventDefault()}>
           <DialogHeader className="text-center sm:text-center">
             <div className="mx-auto mb-4">
@@ -2219,35 +2219,36 @@ export default function SubmitActivityPage({
                 ? 'Your rest day exemption request has been submitted and is awaiting approval from your Captain or Governor.'
                 : submittedData?.isRestDay
                   ? 'Your rest day has been logged and is pending validation.'
-                  : 'Your workout has been submitted and is pending validation by your team captain.'}
+                  : 'Your activity has been submitted and is pending validation by your team captain.'}
             </DialogDescription>
           </DialogHeader>
 
           {(submittedData?.rr_value || submittedData?.isRestDay) && (() => {
             const formula = (activeLeague as any)?.rr_config?.formula || 'standard';
             const isSimpleOrPoints = formula === 'simple' || formula === 'points_only';
+            const pts = submittedData?.points_per_session ?? 1;
+            const rr = submittedData?.rr_value?.toFixed(1) || '1.0';
+            const exemptionSuffix = submittedData?.isExemption ? ' (if approved)' : '';
+            const badgeStyle = submittedData?.isExemption
+              ? "bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/20"
+              : "bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-green-500/20";
+            const textColor = submittedData?.isExemption ? "text-amber-600" : "text-green-600";
             return (
-              <div className="flex justify-center py-2">
-                <div className={cn(
-                  "inline-flex items-center gap-2 px-5 py-2.5 rounded-full border",
-                  submittedData?.isExemption
-                    ? "bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/20"
-                    : "bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-green-500/20"
-                )}>
-                  <span className={cn(
-                    "text-2xl font-bold",
-                    submittedData?.isExemption ? "text-amber-600" : "text-green-600"
-                  )}>
-                    +{isSimpleOrPoints
-                      ? (submittedData?.points_per_session ?? Math.round(submittedData?.rr_value || 1))
-                      : (submittedData?.rr_value?.toFixed(1) || '1.0')}
-                  </span>
+              <div className="flex justify-center gap-3 py-2">
+                {/* Points badge */}
+                <div className={cn("inline-flex items-center gap-2 px-5 py-2.5 rounded-full border", badgeStyle)}>
+                  <span className={cn("text-2xl font-bold", textColor)}>+{pts}</span>
                   <span className="text-sm text-muted-foreground">
-                    {isSimpleOrPoints
-                      ? `point${(submittedData?.points_per_session ?? 1) !== 1 ? 's' : ''}${submittedData?.isExemption ? ' (if approved)' : ''}`
-                      : `RR points${submittedData?.isExemption ? ' (if approved)' : ''}`}
+                    {`pt${pts !== 1 ? 's' : ''}${exemptionSuffix}`}
                   </span>
                 </div>
+                {/* RR badge — only for standard formula */}
+                {!isSimpleOrPoints && (
+                  <div className={cn("inline-flex items-center gap-2 px-5 py-2.5 rounded-full border", badgeStyle)}>
+                    <span className={cn("text-2xl font-bold", textColor)}>{rr}</span>
+                    <span className="text-sm text-muted-foreground">RR</span>
+                  </div>
+                )}
               </div>
             );
           })()}
