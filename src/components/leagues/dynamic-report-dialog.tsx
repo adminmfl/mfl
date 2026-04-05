@@ -122,7 +122,7 @@ export function DynamicReportDialog({
             }
 
             const contentDisposition = response.headers.get('Content-Disposition');
-            let filename = 'Progress_Report.pdf';
+            let filename = 'My_League_Summary.pdf';
             if (contentDisposition) {
                 const match = contentDisposition.match(/filename="(.+)"/);
                 if (match) {
@@ -148,13 +148,13 @@ export function DynamicReportDialog({
                 {trigger ?? (
                     <Button variant="outline" size="sm">
                         <IconFileAnalytics className="h-4 w-4 mr-2" />
-                        My League Record
+                        My League Summary
                     </Button>
                 )}
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>Generate My League Record</DialogTitle>
+                    <DialogTitle>My League Summary</DialogTitle>
                     <DialogDescription>
                         Choose a date range for your performance report.
                     </DialogDescription>
@@ -217,7 +217,10 @@ export function DynamicReportDialog({
                     )}
                 </div>
 
-                <DialogFooter>
+                <DialogFooter className="gap-2 sm:gap-0">
+                    <Button variant="outline" onClick={() => setOpen(false)} disabled={isLoading}>
+                        Back
+                    </Button>
                     <Button
                         onClick={handleGenerate}
                         disabled={isLoading || !isValid}

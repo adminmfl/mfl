@@ -1556,7 +1556,7 @@ export default function LeagueDashboardPage({
                     <ClipboardCheck className="size-6 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold group-hover:text-primary transition-colors">Progress Report</h3>
+                    <h3 className="font-semibold group-hover:text-primary transition-colors">My League Summary</h3>
                     <p className="text-sm text-muted-foreground">Download your latest report</p>
                   </div>
                   <ArrowRight className="size-5 text-muted-foreground group-hover:translate-x-1 group-hover:text-primary transition-all" />
@@ -1624,14 +1624,14 @@ export default function LeagueDashboardPage({
               <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
                 <Calendar className="size-5 text-primary" />
               </div>
-              <p className="text-sm font-bold text-primary tabular-nums">{formatDate(league.start_date)}</p>
+              <p className="text-sm font-bold text-primary tabular-nums whitespace-nowrap">{formatDate(league.start_date)}</p>
               <p className="text-xs text-muted-foreground">Start Date</p>
             </div>
             <div className="p-4 flex flex-col items-center text-center">
               <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
                 <Calendar className="size-5 text-primary" />
               </div>
-              <p className="text-sm font-bold text-primary tabular-nums">{formatDate(league.end_date)}</p>
+              <p className="text-sm font-bold text-primary tabular-nums whitespace-nowrap">{formatDate(league.end_date)}</p>
               <p className="text-xs text-muted-foreground">End Date</p>
             </div>
             <div className="p-4 flex flex-col items-center text-center">
