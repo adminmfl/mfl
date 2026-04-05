@@ -59,13 +59,19 @@ export async function submitWorkout(
       return null;
     }
 
-    const existing = await getSupabase()
+    let existingQuery = getSupabase()
       .from('effortentry')
       .select('id')
       .eq('league_member_id', leagueMemberId)
       .eq('date', data.date)
-      .eq('type', data.type)
-      .maybeSingle();
+      .eq('type', data.type);
+
+    // For workouts, scope by workout_type so different activities on same day don't conflict
+    if (data.type === 'workout' && data.workout_type) {
+      existingQuery = existingQuery.eq('workout_type', data.workout_type);
+    }
+
+    const existing = await existingQuery.maybeSingle();
 
     if (existing.data) {
       console.warn('Duplicate submission for this date/type');

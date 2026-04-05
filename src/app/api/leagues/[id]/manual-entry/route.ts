@@ -246,13 +246,19 @@ export async function POST(
       );
     }
 
-    const { data: existing } = await supabase
+    let existingQuery = supabase
       .from('effortentry')
       .select('id')
       .eq('league_member_id', payload.league_member_id)
       .eq('date', payload.date)
-      .eq('type', payload.type)
-      .maybeSingle();
+      .eq('type', payload.type);
+
+    // For workouts, scope by workout_type so different activities on same day don't conflict
+    if (payload.type === 'workout' && payload.workout_type) {
+      existingQuery = existingQuery.eq('workout_type', payload.workout_type);
+    }
+
+    const { data: existing } = await existingQuery.maybeSingle();
 
     const baseData = {
       date: payload.date,
