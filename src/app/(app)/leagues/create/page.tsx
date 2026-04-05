@@ -193,7 +193,7 @@ export default function CreateLeaguePage() {
     if (!tier) return;
 
     // For fixed price tiers, use the fixed price directly
-    if (tier.pricing.pricing_type === 'fixed' && tier.pricing.fixed_price) {
+    if (tier.pricing.pricing_type === 'fixed' && tier.pricing.fixed_price != null) {
       const fixedTotal = tier.pricing.fixed_price;
       const gstAmount = (fixedTotal * (tier.pricing.gst_percentage || 18)) / 100;
       setPricePreview({
@@ -325,6 +325,30 @@ export default function CreateLeaguePage() {
         is_public: formData.is_public,
         is_exclusive: formData.is_exclusive,
       };
+
+      // Free tier: skip payment, create league directly
+      if (pricePreview && pricePreview.total === 0) {
+        const createRes = await fetch('/api/leagues', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(leagueData),
+        });
+
+        const createData = await createRes.json();
+
+        if (!createRes.ok) {
+          throw new Error(createData.error || 'Failed to create league');
+        }
+
+        if (createData.data?.league_id) {
+          setCreatedLeagueId(createData.data.league_id);
+        }
+
+        setStep('success');
+        await refetch();
+        setLoading(false);
+        return;
+      }
 
       const orderRes = await fetch('/api/payments/order', {
         method: 'POST',
@@ -643,7 +667,7 @@ export default function CreateLeaguePage() {
                       ) : (
                         <>
                           <CreditCard className="mr-2 size-4" />
-                          Pay & Create
+                          {pricePreview && pricePreview.total === 0 ? 'Create League' : 'Pay & Create'}
                         </>
                       )}
                     </Button>

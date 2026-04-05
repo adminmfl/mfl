@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
       estimatedParticipants
     );
 
-    if (!tierSnapshot || !tierSnapshot.pricing || !tierSnapshot.pricing.total) {
+    if (!tierSnapshot || !tierSnapshot.pricing || tierSnapshot.pricing.total == null) {
       return NextResponse.json(
         { error: 'Failed to calculate pricing for tier' },
         { status: 400 }
