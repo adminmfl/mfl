@@ -72,6 +72,7 @@ export async function POST(req: NextRequest) {
         num_teams: leagueData.num_teams,
         max_participants: leagueData.max_participants,
         rest_days: leagueData.rest_days,
+        rr_config: leagueData.rr_config,
         is_public: leagueData.is_public,
         is_exclusive: leagueData.is_exclusive,
         price_paid: paymentRecord.total_amount,

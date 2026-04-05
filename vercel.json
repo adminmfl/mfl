@@ -11,6 +11,18 @@
     {
       "path": "/api/cron/cleanup-abandoned-payments",
       "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/ai-coach",
+      "schedule": "30 2,7,13 * * *"
+    },
+    {
+      "path": "/api/cron/ai-daily-scan",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/ai-nudges",
+      "schedule": "30 4 * * *"
     }
   ]
 }

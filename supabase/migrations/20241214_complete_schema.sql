@@ -38,10 +38,7 @@ CREATE TABLE IF NOT EXISTS public.users (
   created_by uuid REFERENCES public.users(user_id) ON DELETE SET NULL,
   created_date timestamptz DEFAULT CURRENT_TIMESTAMP,
   modified_by uuid REFERENCES public.users(user_id) ON DELETE SET NULL,
-  modified_date timestamptz DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT users_pkey PRIMARY KEY (user_id),
-  CONSTRAINT users_username_key UNIQUE (username),
-  CONSTRAINT users_email_key UNIQUE (email)
+  modified_date timestamptz DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_email ON public.users(email);
@@ -129,6 +126,7 @@ CREATE TABLE IF NOT EXISTS public.league_tiers (
   pricing_id uuid REFERENCES public.pricing(id) ON DELETE RESTRICT,
   is_active boolean DEFAULT true,
   display_order integer DEFAULT 0,
+  is_featured boolean DEFAULT false,
   features jsonb,
   created_by uuid REFERENCES public.users(user_id) ON DELETE SET NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -253,6 +251,7 @@ CREATE TABLE IF NOT EXISTS public.activities (
   description text,
   category_id uuid REFERENCES public.activity_categories(category_id) ON DELETE SET NULL,
   measurement_type activity_measurement_type DEFAULT 'duration' NOT NULL,
+  settings jsonb DEFAULT NULL,
   admin_info text DEFAULT NULL,
   created_by uuid REFERENCES public.users(user_id) ON DELETE SET NULL,
   created_date timestamptz DEFAULT CURRENT_TIMESTAMP,
@@ -296,10 +295,6 @@ COMMENT ON COLUMN public.custom_activities.measurement_type IS 'Type of measurem
 COMMENT ON COLUMN public.custom_activities.requires_proof IS 'Whether proof upload is required for this activity';
 COMMENT ON COLUMN public.custom_activities.requires_notes IS 'Whether notes/description is required for this activity';
 
--- Trigger for modified_date
-CREATE TRIGGER custom_activities_modified_date BEFORE UPDATE ON public.custom_activities
-  FOR EACH ROW EXECUTE FUNCTION update_modified_date();
-
 -- =====================================================================================
 
 CREATE TABLE IF NOT EXISTS public.leagueactivities (
@@ -325,9 +320,15 @@ CREATE TABLE IF NOT EXISTS public.leagueactivities (
   modified_by uuid REFERENCES public.users(user_id) ON DELETE SET NULL,
   modified_date timestamptz DEFAULT CURRENT_TIMESTAMP,
   created_at timestamptz DEFAULT CURRENT_TIMESTAMP,
+  proof_requirement text DEFAULT 'mandatory',
+  notes_requirement text DEFAULT 'optional',
+  points_per_session numeric DEFAULT 1,
+  outcome_config jsonb DEFAULT NULL,
+  max_images integer DEFAULT 1,
+  custom_field_label text DEFAULT NULL,
   created_by uuid REFERENCES public.users(user_id) ON DELETE SET NULL,
   CONSTRAINT check_activity_xor_custom CHECK (
-    (activity_id IS NOT NULL AND custom_activity_id IS NULL) OR 
+    (activity_id IS NOT NULL AND custom_activity_id IS NULL) OR
     (activity_id IS NULL AND custom_activity_id IS NOT NULL)
   )
 );
@@ -482,6 +483,9 @@ CREATE TABLE IF NOT EXISTS public.effortentry (
   notes text,
   reupload_of uuid REFERENCES public.effortentry(id) ON DELETE SET NULL,
   rejection_reason text,
+  outcome text DEFAULT NULL,
+  proof_url_2 varchar DEFAULT NULL,
+  custom_field_value text DEFAULT NULL,
   created_by uuid REFERENCES public.users(user_id) ON DELETE SET NULL,
   created_date timestamptz DEFAULT CURRENT_TIMESTAMP,
   modified_by uuid REFERENCES public.users(user_id) ON DELETE SET NULL,
@@ -496,6 +500,42 @@ CREATE INDEX IF NOT EXISTS idx_effortentry_reupload_of ON public.effortentry(reu
 
 COMMENT ON TABLE public.effortentry IS 'Workout submission entries with proof and validation status';
 COMMENT ON COLUMN public.effortentry.status IS 'Validation state: pending → captain/governor review → approved/rejected';
+
+-- =====================================================================================
+-- PAYMENTS & TRANSACTIONS (moved before challenges due to FK dependency)
+-- =====================================================================================
+
+CREATE TABLE IF NOT EXISTS public.payments (
+  payment_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES public.users(user_id) ON DELETE CASCADE,
+  league_id uuid REFERENCES public.leagues(league_id) ON DELETE SET NULL,
+  purpose payment_purpose NOT NULL DEFAULT 'league_creation',
+  razorpay_order_id varchar NOT NULL UNIQUE,
+  razorpay_payment_id varchar UNIQUE,
+  razorpay_signature varchar,
+  status payment_status NOT NULL DEFAULT 'pending',
+  base_amount numeric NOT NULL CHECK (base_amount >= 0),
+  platform_fee numeric NOT NULL DEFAULT 0 CHECK (platform_fee >= 0),
+  gst_amount numeric NOT NULL DEFAULT 0 CHECK (gst_amount >= 0),
+  total_amount numeric NOT NULL CHECK (total_amount > 0),
+  currency varchar NOT NULL DEFAULT 'INR',
+  description text,
+  receipt varchar,
+  notes jsonb,
+  created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  completed_at timestamptz
+);
+
+CREATE INDEX IF NOT EXISTS idx_payments_user ON public.payments(user_id);
+CREATE INDEX IF NOT EXISTS idx_payments_league ON public.payments(league_id);
+CREATE INDEX IF NOT EXISTS idx_payments_status ON public.payments(status);
+CREATE INDEX IF NOT EXISTS idx_payments_purpose ON public.payments(purpose);
+CREATE INDEX IF NOT EXISTS idx_payments_created_at ON public.payments(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_payments_razorpay_order ON public.payments(razorpay_order_id);
+CREATE INDEX IF NOT EXISTS idx_payments_user_status ON public.payments(user_id, status);
+
+COMMENT ON TABLE public.payments IS 'Payment transaction records for league creation and subscriptions';
 
 -- =====================================================================================
 -- CHALLENGES & SPECIAL EVENTS
@@ -646,44 +686,6 @@ CREATE INDEX IF NOT EXISTS idx_specialchallenge_team_score ON public.specialchal
 COMMENT ON TABLE public.specialchallengeteamscore IS 'Team aggregate scores for special challenges';
 
 -- =====================================================================================
--- PAYMENTS & TRANSACTIONS
--- =====================================================================================
-
-CREATE TABLE IF NOT EXISTS public.payments (
-  payment_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL REFERENCES public.users(user_id) ON DELETE CASCADE,
-  league_id uuid REFERENCES public.leagues(league_id) ON DELETE SET NULL,
-  purpose payment_purpose NOT NULL DEFAULT 'league_creation',
-  razorpay_order_id varchar NOT NULL UNIQUE,
-  razorpay_payment_id varchar UNIQUE,
-  razorpay_signature varchar,
-  status payment_status NOT NULL DEFAULT 'pending',
-  base_amount numeric NOT NULL CHECK (base_amount >= 0),
-  platform_fee numeric NOT NULL DEFAULT 0 CHECK (platform_fee >= 0),
-  gst_amount numeric NOT NULL DEFAULT 0 CHECK (gst_amount >= 0),
-  total_amount numeric NOT NULL CHECK (total_amount > 0),
-  currency varchar NOT NULL DEFAULT 'INR',
-  description text,
-  receipt varchar,
-  notes jsonb,
-  created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  completed_at timestamptz
-);
-
-CREATE INDEX IF NOT EXISTS idx_payments_user ON public.payments(user_id);
-CREATE INDEX IF NOT EXISTS idx_payments_league ON public.payments(league_id);
-CREATE INDEX IF NOT EXISTS idx_payments_status ON public.payments(status);
-CREATE INDEX IF NOT EXISTS idx_payments_purpose ON public.payments(purpose);
-CREATE INDEX IF NOT EXISTS idx_payments_created_at ON public.payments(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_payments_razorpay_order ON public.payments(razorpay_order_id);
-CREATE INDEX IF NOT EXISTS idx_payments_user_status ON public.payments(user_id, status);
-
-COMMENT ON TABLE public.payments IS 'Payment transaction records for league creation and subscriptions';
-COMMENT ON COLUMN public.payments.razorpay_order_id IS 'Unique order ID from Razorpay';
-COMMENT ON COLUMN public.payments.razorpay_payment_id IS 'Payment ID from Razorpay after successful payment';
-
--- =====================================================================================
 -- TRIGGER FUNCTIONS
 -- =====================================================================================
 
@@ -743,6 +745,9 @@ CREATE TRIGGER teams_modified_date BEFORE UPDATE ON public.teams
 CREATE TRIGGER activities_modified_date BEFORE UPDATE ON public.activities
   FOR EACH ROW EXECUTE FUNCTION update_modified_date();
 
+CREATE TRIGGER custom_activities_modified_date BEFORE UPDATE ON public.custom_activities
+  FOR EACH ROW EXECUTE FUNCTION update_modified_date();
+
 CREATE TRIGGER leaguemembers_modified_date BEFORE UPDATE ON public.leaguemembers
   FOR EACH ROW EXECUTE FUNCTION update_modified_date();
 
@@ -788,6 +793,65 @@ CREATE TRIGGER trigger_update_participant_count_delete
 
 
 -- =====================================================================================
+-- RLS HELPER FUNCTIONS (needed by storage policies below)
+-- =====================================================================================
+
+CREATE OR REPLACE FUNCTION public.get_user_roles_in_league(p_user_id uuid, p_league_id uuid)
+RETURNS TEXT[] AS $$
+  SELECT COALESCE(ARRAY_AGG(r.role_name), ARRAY[]::TEXT[])
+  FROM public.assignedrolesforleague arl
+  INNER JOIN public.roles r ON arl.role_id = r.role_id
+  WHERE arl.user_id = p_user_id AND arl.league_id = p_league_id;
+$$ LANGUAGE sql SECURITY DEFINER STABLE;
+
+CREATE OR REPLACE FUNCTION public.is_host(p_user_id uuid, p_league_id uuid)
+RETURNS boolean AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.assignedrolesforleague arl
+    INNER JOIN public.roles r ON arl.role_id = r.role_id
+    WHERE arl.user_id = p_user_id AND arl.league_id = p_league_id AND r.role_name = 'Host'
+  );
+$$ LANGUAGE sql SECURITY DEFINER STABLE;
+
+CREATE OR REPLACE FUNCTION public.is_governor(p_user_id uuid, p_league_id uuid)
+RETURNS boolean AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.assignedrolesforleague arl
+    INNER JOIN public.roles r ON arl.role_id = r.role_id
+    WHERE arl.user_id = p_user_id AND arl.league_id = p_league_id AND r.role_name = 'Governor'
+  );
+$$ LANGUAGE sql SECURITY DEFINER STABLE;
+
+CREATE OR REPLACE FUNCTION public.is_captain_of_team(p_user_id uuid, p_team_id uuid)
+RETURNS boolean AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.teammembers tm
+    INNER JOIN public.roles r ON tm.role_id = r.role_id
+    WHERE tm.user_id = p_user_id AND tm.team_id = p_team_id AND r.role_name = 'Captain'
+  );
+$$ LANGUAGE sql SECURITY DEFINER STABLE;
+
+CREATE OR REPLACE FUNCTION public.get_user_team_in_league(p_user_id uuid, p_league_id uuid)
+RETURNS uuid AS $$
+  SELECT lm.team_id FROM public.leaguemembers lm
+  WHERE lm.user_id = p_user_id AND lm.league_id = p_league_id LIMIT 1;
+$$ LANGUAGE sql SECURITY DEFINER STABLE;
+
+CREATE OR REPLACE FUNCTION public.is_member_of_league(p_user_id uuid, p_league_id uuid)
+RETURNS boolean AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.leaguemembers lm
+    WHERE lm.user_id = p_user_id AND lm.league_id = p_league_id
+  );
+$$ LANGUAGE sql SECURITY DEFINER STABLE;
+
+CREATE OR REPLACE FUNCTION public.get_league_member_id(p_user_id uuid, p_league_id uuid)
+RETURNS uuid AS $$
+  SELECT lm.league_member_id FROM public.leaguemembers lm
+  WHERE lm.user_id = p_user_id AND lm.league_id = p_league_id LIMIT 1;
+$$ LANGUAGE sql SECURITY DEFINER STABLE;
+
+-- =====================================================================================
 -- LOGO STORAGE BUCKETS & POLICIES
 -- =====================================================================================
 
@@ -801,10 +865,12 @@ VALUES ('team-logos', 'team-logos', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- League logo policies
+DROP POLICY IF EXISTS "league-logos_public_read" ON storage.objects;
 CREATE POLICY "league-logos_public_read"
 ON storage.objects FOR SELECT
 USING (bucket_id = 'league-logos');
 
+DROP POLICY IF EXISTS "league-logos_host_insert" ON storage.objects;
 CREATE POLICY "league-logos_host_insert"
 ON storage.objects FOR INSERT
 WITH CHECK (
@@ -812,6 +878,7 @@ WITH CHECK (
   AND public.is_host(auth.uid(), split_part(split_part(name, '/', 1), '.', 1)::uuid)
 );
 
+DROP POLICY IF EXISTS "league-logos_host_update" ON storage.objects;
 CREATE POLICY "league-logos_host_update"
 ON storage.objects FOR UPDATE
 USING (
@@ -819,6 +886,7 @@ USING (
   AND public.is_host(auth.uid(), split_part(split_part(name, '/', 1), '.', 1)::uuid)
 );
 
+DROP POLICY IF EXISTS "league-logos_host_delete" ON storage.objects;
 CREATE POLICY "league-logos_host_delete"
 ON storage.objects FOR DELETE
 USING (
@@ -827,10 +895,12 @@ USING (
 );
 
 -- Team logo policies
+DROP POLICY IF EXISTS "team-logos_public_read" ON storage.objects;
 CREATE POLICY "team-logos_public_read"
 ON storage.objects FOR SELECT
 USING (bucket_id = 'team-logos');
 
+DROP POLICY IF EXISTS "team-logos_captain_or_host_insert" ON storage.objects;
 CREATE POLICY "team-logos_captain_or_host_insert"
 ON storage.objects FOR INSERT
 WITH CHECK (
@@ -841,6 +911,7 @@ WITH CHECK (
   )
 );
 
+DROP POLICY IF EXISTS "team-logos_captain_or_host_update" ON storage.objects;
 CREATE POLICY "team-logos_captain_or_host_update"
 ON storage.objects FOR UPDATE
 USING (
@@ -851,6 +922,7 @@ USING (
   )
 );
 
+DROP POLICY IF EXISTS "team-logos_captain_or_host_delete" ON storage.objects;
 CREATE POLICY "team-logos_captain_or_host_delete"
 ON storage.objects FOR DELETE
 USING (
@@ -862,6 +934,7 @@ USING (
 );
 
 -- TeamLeagues update policy for logo changes
+DROP POLICY IF EXISTS teamleagues_update_host_or_captain ON public.teamleagues;
 CREATE POLICY teamleagues_update_host_or_captain ON public.teamleagues
   FOR UPDATE
   USING (
@@ -932,15 +1005,18 @@ VALUES ('donation-proofs', 'donation-proofs', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- Donation proofs policies
+DROP POLICY IF EXISTS "donation-proofs_public_read" ON storage.objects;
 CREATE POLICY "donation-proofs_public_read"
 ON storage.objects FOR SELECT
 USING (bucket_id = 'donation-proofs');
 
+DROP POLICY IF EXISTS "donation-proofs_authenticated_insert" ON storage.objects;
 CREATE POLICY "donation-proofs_authenticated_insert"
 ON storage.objects FOR INSERT
 TO authenticated
 WITH CHECK (bucket_id = 'donation-proofs');
 
+DROP POLICY IF EXISTS "donation-proofs_owner_delete" ON storage.objects;
 CREATE POLICY "donation-proofs_owner_delete"
 ON storage.objects FOR DELETE
 TO authenticated
@@ -959,11 +1035,13 @@ VALUES ('league-rules', 'league-rules', true, 10485760)
 ON CONFLICT (id) DO NOTHING;
 
 -- Public read access for league rules
+DROP POLICY IF EXISTS "league-rules_public_read" ON storage.objects;
 CREATE POLICY "league-rules_public_read"
 ON storage.objects FOR SELECT
 USING (bucket_id = 'league-rules');
 
 -- Host can insert rules documents
+DROP POLICY IF EXISTS "league-rules_host_insert" ON storage.objects;
 CREATE POLICY "league-rules_host_insert"
 ON storage.objects FOR INSERT
 WITH CHECK (
@@ -972,6 +1050,7 @@ WITH CHECK (
 );
 
 -- Host can update rules documents
+DROP POLICY IF EXISTS "league-rules_host_update" ON storage.objects;
 CREATE POLICY "league-rules_host_update"
 ON storage.objects FOR UPDATE
 USING (
@@ -980,6 +1059,7 @@ USING (
 );
 
 -- Host can delete rules documents
+DROP POLICY IF EXISTS "league-rules_host_delete" ON storage.objects;
 CREATE POLICY "league-rules_host_delete"
 ON storage.objects FOR DELETE
 USING (
@@ -998,11 +1078,13 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Profile picture storage policies
 -- Public read access
+DROP POLICY IF EXISTS "profile-pictures_public_read" ON storage.objects;
 CREATE POLICY "profile-pictures_public_read"
 ON storage.objects FOR SELECT
 USING (bucket_id = 'profile-pictures');
 
 -- Users can upload to their own folder
+DROP POLICY IF EXISTS "profile-pictures_user_insert" ON storage.objects;
 CREATE POLICY "profile-pictures_user_insert"
 ON storage.objects FOR INSERT
 WITH CHECK (
@@ -1011,6 +1093,7 @@ WITH CHECK (
 );
 
 -- Users can update their own files
+DROP POLICY IF EXISTS "profile-pictures_user_update" ON storage.objects;
 CREATE POLICY "profile-pictures_user_update"
 ON storage.objects FOR UPDATE
 USING (
@@ -1019,6 +1102,7 @@ USING (
 );
 
 -- Users can delete their own files
+DROP POLICY IF EXISTS "profile-pictures_user_delete" ON storage.objects;
 CREATE POLICY "profile-pictures_user_delete"
 ON storage.objects FOR DELETE
 USING (

@@ -157,7 +157,7 @@ export async function GET(
     // Verify league exists and get its date range and status
     const { data: league, error: leagueError } = await supabase
       .from('leagues')
-      .select('league_id, league_name, start_date, end_date, status')
+      .select('league_id, league_name, start_date, end_date, status, rr_config, rest_days')
       .eq('league_id', leagueId)
       .single();
 
@@ -637,12 +637,9 @@ export async function GET(
       // Only care about approved entries for deduplication logic (others don't count anyway)
       if (entry.status !== 'approved') return;
 
-      const key = `${entry.league_member_id}_${entry.date}`;
-      // Logic: If multiple exist, we take the one that exists? 
-      // Summary usually takes the "best" or "latest". 
-      // We'll simplisticly take the first one or latest.
-      // Assuming sorting isn't guaranteed, we just track we have one.
-      // But we need the one with RR value if possible.
+      // Include workout_type in key so multiple different activities on the same day
+      // (e.g. monthly frequency leagues) each count separately.
+      const key = `${entry.league_member_id}_${entry.date}_${entry.workout_type || ''}`;
       const existing = uniqueEntriesMap.get(key);
       if (!existing || (!existing.rr_value && entry.rr_value)) {
         uniqueEntriesMap.set(key, entry);
@@ -697,7 +694,7 @@ export async function GET(
 
       // For points, check against our Unique Map
       if (entry.status === 'approved') {
-        const key = `${entry.league_member_id}_${entry.date}`;
+        const key = `${entry.league_member_id}_${entry.date}_${entry.workout_type || ''}`;
         const unique = uniqueEntriesMap.get(key);
         // Only count if THIS entry is the unique one (by ID)
         if (unique && unique.id === entry.id) {
@@ -757,7 +754,7 @@ export async function GET(
       // Filter entries that are IN the pending window dates.
       const pendingDedup = new Map<string, any>();
       (entries || []).filter(e => pendingWindowDates.includes(e.date) && e.status === 'approved').forEach(e => {
-        const key = `${e.league_member_id}_${e.date}`;
+        const key = `${e.league_member_id}_${e.date}_${e.workout_type || ''}`;
         const existing = pendingDedup.get(key);
         if (!existing || (!existing.rr_value && e.rr_value)) pendingDedup.set(key, e);
       });
@@ -857,7 +854,7 @@ export async function GET(
 
       if (entry.status === 'approved') {
         // Deduplication check: logic matches Team Stats loop above
-        const key = `${entry.league_member_id}_${entry.date}`;
+        const key = `${entry.league_member_id}_${entry.date}_${entry.workout_type || ''}`;
         const unique = uniqueEntriesMap.get(key);
 
         if (unique && unique.id === entry.id) {
@@ -1014,6 +1011,8 @@ export async function GET(
           league_name: league.league_name,
           start_date: league.start_date,
           end_date: league.end_date,
+          rr_config: (league as any).rr_config || { formula: 'standard' },
+          rest_days: (league as any).rest_days ?? 0,
         },
       },
     });

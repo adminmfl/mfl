@@ -13,10 +13,10 @@ const manualEntrySchema = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'date must be YYYY-MM-DD'),
   type: z.enum(['workout', 'rest']),
   workout_type: z.string().optional().nullable(),
-  duration: z.number().finite().optional().nullable(),
-  distance: z.number().finite().optional().nullable(),
-  steps: z.number().int().optional().nullable(),
-  holes: z.number().int().optional().nullable(),
+  duration: z.number().finite().min(0).max(1440).optional().nullable(),
+  distance: z.number().finite().min(0).max(1000).optional().nullable(),
+  steps: z.number().int().min(0).max(500000).optional().nullable(),
+  holes: z.number().int().min(0).max(36).optional().nullable(),
   rr_value: z.number().finite().optional().nullable(),
   proof_url: z.string().url().optional().nullable(),
   notes: z.string().max(500).optional().nullable(),
@@ -246,13 +246,19 @@ export async function POST(
       );
     }
 
-    const { data: existing } = await supabase
+    let existingQuery = supabase
       .from('effortentry')
       .select('id')
       .eq('league_member_id', payload.league_member_id)
       .eq('date', payload.date)
-      .eq('type', payload.type)
-      .maybeSingle();
+      .eq('type', payload.type);
+
+    // For workouts, scope by workout_type so different activities on same day don't conflict
+    if (payload.type === 'workout' && payload.workout_type) {
+      existingQuery = existingQuery.eq('workout_type', payload.workout_type);
+    }
+
+    const { data: existing } = await existingQuery.maybeSingle();
 
     const baseData = {
       date: payload.date,

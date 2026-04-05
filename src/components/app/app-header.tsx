@@ -70,7 +70,7 @@ const dynamicRoutePatterns: [RegExp, (match: RegExpMatchArray) => string][] = [
 // Helper Functions
 // ============================================================================
 
-function getPageTitle(pathname: string | null): string {
+function getPageTitle(pathname: string | null, role?: string | null): string {
   if (!pathname) return 'Dashboard';
 
   // Check static routes first
@@ -82,7 +82,12 @@ function getPageTitle(pathname: string | null): string {
   for (const [pattern, titleFn] of dynamicRoutePatterns) {
     const match = pathname.match(pattern);
     if (match) {
-      return titleFn(match);
+      const title = titleFn(match);
+      // Override league root title based on role
+      if (title === 'My Activities' && (role === 'host' || role === 'governor')) {
+        return role === 'host' ? 'League Settings' : 'Player Activities';
+      }
+      return title;
     }
   }
 
@@ -159,7 +164,7 @@ export function AppHeader() {
   const [isLeagueSwitcherOpen, setIsLeagueSwitcherOpen] = React.useState(false);
 
 
-  const pageTitle = getPageTitle(pathname);
+  const pageTitle = getPageTitle(pathname, activeRole);
   const breadcrumbs = getBreadcrumbs(pathname, activeLeague?.name);
 
   // Check if user is admin (for admin panel link)
@@ -213,7 +218,7 @@ export function AppHeader() {
                       <AvatarImage src={activeLeague.logo_url} alt={activeLeague.name} />
                     ) : (
                       <AvatarFallback className="rounded-md bg-primary/10 text-primary font-semibold text-xs sm:text-sm">
-                        {activeLeague.name.slice(0, 2).toUpperCase()}
+                        {(activeLeague.name || 'LG').slice(0, 2).toUpperCase()}
                       </AvatarFallback>
                     )}
                   </Avatar>

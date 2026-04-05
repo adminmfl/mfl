@@ -57,7 +57,7 @@ export async function GET() {
     const { data: leaguesData, error: leaguesError } = await supabase
       .from('leagues')
       .select(
-        'league_id, league_name, description, status, start_date, end_date, num_teams, tier_id, is_public, is_exclusive, invite_code, created_by, logo_url'
+        'league_id, league_name, description, status, start_date, end_date, num_teams, tier_id, is_public, is_exclusive, invite_code, created_by, logo_url, branding, rr_config, rest_days'
       )
       .in('league_id', leagueIds);
 
@@ -179,7 +179,16 @@ export async function GET() {
 
       // Get league_capacity from tier map
       const leagueCapacity = league?.tier_id ? (tierCapacityMap.get(league.tier_id) || 20) : 20;
-      const { derivedStatus, shouldPersist } = deriveLeagueStatus(league || {});
+
+      let derivedStatus = 'draft';
+      let shouldPersist = false;
+      try {
+        const result = deriveLeagueStatus(league || {});
+        derivedStatus = result.derivedStatus;
+        shouldPersist = result.shouldPersist;
+      } catch (e) {
+        console.error(`Error deriving status for league ${leagueId}:`, e);
+      }
 
       if (shouldPersist && leagueId) {
         pendingStatusUpdates.push(
@@ -200,12 +209,15 @@ export async function GET() {
         is_public: league?.is_public || false,
         is_exclusive: league?.is_exclusive || true,
         invite_code: league?.invite_code || null,
-        roles: roles,
+        roles: Array.isArray(roles) ? roles : [],
         team_id: team?.team_id || membership.team_id || null,
         team_name: team?.team_name || null,
         team_logo_url: membership.team_id ? teamLogoMap.get(`${membership.team_id}_${leagueId}`) || null : null,
         is_host: isHost,
         creator_name: league?.created_by ? creatorNameMap.get(league.created_by) || null : null,
+        branding: (league as any)?.branding || null,
+        rr_config: (league as any)?.rr_config || null,
+        rest_days: (league as any)?.rest_days ?? 1,
       };
 
     });

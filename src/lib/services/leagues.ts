@@ -18,6 +18,7 @@ export interface LeagueInput {
   num_teams?: number;
   max_participants?: number;
   rest_days?: number;
+  rr_config?: { formula: string };
   auto_rest_day_enabled?: boolean;
   normalize_points_by_team_size?: boolean;
   is_public?: boolean;
@@ -182,7 +183,8 @@ export async function createLeague(userId: string, data: LeagueInput): Promise<L
         tier_id: data.tier_id || null,
         tier_snapshot: data.tier_snapshot || {},
         num_teams: data.num_teams || 4,
-        rest_days: data.rest_days || 1,
+        rest_days: data.rest_days ?? 1,
+        rr_config: data.rr_config || { formula: 'standard' },
         auto_rest_day_enabled: data.auto_rest_day_enabled ?? true,
         normalize_points_by_team_size: data.normalize_points_by_team_size ?? true,
         is_public: data.is_public || false,
@@ -488,6 +490,9 @@ export async function updateLeague(
         allowedUpdates.max_team_capacity = data.max_team_capacity;
       }
       if (data.description !== undefined) allowedUpdates.description = data.description;
+      // RR config and branding are always editable for active leagues
+      if ((data as any).rr_config !== undefined) (allowedUpdates as any).rr_config = (data as any).rr_config;
+      if ((data as any).branding !== undefined) (allowedUpdates as any).branding = (data as any).branding;
       // League name is always editable (league_id stays constant)
       if (data.league_name !== undefined) allowedUpdates.league_name = data.league_name;
       // Allow date edits if the date hasn't passed yet

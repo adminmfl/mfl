@@ -16,7 +16,9 @@ import {
   Star,
   Moon,
   XCircle,
+  MessageCircle,
 } from 'lucide-react';
+import Link from 'next/link';
 
 import { useLeague } from '@/contexts/league-context';
 import { useRole } from '@/contexts/role-context';
@@ -150,6 +152,10 @@ export default function MyTeamViewPage({
   // Get captain info
   const captain = members.find((m) => m.is_captain);
 
+  const rrFormula = (activeLeague as any)?.rr_config?.formula || 'standard';
+  const showRR = rrFormula === 'standard';
+  const showRestDays = ((activeLeague as any)?.rest_days ?? 1) > 0;
+
   // Stats cards data
   const stats = [
     {
@@ -170,16 +176,16 @@ export default function MyTeamViewPage({
       description: 'Total score',
       icon: Target,
     },
-    {
+    ...(showRR ? [{
       title: 'RR',
       value: parseFloat(teamAvgRR).toFixed(1),
       description: 'Run Rate',
       icon: Flame,
-    },
+    }] : []),
     {
       title: 'Activity Points',
       value: typeof teamActivityPoints === 'number' ? teamActivityPoints.toLocaleString() : '—',
-      description: 'Workout points',
+      description: 'Activity points',
       icon: Star,
     },
     {
@@ -188,18 +194,18 @@ export default function MyTeamViewPage({
       description: 'Bonus points',
       icon: Star,
     },
-    {
+    ...(showRestDays ? [{
       title: 'Rest Days Used',
       value: typeof teamRestUsed === 'number' ? teamRestUsed.toLocaleString() : '—',
       description: 'Team total',
       icon: Moon,
-    },
-    {
+    }] : []),
+    ...(showRestDays ? [{
       title: 'Days Missed',
       value: typeof teamMissedDays === 'number' ? teamMissedDays.toLocaleString() : '—',
       description: 'No submission',
       icon: XCircle,
-    },
+    }] : []),
   ];
 
   // Fetch leaderboard stats for this team
@@ -212,11 +218,16 @@ export default function MyTeamViewPage({
         if (res.ok && json?.success && json.data?.teams) {
           const team = (json.data.teams || []).find((t: any) => String(t.team_id) === String(userTeamId));
           if (team) {
+            // Include pending window points so recently submitted entries are visible
+            const pendingTeam = (json.data?.pendingWindow?.teams || []).find((t: any) => String(t.team_id) === String(userTeamId));
+            const pendingPts = pendingTeam?.total_points ?? 0;
+
             setTeamRank(`#${team.rank ?? '--'}`);
-            const pts = team.total_points ?? team.points ?? 0;
-            setTeamPoints(String(pts));
+            const mainPts = team.total_points ?? team.points ?? 0;
+            setTeamPoints(String(mainPts + pendingPts));
             setTeamAvgRR(String(team.avg_rr ?? 0));
-            setTeamActivityPoints(typeof team.points === 'number' ? Math.max(0, team.points) : null);
+            const activityPts = typeof team.points === 'number' ? Math.max(0, team.points) : 0;
+            setTeamActivityPoints(activityPts + pendingPts);
             setTeamChallengePoints(typeof team.challenge_bonus === 'number' ? Math.max(0, team.challenge_bonus) : null);
           }
         }
@@ -328,6 +339,13 @@ export default function MyTeamViewPage({
             <Users className="size-3 mr-1" />
             {members.length} Members
           </Badge>
+          <Link
+            href={`/leagues/${leagueId}/messages`}
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            <MessageCircle className="size-3" />
+            Team Chat
+          </Link>
         </div>
       </div>
 
@@ -379,9 +397,9 @@ export default function MyTeamViewPage({
                 <TableHead className="w-12">#</TableHead>
                 <TableHead>Member</TableHead>
                 <TableHead className="hidden sm:table-cell">Role</TableHead>
-                <TableHead className="text-center">Rest Days</TableHead>
+                {showRestDays && <TableHead className="text-center">Rest Days</TableHead>}
                 <TableHead className="text-center">Points</TableHead>
-                <TableHead className="text-center">RR</TableHead>
+                {showRR && <TableHead className="text-center">RR</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -428,18 +446,22 @@ export default function MyTeamViewPage({
                         <Badge variant="outline">Player</Badge>
                       )}
                     </TableCell>
+                    {showRestDays && (
                     <TableCell className="text-center text-muted-foreground tabular-nums">
                       {(member as any).rest_days_used ?? 0}
                     </TableCell>
+                    )}
                     <TableCell className="text-center font-medium tabular-nums">
                       {(member as any).points ?? 0}
                     </TableCell>
+                    {showRR && (
                     <TableCell className="text-center font-medium tabular-nums">
                       <div className="flex items-center justify-center gap-1">
                         <Star className="size-3 text-yellow-500" />
                         {((member as any).avg_rr ?? 0).toFixed(2)}
                       </div>
                     </TableCell>
+                    )}
                   </TableRow>
                 ))
               ) : (

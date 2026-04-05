@@ -118,6 +118,11 @@ export default function LeagueSettingsPage({
     status: 'draft' as 'draft' | 'launched' | 'active' | 'completed',
     normalize_points_by_team_size: true,
     max_team_capacity: '10',
+    rr_formula: 'standard' as 'standard' | 'simple' | 'points_only',
+    branding_display_name: '',
+    branding_tagline: '',
+    branding_primary_color: '',
+    branding_powered_by: true,
   });
 
   const canEditStructure = formData.status === 'draft';
@@ -198,6 +203,8 @@ export default function LeagueSettingsPage({
         const json = await res.json();
         const league = json.data;
 
+        const rrCfg = league.rr_config || {};
+        const brand = league.branding || {};
         setFormData({
           league_name: league.league_name || '',
           description: league.description || '',
@@ -211,6 +218,11 @@ export default function LeagueSettingsPage({
           status: league.status,
           normalize_points_by_team_size: !!league.normalize_points_by_team_size,
           max_team_capacity: String(league.max_team_capacity || '10'),
+          rr_formula: rrCfg.formula || 'standard',
+          branding_display_name: brand.display_name || '',
+          branding_tagline: brand.tagline || '',
+          branding_primary_color: brand.primary_color || '',
+          branding_powered_by: brand.powered_by_visible !== false,
         });
         setLogoUrl(league.logo_url || null);
       } catch (err) {
@@ -277,13 +289,22 @@ export default function LeagueSettingsPage({
     setSaveError(null);
 
     try {
-      const payload: Record<string, string | number | boolean> = {
+      const payload: Record<string, any> = {
         league_name: formData.league_name,
         rest_days: Number(formData.rest_days),
         auto_rest_day_enabled: formData.auto_rest_day_enabled,
         description: formData.description,
         normalize_points_by_team_size: formData.normalize_points_by_team_size,
         max_team_capacity: Number(formData.max_team_capacity),
+        rr_config: { formula: formData.rr_formula },
+        branding: (formData.branding_display_name || formData.branding_tagline || formData.branding_primary_color)
+          ? {
+              display_name: formData.branding_display_name || undefined,
+              tagline: formData.branding_tagline || undefined,
+              primary_color: formData.branding_primary_color || undefined,
+              powered_by_visible: formData.branding_powered_by,
+            }
+          : null,
       };
 
       // Always send dates — backend will validate if they can be changed
@@ -684,7 +705,97 @@ export default function LeagueSettingsPage({
                 />
               </div>
 
-              {/* Branding */}
+              {/* RR Formula */}
+              <div className="flex items-center justify-between gap-3 py-5">
+                <div className="flex-1 min-w-0 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Label>Scoring Formula</Label>
+                    <FieldInfoButton text="Controls how Run Rate (RR) is calculated. Standard: metric-based (duration/45min = 1 RR). Simple: binary 1 or 0. Points Only: always 1 RR, use points_per_session for scoring." />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {formData.rr_formula === 'standard' && 'Metric-based RR calculation (default)'}
+                    {formData.rr_formula === 'simple' && 'Binary: 1.0 if activity done, 0 otherwise'}
+                    {formData.rr_formula === 'points_only' && 'Always 1.0 RR — scoring via points per session'}
+                  </p>
+                </div>
+                <Select
+                  value={formData.rr_formula}
+                  onValueChange={(v) =>
+                    setFormData((prev) => ({ ...prev, rr_formula: v as any }))
+                  }
+                >
+                  <SelectTrigger className="w-36 bg-black/10 border-2 border-muted-foreground/20 shadow-sm text-foreground">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="standard">Standard</SelectItem>
+                    <SelectItem value="simple">Simple</SelectItem>
+                    <SelectItem value="points_only">Points Only</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* White-Label Branding */}
+              <div className="flex flex-col gap-4 py-5">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Label>White-Label Branding</Label>
+                    <FieldInfoButton text="Customize how your league appears. Override the default MFL branding with your own name, tagline, and colors." />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Leave blank to use default MFL branding.</p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="branding_display_name" className="text-xs text-muted-foreground">Display Name</Label>
+                    <Input
+                      id="branding_display_name"
+                      value={formData.branding_display_name}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, branding_display_name: e.target.value }))}
+                      placeholder="e.g. PowerFit Corporate"
+                      className="bg-black/10 border-2 border-muted-foreground/20 shadow-sm text-foreground"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="branding_tagline" className="text-xs text-muted-foreground">Tagline</Label>
+                    <Input
+                      id="branding_tagline"
+                      value={formData.branding_tagline}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, branding_tagline: e.target.value }))}
+                      placeholder="e.g. Get Fit, Stay Strong"
+                      className="bg-black/10 border-2 border-muted-foreground/20 shadow-sm text-foreground"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="branding_primary_color" className="text-xs text-muted-foreground">Brand Color</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="branding_primary_color"
+                        value={formData.branding_primary_color}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, branding_primary_color: e.target.value }))}
+                        placeholder="#1a5276"
+                        className="bg-black/10 border-2 border-muted-foreground/20 shadow-sm text-foreground flex-1"
+                      />
+                      {formData.branding_primary_color && /^#[0-9a-fA-F]{6}$/.test(formData.branding_primary_color) && (
+                        <div
+                          className="size-8 rounded-md border shrink-0"
+                          style={{ backgroundColor: formData.branding_primary_color }}
+                        />
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 self-end pb-1">
+                    <Label className="text-xs text-muted-foreground">"Powered by MFL"</Label>
+                    <Switch
+                      checked={formData.branding_powered_by}
+                      onCheckedChange={(checked) =>
+                        setFormData((prev) => ({ ...prev, branding_powered_by: checked }))
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* League Logo */}
               <div className="flex flex-col sm:flex-row sm:items-center gap-4 py-5">
                 <div className="flex-1 space-y-1">
                   <div className="flex items-center gap-2">

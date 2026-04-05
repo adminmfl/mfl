@@ -17,6 +17,7 @@ import {
   Dumbbell,
   HelpCircle,
   Shield,
+  Map,
 } from "lucide-react";
 
 import { NavMain } from "@/components/dashboard/nav-main";
@@ -80,6 +81,11 @@ const adminNavItems = [
     title: "Roles",
     url: "/admin/roles",
     icon: Shield,
+  },
+  {
+    title: "Tour Steps",
+    url: "/admin/tour-steps",
+    icon: Map,
   },
 ];
 

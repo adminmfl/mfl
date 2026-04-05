@@ -103,6 +103,12 @@ export default function SubmitActivityPage({
   const { activeLeague, isLoading: leagueLoading } = useLeague();
   const { canSubmitWorkouts } = useRole();
 
+  // RR / Rest Day display config
+  const pageRRFormula = (activeLeague as any)?.rr_config?.formula || 'standard';
+  const showRR = pageRRFormula !== 'points_only';
+  const showRestDays = ((activeLeague as any)?.rest_days ?? 1) > 0;
+  const pointsUnit = showRR ? 'RR' : 'pts';
+
   // Fetch user profile for age calculation
   const [userAge, setUserAge] = React.useState<number | null>(null);
 
@@ -145,6 +151,13 @@ export default function SubmitActivityPage({
       label: activity.activity_name,
       description: activity.description,
     }));
+  }, [activitiesData?.activities]);
+
+  // Check if all activities use monthly frequency
+  const isMonthlyFrequency = React.useMemo(() => {
+    const acts = activitiesData?.activities;
+    if (!acts || acts.length === 0) return false;
+    return acts.every((a: any) => a.frequency_type === 'monthly');
   }, [activitiesData?.activities]);
 
   const [loading, setLoading] = React.useState(false);
@@ -245,6 +258,7 @@ export default function SubmitActivityPage({
 
   // Clamp minimum to yesterday, but if the league ended before that, allow only up to the end date.
   // Exception: If league hasn't started, allow back to 3 days before start (Trial Window).
+  // For monthly frequency: allow any date from league start onwards.
   const minActivityDate = React.useMemo(() => {
     // Trial Mode check:
     if (leagueStartLocal && isBefore(today, leagueStartLocal)) {
@@ -252,10 +266,15 @@ export default function SubmitActivityPage({
       return trialStart;
     }
 
+    // Monthly frequency: allow any date from league start
+    if (isMonthlyFrequency && leagueStartLocal) {
+      return leagueStartLocal;
+    }
+
     if (!maxActivityDate) return yesterday;
     if (isBefore(maxActivityDate, yesterday)) return maxActivityDate;
     return yesterday;
-  }, [maxActivityDate, yesterday, leagueStartLocal, today]);
+  }, [maxActivityDate, yesterday, leagueStartLocal, today, isMonthlyFrequency]);
 
   // Effect to clamp activityDate into the allowed window (yesterday through maxActivityDate)
   // NOTE: activityDate is intentionally NOT in the dependency array to prevent infinite loops.
@@ -709,33 +728,40 @@ export default function SubmitActivityPage({
   // Overwrite Confirmation State
   // ============================================================================
   const [existingEntry, setExistingEntry] = React.useState<any>(null);
+  const [allDayEntries, setAllDayEntries] = React.useState<any[]>([]);
   const [overwriteDialogOpen, setOverwriteDialogOpen] = React.useState(false);
   const [viewProofUrl, setViewProofUrl] = React.useState<string | null>(null);
 
-  // Check for existing entry when date changes
+  // Check for existing entries when date or selected activity changes
   React.useEffect(() => {
     const checkExisting = async () => {
       if (!leagueId || !activityDate) return;
 
       const dateStr = format(activityDate, 'yyyy-MM-dd');
-      // Only check if we are not in resubmit mode (resubmit targets a specific ID anyway)
       if (resubmitId) return;
 
       try {
-        // Use my-submissions API to check for entry on this date
         const res = await fetch(
           `/api/leagues/${leagueId}/my-submissions?startDate=${dateStr}&endDate=${dateStr}`
         );
         const json = await res.json();
 
         if (res.ok && json.success && json.data.submissions.length > 0) {
-          // Found an existing entry
-          // We only care about the first one (should be only one per date usually, but API returns list)
-          // Also, if it's rejected, we might not need to warn? Backend logic handles "canReplaceRejected".
-          // But user wants to know what they uploaded.
-          const entry = json.data.submissions[0];
-          setExistingEntry(entry);
+          const submissions = json.data.submissions;
+          setAllDayEntries(submissions);
+
+          // Always scope by activity type when checking for overwrite.
+          // For daily/weekly: only one entry per day exists anyway, so this is safe.
+          // For monthly: multiple activities per day, only flag same activity.
+          if (formData.activity_type) {
+            const sameActivity = submissions.find((s: any) => s.workout_type === formData.activity_type);
+            setExistingEntry(sameActivity || null);
+          } else {
+            // Activity not yet selected — don't flag any existing entry
+            setExistingEntry(null);
+          }
         } else {
+          setAllDayEntries([]);
           setExistingEntry(null);
         }
       } catch (err) {
@@ -743,9 +769,28 @@ export default function SubmitActivityPage({
       }
     };
 
-    // Debounce slightly or just run
     checkExisting();
-  }, [leagueId, activityDate, resubmitId]);
+  }, [leagueId, activityDate, resubmitId, formData.activity_type]);
+
+  // For daily multi-frequency activities, determine if more entries are allowed
+  const isDailyMultiFrequency = React.useMemo(() => {
+    if (!selectedActivity) return false;
+    return selectedActivity.frequency_type === 'daily' && (selectedActivity.frequency || 1) > 1;
+  }, [selectedActivity]);
+
+  const dailyEntryCount = React.useMemo(() => {
+    if (!isDailyMultiFrequency || !selectedActivity) return 0;
+    return allDayEntries.filter(
+      (e: any) => e.workout_type === selectedActivity.value && e.status !== 'rejected'
+    ).length;
+  }, [isDailyMultiFrequency, selectedActivity, allDayEntries]);
+
+  const dailyFrequencyLimit = React.useMemo(() => {
+    if (!isDailyMultiFrequency || !selectedActivity) return 1;
+    return selectedActivity.frequency || 1;
+  }, [isDailyMultiFrequency, selectedActivity]);
+
+  const canSubmitDailyMulti = isDailyMultiFrequency && dailyEntryCount < dailyFrequencyLimit;
 
   // Submit the activity (step 1: validation and check)
   const handleSubmit = async (e: React.FormEvent) => {
@@ -803,8 +848,31 @@ export default function SubmitActivityPage({
       }
     }
 
-    // Skip RR Validation for 'none' measurement type (no metrics to validate)
-    if (primaryMetric !== 'none') {
+    // Validate max values to prevent unreasonable entries
+    const maxLimits: Record<string, { max: number; label: string }> = {
+      duration: { max: 1440, label: 'Duration cannot exceed 1440 minutes (24 hours)' },
+      distance: { max: 1000, label: 'Distance cannot exceed 1000 km' },
+      steps: { max: 500000, label: 'Steps cannot exceed 500,000' },
+      holes: { max: 36, label: 'Holes cannot exceed 36' },
+    };
+    for (const [field, config] of Object.entries(maxLimits)) {
+      const rawValue = formData[field as keyof typeof formData];
+      if (rawValue) {
+        const numValue = parseFloat(rawValue);
+        if (!Number.isFinite(numValue) || numValue < 0) {
+          toast.error(`${field.charAt(0).toUpperCase() + field.slice(1)} must be a valid positive number`);
+          return;
+        }
+        if (numValue > config.max) {
+          toast.error(config.label);
+          return;
+        }
+      }
+    }
+
+    // Skip RR Validation for 'none' measurement type or non-standard formulas
+    const rrFormula = (activeLeague as any)?.rr_config?.formula || 'standard';
+    if (primaryMetric !== 'none' && rrFormula === 'standard') {
       // Existing RR Validation Logic
       try {
         const previewPayload: Record<string, any> = {
@@ -865,9 +933,8 @@ export default function SubmitActivityPage({
       return;
     }
 
-    // Check for overwrite need
-    if (!overwrite && existingEntry && !resubmitId) {
-      // If existing entry is found, prompt user
+    // Check for overwrite need — skip for daily multi-frequency activities that still have capacity
+    if (!overwrite && existingEntry && !resubmitId && !canSubmitDailyMulti) {
       setOverwriteDialogOpen(true);
       return;
     }
@@ -987,7 +1054,8 @@ export default function SubmitActivityPage({
         proof_url_2: proofUrl2,
         tzOffsetMinutes: new Date().getTimezoneOffset(),
         ianaTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone || null,
-        overwrite: overwrite
+        overwrite: overwrite,
+        ...(overwrite && existingEntry?.id ? { overwrite_entry_id: existingEntry.id } : {}),
       };
 
       // Add relevant metrics based on what was entered
@@ -1053,6 +1121,7 @@ export default function SubmitActivityPage({
 
       // Clear existing entry state since we just replaced it
       setExistingEntry(null);
+      setAllDayEntries([]);
       setOverwriteDialogOpen(false);
 
     } catch (error) {
@@ -1322,15 +1391,17 @@ export default function SubmitActivityPage({
         <TabsContent value="workout" className="mt-3">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="rounded-lg border bg-card/70 shadow-sm p-4 space-y-4 max-w-2xl">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className={`grid w-full ${showRestDays ? 'grid-cols-2' : 'grid-cols-1'}`}>
                 <TabsTrigger value="workout" className="flex items-center gap-2">
                   <Dumbbell className="size-4" />
                   Activity
                 </TabsTrigger>
+                {showRestDays && (
                 <TabsTrigger value="rest" className="flex items-center gap-2">
                   <Moon className="size-4" />
                   Rest Day
                 </TabsTrigger>
+                )}
               </TabsList>
 
               {/* Activity Type - Dropdown */}
@@ -1356,6 +1427,19 @@ export default function SubmitActivityPage({
                 {selectedActivity?.admin_info && (
                   <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
                     {selectedActivity.admin_info}
+                  </div>
+                )}
+                {isDailyMultiFrequency && (
+                  <div className={`text-xs p-2 rounded flex items-center gap-2 ${
+                    canSubmitDailyMulti
+                      ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400'
+                      : 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400'
+                  }`}>
+                    <Info className="size-3.5 shrink-0" />
+                    {canSubmitDailyMulti
+                      ? `${dailyEntryCount} of ${dailyFrequencyLimit} logged today — ${dailyFrequencyLimit - dailyEntryCount} remaining`
+                      : `Daily limit reached (${dailyEntryCount}/${dailyFrequencyLimit} for today)`
+                    }
                   </div>
                 )}
               </div>
@@ -1410,6 +1494,7 @@ export default function SubmitActivityPage({
                           id={type}
                           type="number"
                           min="0"
+                          max={type === 'duration' ? '1440' : type === 'distance' ? '1000' : type === 'steps' ? '500000' : type === 'hole' ? '36' : undefined}
                           step={type === 'distance' ? '0.01' : '1'}
                           value={formData[formKey as keyof typeof formData]}
                           onChange={(e) =>
@@ -1463,6 +1548,20 @@ export default function SubmitActivityPage({
                       <span>{format(activityDate, 'MMM d, yyyy')}</span>
                       <Badge variant="secondary" className="text-xs">Locked to original date</Badge>
                     </div>
+                  ) : isMonthlyFrequency ? (
+                    <Input
+                      type="date"
+                      value={format(activityDate, 'yyyy-MM-dd')}
+                      min={minActivityDate ? format(minActivityDate, 'yyyy-MM-dd') : undefined}
+                      max={maxActivityDate ? format(maxActivityDate, 'yyyy-MM-dd') : undefined}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val) {
+                          const parsed = startOfDay(parseISO(val));
+                          if (!isNaN(parsed.getTime())) setActivityDate(parsed);
+                        }
+                      }}
+                    />
                   ) : (
                     <Select
                       value={isTodaySelected ? 'today' : 'yesterday'}
@@ -1630,12 +1729,14 @@ export default function SubmitActivityPage({
 
               {/* Summary and Submit */}
               <div className="pt-4 border-t space-y-4">
+                {((activeLeague as any)?.rr_config?.formula || 'standard') === 'standard' && (
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">RR Value</span>
                   <span className="text-lg font-bold text-primary">
                     {estimatedRR.toFixed(2)}
                   </span>
                 </div>
+                )}
                 <div className="flex gap-2">
                   <Button
                     type="button"
@@ -1676,15 +1777,17 @@ export default function SubmitActivityPage({
         <TabsContent value="rest" className="mt-3">
           <form onSubmit={handleRestDaySubmit} className="space-y-6">
             <div className="rounded-lg border p-4 space-y-4 max-w-2xl">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className={`grid w-full ${showRestDays ? 'grid-cols-2' : 'grid-cols-1'}`}>
                 <TabsTrigger value="workout" className="flex items-center gap-2">
                   <Dumbbell className="size-4" />
                   Activity
                 </TabsTrigger>
+                {showRestDays && (
                 <TabsTrigger value="rest" className="flex items-center gap-2">
                   <Moon className="size-4" />
                   Rest Day
                 </TabsTrigger>
+                )}
               </TabsList>
 
               {/* Rest Day Stats */}
@@ -1781,8 +1884,8 @@ export default function SubmitActivityPage({
                 {/* Summary and Submit */}
                 <div className="pt-4 border-t space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">RR Points</span>
-                    <span className="text-lg font-bold text-primary">+1.0 RR</span>
+                    <span className="text-sm text-muted-foreground">{showRR ? 'RR Points' : 'Points'}</span>
+                    <span className="text-lg font-bold text-primary">+1.0 {pointsUnit}</span>
                   </div>
                   <div className="flex gap-2">
                     <Button
@@ -1820,7 +1923,7 @@ export default function SubmitActivityPage({
                   <p className="text-xs text-muted-foreground text-center">
                     {restDayStats?.isAtLimit
                       ? 'Requires approval from Captain or Governor'
-                      : 'Rest days earn 1.0 RR when approved'}
+                      : `Rest days earn 1.0 ${pointsUnit} when approved`}
                   </p>
                 </div>
               </div>
@@ -1900,10 +2003,12 @@ export default function SubmitActivityPage({
                   </div>
                 )}
 
+                {((activeLeague as any)?.rr_config?.formula || 'standard') === 'standard' && (
                 <div>
                   <span className="text-muted-foreground block text-xs">Estimated RR</span>
                   <span className="font-medium">{estimatedRR.toFixed(2)}</span>
                 </div>
+                )}
               </div>
             ) : (
               <div className="rounded-md border bg-card/70 p-3 space-y-2">
@@ -1962,11 +2067,11 @@ export default function SubmitActivityPage({
       <AlertDialog open={overwriteDialogOpen} onOpenChange={setOverwriteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Replace Today's Entry?</AlertDialogTitle>
+            <AlertDialogTitle>Replace {existingEntry?.workout_type ? existingEntry.workout_type.replace(/_/g, ' ') : ''} Entry?</AlertDialogTitle>
             <AlertDialogDescription asChild className="space-y-4 pt-2 text-left">
               <div>
                 <p>
-                  You have already submitted an activity for <strong>{format(activityDate, 'MMMM d, yyyy')}</strong>.
+                  You have already submitted <strong>{existingEntry?.workout_type ? existingEntry.workout_type.replace(/_/g, ' ') : 'an activity'}</strong> for <strong>{format(activityDate, 'MMMM d, yyyy')}</strong>.
                 </p>
 
                 {existingEntry && (
@@ -2021,8 +2126,10 @@ export default function SubmitActivityPage({
                       )}
                       {(existingEntry.rr_value !== null && existingEntry.rr_value !== undefined) && (
                         <div className="col-span-2 sm:col-span-1">
-                          <span className="text-muted-foreground block text-xs">RR Value</span>
-                          <span>{Number(existingEntry.rr_value).toFixed(1)}</span>
+                          <span className="text-muted-foreground block text-xs">
+                            {((activeLeague as any)?.rr_config?.formula || 'standard') === 'standard' ? 'RR Value' : 'Points'}
+                          </span>
+                          <span>{((activeLeague as any)?.rr_config?.formula || 'standard') === 'standard' ? Number(existingEntry.rr_value).toFixed(1) : Math.round(Number(existingEntry.rr_value))}</span>
                         </div>
                       )}
                     </div>
@@ -2044,7 +2151,7 @@ export default function SubmitActivityPage({
                 )}
 
                 <p>
-                  This will replace your earlier entry for today.
+                  This will replace your earlier {existingEntry?.workout_type ? existingEntry.workout_type.replace(/_/g, ' ') : ''} entry for this date.
                 </p>
               </div>
             </AlertDialogDescription>
@@ -2081,7 +2188,7 @@ export default function SubmitActivityPage({
         )
       }
 
-      <Dialog open={submitted} onOpenChange={(open) => !open && handleSubmitAnother()}>
+      <Dialog open={submitted} onOpenChange={(open) => !open && router.push(`/leagues/${leagueId}`)}>
         <DialogContent className="sm:max-w-md py-5" onInteractOutside={(e) => e.preventDefault()}>
           <DialogHeader className="text-center sm:text-center">
             <div className="mx-auto mb-4">
@@ -2112,30 +2219,39 @@ export default function SubmitActivityPage({
                 ? 'Your rest day exemption request has been submitted and is awaiting approval from your Captain or Governor.'
                 : submittedData?.isRestDay
                   ? 'Your rest day has been logged and is pending validation.'
-                  : 'Your workout has been submitted and is pending validation by your team captain.'}
+                  : 'Your activity has been submitted and is pending validation by your team captain.'}
             </DialogDescription>
           </DialogHeader>
 
-          {(submittedData?.rr_value || submittedData?.isRestDay) && (
-            <div className="flex justify-center py-2">
-              <div className={cn(
-                "inline-flex items-center gap-2 px-5 py-2.5 rounded-full border",
-                submittedData?.isExemption
-                  ? "bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/20"
-                  : "bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-green-500/20"
-              )}>
-                <span className={cn(
-                  "text-2xl font-bold",
-                  submittedData?.isExemption ? "text-amber-600" : "text-green-600"
-                )}>
-                  +{submittedData?.rr_value?.toFixed(1) || '1.0'}
-                </span>
-                <span className="text-sm text-muted-foreground">
-                  RR points {submittedData?.isExemption && '(if approved)'}
-                </span>
+          {(submittedData?.rr_value || submittedData?.isRestDay) && (() => {
+            const formula = (activeLeague as any)?.rr_config?.formula || 'standard';
+            const isSimpleOrPoints = formula === 'simple' || formula === 'points_only';
+            const pts = submittedData?.points_per_session ?? 1;
+            const rr = submittedData?.rr_value?.toFixed(1) || '1.0';
+            const exemptionSuffix = submittedData?.isExemption ? ' (if approved)' : '';
+            const badgeStyle = submittedData?.isExemption
+              ? "bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/20"
+              : "bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-green-500/20";
+            const textColor = submittedData?.isExemption ? "text-amber-600" : "text-green-600";
+            return (
+              <div className="flex justify-center gap-3 py-2">
+                {/* Points badge */}
+                <div className={cn("inline-flex items-center gap-2 px-5 py-2.5 rounded-full border", badgeStyle)}>
+                  <span className={cn("text-2xl font-bold", textColor)}>+{pts}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {`pt${pts !== 1 ? 's' : ''}${exemptionSuffix}`}
+                  </span>
+                </div>
+                {/* RR badge — only for standard formula */}
+                {!isSimpleOrPoints && (
+                  <div className={cn("inline-flex items-center gap-2 px-5 py-2.5 rounded-full border", badgeStyle)}>
+                    <span className={cn("text-2xl font-bold", textColor)}>{rr}</span>
+                    <span className="text-sm text-muted-foreground">RR</span>
+                  </div>
+                )}
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           <div className="flex flex-col gap-2 sm:flex-row sm:justify-center pt-2">
             <Button asChild className="flex-1">

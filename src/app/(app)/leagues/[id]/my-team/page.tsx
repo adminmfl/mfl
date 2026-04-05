@@ -74,6 +74,8 @@ import {
 import { DumbbellLoading } from '@/components/ui/dumbbell-loading';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useAiInsights } from '@/hooks/use-ai-insights';
+import { Sparkles } from 'lucide-react';
 
 import type { TeamMember } from '@/hooks/use-league-teams';
 
@@ -107,7 +109,7 @@ export default function MyTeamPage({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isUnallocatedDialogOpen, setIsUnallocatedDialogOpen] = useState(false);
-  const [selectedTeamForAssignment, setSelectedTeamForAssignment] = useState<string>('');
+  // Team selector removed - captains can only add to their own team
   const [unallocatedSearchQuery, setUnallocatedSearchQuery] = useState('');
   const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set());
   const [assigningMembers, setAssigningMembers] = useState<Set<string>>(new Set());
@@ -128,6 +130,13 @@ export default function MyTeamPage({
   const userTeamId = activeLeague?.team_id;
   const userTeamName = activeLeague?.team_name;
   const teamCapacity = activeLeague?.league_capacity || 20;
+
+  // AI inline insights
+  const { insights: aiInsights } = useAiInsights(leagueId, 'my_team', [
+    'team_strip',
+    'momentum_insight',
+    'leader_badge',
+  ]);
 
   // Fetch team members
   useEffect(() => {
@@ -231,11 +240,12 @@ export default function MyTeamPage({
   // Get captain info
   const captain = members.find((m) => m.is_captain);
 
-  // Handle bulk assigning selected members to team
+  // Handle bulk assigning selected members to captain's own team only
   const handleBulkAssignMembers = async () => {
-    const teamId = selectedTeamForAssignment;
+    // Captains can only add to their own team
+    const teamId = userTeamId;
     if (!teamId) {
-      toast.error('Please select a team first');
+      toast.error('You are not assigned to a team');
       return;
     }
 
@@ -244,7 +254,7 @@ export default function MyTeamPage({
       return;
     }
 
-    const teamName = teamsData?.teams.find(t => t.team_id === teamId)?.team_name;
+    const teamName = userTeamName;
     const memberCount = selectedMemberIds.size;
 
     setIsBulkAssigning(true);
@@ -319,6 +329,10 @@ export default function MyTeamPage({
     );
   }, [teamsData?.members?.unallocated, unallocatedSearchQuery]);
 
+  const rrFormula = (activeLeague as any)?.rr_config?.formula || 'standard';
+  const showRR = rrFormula === 'standard';
+  const showRestDays = ((activeLeague as any)?.rest_days ?? 1) > 0;
+
   // Stats cards data
   const stats = [
     {
@@ -338,17 +352,17 @@ export default function MyTeamPage({
     {
       title: 'Team Points',
       value: String(teamPoints),
-      description: 'Total RR',
+      description: 'Total points',
       detail: 'Combined team effort',
       icon: Target,
     },
-    {
+    ...(showRR ? [{
       title: 'Team RR',
       value: String(teamAvgRR),
       description: 'RR',
       detail: 'Average RR per approved entry',
       icon: Flame,
-    },
+    }] : []),
   ];
 
   // Fetch leaderboard to populate team rank/points/avg rr
@@ -371,10 +385,13 @@ export default function MyTeamPage({
           const team = teams.find((t) => String(t.team_id) === String(userTeamId));
           console.debug('[MyTeamPage] matched team:', team);
           if (team) {
+            // Include pending window points so recently submitted entries are visible
+            const pendingTeam = (json.data?.pendingWindow?.teams || []).find((t: any) => String(t.team_id) === String(userTeamId));
+            const pendingPts = pendingTeam?.total_points ?? 0;
+
             setTeamRank(`#${team.rank ?? '--'}`);
-            // team.total_points is preferred
-            const pts = team.total_points ?? team.points ?? 0;
-            setTeamPoints(String(pts));
+            const mainPts = team.total_points ?? team.points ?? 0;
+            setTeamPoints(String(mainPts + pendingPts));
             setTeamAvgRR(String(team.avg_rr ?? 0));
           }
         }
@@ -517,6 +534,12 @@ export default function MyTeamPage({
             <p className="text-muted-foreground">
               Manage your team as captain
             </p>
+            {aiInsights.team_strip && (
+              <p className="text-xs text-primary/80 mt-1 flex items-center gap-1">
+                <Sparkles className="size-3 shrink-0" />
+                {aiInsights.team_strip}
+              </p>
+            )}
           </div>
         </div>
 
@@ -591,6 +614,15 @@ export default function MyTeamPage({
         })}
       </div>
 
+      {/* AI Momentum Insight */}
+      {aiInsights.momentum_insight && (
+        <div className="px-4 lg:px-6">
+          <p className="text-xs text-muted-foreground flex items-center gap-1">
+            <Sparkles className="size-3 text-primary/60 shrink-0" />
+            {aiInsights.momentum_insight}
+          </p>
+        </div>
+      )}
 
       {/* Team Members Table */}
       <div className="px-4 lg:px-6">
@@ -620,8 +652,8 @@ export default function MyTeamPage({
               <TableRow>
                 <TableHead className="w-8 text-center">#</TableHead>
                 <TableHead>Member</TableHead>
-                <TableHead className="w-16 text-center">Avg RR</TableHead>
-                <TableHead className="w-16 text-center">Rest Days</TableHead>
+                {showRR && <TableHead className="w-16 text-center">Avg RR</TableHead>}
+                {showRestDays && <TableHead className="w-16 text-center">Rest Days</TableHead>}
                 <TableHead className="w-16 text-center">Points</TableHead>
               </TableRow>
             </TableHeader>
@@ -654,12 +686,16 @@ export default function MyTeamPage({
                         <span className="font-medium text-sm truncate">{member.username}</span>
                       </div>
                     </TableCell>
+                    {showRR && (
                     <TableCell className="text-center text-sm tabular-nums">
                       {((member as any).avg_rr ?? 0).toFixed(1)}
                     </TableCell>
+                    )}
+                    {showRestDays && (
                     <TableCell className="text-center text-sm tabular-nums">
                       {(member as any).rest_days_used ?? 0}
                     </TableCell>
+                    )}
                     <TableCell className="text-center text-sm font-medium tabular-nums">
                       {(member as any).points ?? 0}
                     </TableCell>
@@ -783,44 +819,28 @@ export default function MyTeamPage({
           </DialogHeader>
 
           <div className="flex flex-col gap-4 flex-1 overflow-hidden">
-            {/* Team Selector and Actions */}
-            <div className="space-y-2">
-              <Label>Select Team to Add To</Label>
-              <div className="flex gap-2">
-                <Select
-                  value={selectedTeamForAssignment}
-                  onValueChange={setSelectedTeamForAssignment}
-                  disabled={isBulkAssigning}
-                >
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Choose a team..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {teamsData?.teams.map((team) => (
-                      <SelectItem key={team.team_id} value={team.team_id}>
-                        {team.team_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  onClick={handleBulkAssignMembers}
-                  disabled={!selectedTeamForAssignment || selectedMemberIds.size === 0 || isBulkAssigning}
-                  className="shrink-0"
-                >
-                  {isBulkAssigning ? (
-                    <>
-                      <Loader2 className="size-4 mr-2 animate-spin" />
-                      Assigning...
-                    </>
-                  ) : (
-                    <>
-                      <Users className="size-4 mr-2" />
-                      Add Selected ({selectedMemberIds.size})
-                    </>
-                  )}
-                </Button>
-              </div>
+            {/* Add to own team action */}
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Add members to <span className="font-medium text-foreground">{userTeamName}</span>
+              </p>
+              <Button
+                onClick={handleBulkAssignMembers}
+                disabled={selectedMemberIds.size === 0 || isBulkAssigning}
+                className="shrink-0"
+              >
+                {isBulkAssigning ? (
+                  <>
+                    <Loader2 className="size-4 mr-2 animate-spin" />
+                    Assigning...
+                  </>
+                ) : (
+                  <>
+                    <Users className="size-4 mr-2" />
+                    Add Selected ({selectedMemberIds.size})
+                  </>
+                )}
+              </Button>
             </div>
 
             {/* Search and Select All */}

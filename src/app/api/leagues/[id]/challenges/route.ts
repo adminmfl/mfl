@@ -133,7 +133,11 @@ export async function GET(
 
     if (error) {
       console.error('Error fetching league challenges', error);
-      return buildError('Failed to fetch challenges', 500);
+      // Return an empty list instead of a 500 so the UI can show a friendly empty state
+      return NextResponse.json({
+        success: true,
+        data: { active: [], availablePresets: [], defaultPricing: null },
+      });
     }
 
     const challengeIds = (challenges || []).map((c) => c.id);

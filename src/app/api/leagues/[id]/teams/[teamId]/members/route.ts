@@ -93,15 +93,36 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check permissions (must be host or governor)
-    const canAssign = await userHasAnyRole(session.user.id, leagueId, [
+    // Check permissions (host, governor, or captain of this specific team)
+    const isHostOrGovernor = await userHasAnyRole(session.user.id, leagueId, [
       'host',
       'governor',
     ]);
 
+    let canAssign = isHostOrGovernor;
+
+    // Captains can only add members to their own team
+    if (!canAssign) {
+      const isCaptain = await userHasAnyRole(session.user.id, leagueId, ['captain']);
+      if (isCaptain) {
+        // Verify the captain is on this specific team
+        const supabaseCheck = getSupabaseServiceRole();
+        const { data: captainMembership } = await supabaseCheck
+          .from('leaguemembers')
+          .select('team_id')
+          .eq('user_id', session.user.id)
+          .eq('league_id', leagueId)
+          .maybeSingle();
+
+        if (captainMembership && captainMembership.team_id === teamId) {
+          canAssign = true;
+        }
+      }
+    }
+
     if (!canAssign) {
       return NextResponse.json(
-        { error: 'Only host or governor can assign members to teams' },
+        { error: 'Only host, governor, or the team captain can assign members to this team' },
         { status: 403 }
       );
     }

@@ -25,6 +25,7 @@ import type { PendingTeamWindowRanking } from '@/hooks/use-league-leaderboard';
 interface RealTimeScoreboardTableProps {
   dates: string[];
   teams: PendingTeamWindowRanking[];
+  showAvgRR?: boolean;
 }
 
 function RankBadge({ rank }: { rank: number }) {
@@ -63,7 +64,7 @@ function formatHeaderDate(dateYYYYMMDD: string): string {
   return format(dt, 'MMM d');
 }
 
-export function RealTimeScoreboardTable({ dates, teams }: RealTimeScoreboardTableProps) {
+export function RealTimeScoreboardTable({ dates, teams, showAvgRR = true }: RealTimeScoreboardTableProps) {
   if (!dates.length) return null;
 
   return (
@@ -78,7 +79,7 @@ export function RealTimeScoreboardTable({ dates, teams }: RealTimeScoreboardTabl
                 {formatHeaderDate(d)}
               </TableHead>
             ))}
-            <TableHead className="text-right w-[65px] px-2">RR</TableHead>
+            {showAvgRR && <TableHead className="text-right w-[65px] px-2">RR</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -118,12 +119,14 @@ export function RealTimeScoreboardTable({ dates, teams }: RealTimeScoreboardTabl
                     </TableCell>
                   );
                 })}
+                {showAvgRR && (
                 <TableCell className="text-right px-2">
                   <div className="flex items-center justify-end gap-1">
                     <Star className="size-3.5 text-yellow-500" />
                     <span className="text-sm font-medium tabular-nums whitespace-nowrap">{t.avg_rr.toFixed(2)}</span>
                   </div>
                 </TableCell>
+                )}
               </TableRow>
             ))
           ) : (

@@ -185,7 +185,8 @@ export async function GET(
         created_date,
         modified_date,
         modified_by,
-        reupload_of
+        reupload_of,
+        outcome
       `)
       .in('league_member_id', memberIds)
       .order('date', { ascending: false });
@@ -248,9 +249,36 @@ export async function GET(
       return 'player';
     };
 
-    // Enrich submissions with member info + grader info
+    // Fetch activity points config for effective_points calculation
+    const { data: leagueActivities } = await supabase
+      .from('leagueactivities')
+      .select('activity_id, custom_activity_id, points_per_session, outcome_config, activities(activity_name)')
+      .eq('league_id', leagueId);
+
+    const activityPointsMap = new Map<string, { points_per_session: number; outcome_config: any[] | null }>();
+    (leagueActivities || []).forEach((row: any) => {
+      const config = { points_per_session: row.points_per_session ?? 1, outcome_config: row.outcome_config };
+      const key = row.custom_activity_id || row.activity_id;
+      if (key) activityPointsMap.set(key, config);
+      const actName = row.activities?.activity_name;
+      if (actName) activityPointsMap.set(actName, config);
+    });
+
+    const getEffectivePoints = (entry: any): number => {
+      if (!entry.workout_type) return entry.rr_value ?? 1;
+      const config = activityPointsMap.get(entry.workout_type);
+      if (!config) return entry.rr_value ?? 1;
+      if (config.outcome_config && Array.isArray(config.outcome_config) && entry.outcome) {
+        const match = config.outcome_config.find((o: any) => o.label === entry.outcome);
+        if (match) return match.points;
+      }
+      return config.points_per_session;
+    };
+
+    // Enrich submissions with member info + grader info + effective_points
     const enrichedSubmissions: TeamSubmission[] = (submissions || []).map((s: any) => ({
       ...s,
+      effective_points: getEffectivePoints(s),
       modified_by: (s?.modified_by ?? null) as string | null,
       graded_by_role: getGradedByRole((s?.modified_by ?? null) as string | null, s.status),
       member: memberMap.get(s.league_member_id) || {

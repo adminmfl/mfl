@@ -86,13 +86,13 @@ export default function LeagueActivitiesPage({
   const [selectedCategory, setSelectedCategory] = React.useState<string>('all');
   const [searchTerm, setSearchTerm] = React.useState('');
   const [frequencyDrafts, setFrequencyDrafts] = React.useState<Record<string, string>>({});
-  const [frequencyTypeDrafts, setFrequencyTypeDrafts] = React.useState<Record<string, 'weekly' | 'monthly'>>({});
+  const [frequencyTypeDrafts, setFrequencyTypeDrafts] = React.useState<Record<string, 'daily' | 'weekly' | 'monthly'>>({});
   const [isSaving, setIsSaving] = React.useState(false);
   const [resetKey, setResetKey] = React.useState(0);
   const [openDescriptionId, setOpenDescriptionId] = React.useState<string | null>(null);
 
   // Track pending changes before saving
-  const [pendingChanges, setPendingChanges] = React.useState<Map<string, { enabled?: boolean; frequency?: number | null; frequency_type?: 'weekly' | 'monthly' | null; minimums?: { min_value: number | null; age_group_overrides: Record<string, any> }; proof_requirement?: 'not_required' | 'optional' | 'mandatory'; notes_requirement?: 'not_required' | 'optional' | 'mandatory'; points_per_session?: number; outcome_config?: { label: string; points: number }[] | null }>>(new Map());
+  const [pendingChanges, setPendingChanges] = React.useState<Map<string, { enabled?: boolean; frequency?: number | null; frequency_type?: 'daily' | 'weekly' | 'monthly' | null; minimums?: { min_value: number | null; age_group_overrides: Record<string, any> }; proof_requirement?: 'not_required' | 'optional' | 'mandatory'; notes_requirement?: 'not_required' | 'optional' | 'mandatory'; points_per_session?: number; outcome_config?: { label: string; points: number }[] | null }>>(new Map());
 
   const hasChanges = pendingChanges.size > 0;
   const toggleLoading = null;
@@ -122,13 +122,13 @@ export default function LeagueActivitiesPage({
   React.useEffect(() => {
     if (!data?.activities) return;
     const next: Record<string, string> = {};
-    const nextTypes: Record<string, 'weekly' | 'monthly'> = {};
+    const nextTypes: Record<string, 'daily' | 'weekly' | 'monthly'> = {};
     for (const activity of data.activities) {
       next[activity.activity_id] =
         typeof activity.frequency === 'number' && activity.frequency > 0
           ? String(activity.frequency)
           : '';
-      nextTypes[activity.activity_id] = activity.frequency_type === 'monthly' ? 'monthly' : 'weekly';
+      nextTypes[activity.activity_id] = activity.frequency_type === 'monthly' ? 'monthly' : activity.frequency_type === 'daily' ? 'daily' : 'weekly';
     }
     setFrequencyDrafts(next);
     setFrequencyTypeDrafts(nextTypes);
@@ -290,7 +290,7 @@ export default function LeagueActivitiesPage({
     }
   };
 
-  const handleFrequencyTypeChange = (activityId: string, value: 'weekly' | 'monthly') => {
+  const handleFrequencyTypeChange = (activityId: string, value: 'daily' | 'weekly' | 'monthly') => {
     setFrequencyTypeDrafts((prev) => ({
       ...prev,
       [activityId]: value,
@@ -471,13 +471,13 @@ export default function LeagueActivitiesPage({
     // Reset frequency drafts to current values
     if (data?.activities) {
       const next: Record<string, string> = {};
-      const nextTypes: Record<string, 'weekly' | 'monthly'> = {};
+      const nextTypes: Record<string, 'daily' | 'weekly' | 'monthly'> = {};
       for (const activity of data.activities) {
         next[activity.activity_id] =
           typeof activity.frequency === 'number' && activity.frequency > 0
             ? String(activity.frequency)
             : '';
-        nextTypes[activity.activity_id] = activity.frequency_type === 'monthly' ? 'monthly' : 'weekly';
+        nextTypes[activity.activity_id] = activity.frequency_type === 'monthly' ? 'monthly' : activity.frequency_type === 'daily' ? 'daily' : 'weekly';
       }
       setFrequencyDrafts(next);
       setFrequencyTypeDrafts(nextTypes);

@@ -190,6 +190,8 @@ export default function ManualEntryPage({
 }) {
   const { id: leagueId } = React.use(params);
   const { activeLeague } = useLeague();
+  const rrFormula = (activeLeague as any)?.rr_config?.formula || 'standard';
+  const showRR = rrFormula === 'standard';
   const { isLoading: roleLoading, isHost, isGovernor } = useRole();
   const {
     data: activitiesData,
@@ -306,7 +308,7 @@ export default function ManualEntryPage({
           else if (status === 'rejected') state = 'rejected';
 
           const rr = typeof entry?.rr_value === 'number' ? entry.rr_value : null;
-          const pointsLabel = rr === null ? '0 pt' : `${rr.toFixed(1)} RR`;
+          const pointsLabel = rr === null ? '0 pt' : (showRR ? `${rr.toFixed(1)} RR` : `${rr.toFixed(1)} pt`);
 
           rows.push({ date: ymd, label, entry, state, pointsLabel });
         }
@@ -350,6 +352,24 @@ export default function ManualEntryPage({
     const distanceNum = toNumber(dialogForm.distance);
     const stepsNum = toNumber(dialogForm.steps);
     const holesNum = toNumber(dialogForm.holes);
+
+    // Validate max values to prevent unreasonable entries
+    if (typeof durationNum === 'number' && (durationNum < 0 || durationNum > 1440)) {
+      toast.error('Duration must be between 0 and 1440 minutes (24 hours).');
+      return;
+    }
+    if (typeof distanceNum === 'number' && (distanceNum < 0 || distanceNum > 1000)) {
+      toast.error('Distance must be between 0 and 1000 km.');
+      return;
+    }
+    if (typeof stepsNum === 'number' && (stepsNum < 0 || stepsNum > 500000)) {
+      toast.error('Steps must be between 0 and 500,000.');
+      return;
+    }
+    if (typeof holesNum === 'number' && (holesNum < 0 || holesNum > 36)) {
+      toast.error('Holes must be between 0 and 36.');
+      return;
+    }
 
     if (dialogForm.type === 'workout') {
       if (workoutCategory === 'steps') {
@@ -461,7 +481,7 @@ export default function ManualEntryPage({
           else if (status === 'pending') state = 'pending';
           else if (status === 'rejected') state = 'rejected';
           const rr = typeof entry?.rr_value === 'number' ? entry.rr_value : null;
-          const pointsLabel = rr === null ? '0 pt' : `${rr.toFixed(1)} RR`;
+          const pointsLabel = rr === null ? '0 pt' : (showRR ? `${rr.toFixed(1)} RR` : `${rr.toFixed(1)} pt`);
           rows.push({ date: ymd, label, entry, state, pointsLabel });
         }
         setWeekRows(rows);
@@ -751,6 +771,7 @@ export default function ManualEntryPage({
                   id="duration"
                   type="number"
                   min={0}
+                  max={1440}
                   step="1"
                   value={dialogForm.duration}
                   onChange={(e) => setDialogForm((p) => ({ ...p, duration: e.target.value }))}
@@ -768,6 +789,7 @@ export default function ManualEntryPage({
                   id="distance"
                   type="number"
                   min={0}
+                  max={1000}
                   step="0.1"
                   value={dialogForm.distance}
                   onChange={(e) => setDialogForm((p) => ({ ...p, distance: e.target.value }))}
@@ -783,6 +805,7 @@ export default function ManualEntryPage({
                   id="steps"
                   type="number"
                   min={0}
+                  max={500000}
                   step="1"
                   value={dialogForm.steps}
                   onChange={(e) => setDialogForm((p) => ({ ...p, steps: e.target.value }))}
@@ -797,6 +820,7 @@ export default function ManualEntryPage({
                   id="holes"
                   type="number"
                   min={0}
+                  max={36}
                   step="1"
                   value={dialogForm.holes}
                   onChange={(e) => setDialogForm((p) => ({ ...p, holes: e.target.value }))}
@@ -804,6 +828,7 @@ export default function ManualEntryPage({
               </div>
             )}
 
+            {showRR && (
             <div className="space-y-2">
               <Label htmlFor="rr_value">Run Rate (RR)</Label>
               <Input
@@ -817,6 +842,7 @@ export default function ManualEntryPage({
               />
               <p className="text-xs text-muted-foreground">Auto-calculated from workout type, duration, distance, steps, or holes.</p>
             </div>
+            )}
 
             {dialogForm.type !== 'rest' && (
               <div className="space-y-2 md:col-span-2">

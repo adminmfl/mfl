@@ -299,8 +299,8 @@ export default function ProfilePage() {
   const leagueStats = React.useMemo(() => {
     const activeLeagues = userLeagues.filter((l) => l.status === 'active').length;
     const hostingCount = userLeagues.filter((l) => l.is_host).length;
-    const governorCount = userLeagues.filter((l) => l.roles.includes('governor')).length;
-    const captainCount = userLeagues.filter((l) => l.roles.includes('captain')).length;
+    const governorCount = userLeagues.filter((l) => (l.roles || []).includes('governor')).length;
+    const captainCount = userLeagues.filter((l) => (l.roles || []).includes('captain')).length;
 
     return {
       totalLeagues: userLeagues.length,
@@ -310,7 +310,7 @@ export default function ProfilePage() {
     };
   }, [userLeagues]);
 
-  // Activities logged: one activity per day across all approved submissions in all leagues
+  // Activities logged: count each unique date+activity across all approved submissions in all leagues
   const [activitiesLogged, setActivitiesLogged] = React.useState<number>(0);
   const [activitiesLoading, setActivitiesLoading] = React.useState<boolean>(false);
 
@@ -333,18 +333,18 @@ export default function ProfilePage() {
 
         const results = await Promise.all(promises);
 
-        const dateSet = new Set<string>();
+        const activitySet = new Set<string>();
         for (const res of results) {
           if (res && res.success && Array.isArray(res.data?.submissions)) {
             for (const s of res.data.submissions) {
               if (s && s.date) {
-                dateSet.add(s.date);
+                activitySet.add(`${s.date}_${s.workout_type || ''}`);
               }
             }
           }
         }
 
-        if (mounted) setActivitiesLogged(dateSet.size);
+        if (mounted) setActivitiesLogged(activitySet.size);
       } catch (err) {
         console.error('Error fetching activities for profile:', err);
         if (mounted) setActivitiesLogged(0);
