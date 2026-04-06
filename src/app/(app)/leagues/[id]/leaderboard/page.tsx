@@ -460,8 +460,7 @@ export default function LeaderboardPage({ params }: { params: Promise<{ id: stri
       {/* Individual Rankings */}
           <div className="border-t mt-3 pt-3">
             <div className="mb-3">
-              <h2 className="text-base sm:text-lg font-semibold">Individual Rankings</h2>
-              <p className="text-xs sm:text-sm text-muted-foreground">Top performers</p>
+              <h2 className="text-base sm:text-lg font-semibold">Top Performers in League</h2>
             </div>
             <div className="overflow-hidden">
               <LeagueIndividualsTable individuals={individuals} showAvgRR={showRR} />
