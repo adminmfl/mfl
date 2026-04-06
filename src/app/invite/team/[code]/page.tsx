@@ -403,6 +403,13 @@ export default function TeamInvitePage({
             By joining, you agree to participate fairly and follow the league
             rules.
           </p>
+
+          {/* Back to app link */}
+          {session?.user && (
+            <Button variant="ghost" asChild className="w-full">
+              <Link href="/dashboard">Go to Dashboard</Link>
+            </Button>
+          )}
         </CardContent>
       </Card>
     </div>
