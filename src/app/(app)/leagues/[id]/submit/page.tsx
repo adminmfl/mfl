@@ -1451,15 +1451,7 @@ export default function SubmitActivityPage({
 
                 // Handle 'none' measurement type - no metrics needed
                 if (primary === 'none') {
-                  return (
-                    <div className="space-y-2">
-                      <Label>Measurement</Label>
-                      <div className="p-3 rounded-lg bg-muted/50 border text-muted-foreground text-sm flex items-center gap-2">
-                        <Info className="size-4" />
-                        None — No measurement required for this activity
-                      </div>
-                    </div>
-                  );
+                  return null;
                 }
 
                 const renderInput = (type: string) => {
@@ -1488,7 +1480,7 @@ export default function SubmitActivityPage({
 
                   return (
                     <div key={type} className="space-y-2">
-                      <Label htmlFor={type}>{label}</Label>
+                      <Label htmlFor={type}>{label} *</Label>
                       <div className="relative">
                         <Input
                           id={type}
@@ -1542,7 +1534,7 @@ export default function SubmitActivityPage({
               {/* Date */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Activity Date</Label>
+                  <Label>Activity Date *</Label>
                   {isResubmission ? (
                     <div className="flex items-center gap-2 h-10 px-3 rounded-md border bg-muted text-sm">
                       <span>{format(activityDate, 'MMM d, yyyy')}</span>
@@ -1623,7 +1615,7 @@ export default function SubmitActivityPage({
                     ) : (
                       <>
                         <ImageIcon className="size-4 mx-auto text-muted-foreground mb-1" />
-                        <p className="text-[11px] text-muted-foreground">Click to upload image</p>
+                        <p className="text-[11px] text-muted-foreground">Click to upload image (JPG, PNG, GIF, WebP)</p>
                       </>
                     )}
                   </div>
@@ -1665,7 +1657,7 @@ export default function SubmitActivityPage({
                     className="border-2 border-dashed rounded-lg p-2 text-center hover:border-primary/50 transition-colors cursor-pointer"
                   >
                     <ImageIcon className="size-4 mx-auto text-muted-foreground mb-1" />
-                    <p className="text-[11px] text-muted-foreground">Click to upload second image</p>
+                    <p className="text-[11px] text-muted-foreground">Click to upload second image (JPG, PNG, GIF, WebP)</p>
                   </div>
                 )}
               </div>
@@ -2067,11 +2059,11 @@ export default function SubmitActivityPage({
       <AlertDialog open={overwriteDialogOpen} onOpenChange={setOverwriteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Replace {existingEntry?.workout_type ? existingEntry.workout_type.replace(/_/g, ' ') : ''} Entry?</AlertDialogTitle>
+            <AlertDialogTitle>Replace {existingEntry?.workout_type ? (activitiesData?.activities?.find((a: any) => a.value === existingEntry.workout_type)?.activity_name || existingEntry.workout_type.replace(/_/g, ' ')) : ''} Entry?</AlertDialogTitle>
             <AlertDialogDescription asChild className="space-y-4 pt-2 text-left">
               <div>
                 <p>
-                  You have already submitted <strong>{existingEntry?.workout_type ? existingEntry.workout_type.replace(/_/g, ' ') : 'an activity'}</strong> for <strong>{format(activityDate, 'MMMM d, yyyy')}</strong>.
+                  You have already submitted <strong>{existingEntry?.workout_type ? (activitiesData?.activities?.find((a: any) => a.value === existingEntry.workout_type)?.activity_name || existingEntry.workout_type.replace(/_/g, ' ')) : 'an activity'}</strong> for <strong>{format(activityDate, 'MMMM d, yyyy')}</strong>.
                 </p>
 
                 {existingEntry && (
@@ -2151,7 +2143,7 @@ export default function SubmitActivityPage({
                 )}
 
                 <p>
-                  This will replace your earlier {existingEntry?.workout_type ? existingEntry.workout_type.replace(/_/g, ' ') : ''} entry for this date.
+                  This will replace your earlier {existingEntry?.workout_type ? (activitiesData?.activities?.find((a: any) => a.value === existingEntry.workout_type)?.activity_name || existingEntry.workout_type.replace(/_/g, ' ')) : ''} entry for this date.
                 </p>
               </div>
             </AlertDialogDescription>
