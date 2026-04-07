@@ -198,10 +198,11 @@ export async function GET(
     // Fetch activity points config for effective_points calculation
     const { data: leagueActivities } = await supabase
       .from('leagueactivities')
-      .select('activity_id, custom_activity_id, points_per_session, outcome_config, activities(activity_name)')
+      .select('activity_id, custom_activity_id, points_per_session, outcome_config, activities(activity_name), custom_activities(activity_name)')
       .eq('league_id', leagueId);
 
     const activityPointsMap = new Map<string, { points_per_session: number; outcome_config: any[] | null }>();
+    const activityNameMap = new Map<string, string>();
     (leagueActivities || []).forEach((row: any) => {
       const config = { points_per_session: row.points_per_session ?? 1, outcome_config: row.outcome_config };
       const key = row.custom_activity_id || row.activity_id;
@@ -209,6 +210,10 @@ export async function GET(
       // Also key by activity name since workout_type stores the name string
       const actName = row.activities?.activity_name;
       if (actName) activityPointsMap.set(actName, config);
+      // Build custom activity name map for UUID resolution
+      if (row.custom_activity_id && (row as any).custom_activities?.activity_name) {
+        activityNameMap.set(row.custom_activity_id, (row as any).custom_activities.activity_name);
+      }
     });
 
     const getEffectivePoints = (entry: any): number => {
@@ -226,6 +231,7 @@ export async function GET(
     let enrichedSubmissions: LeagueSubmission[] = (submissions || []).map((s) => ({
       ...s,
       effective_points: getEffectivePoints(s),
+      custom_activity_name: s.workout_type ? activityNameMap.get(s.workout_type) || null : null,
       member: memberMap.get(s.league_member_id) || {
         user_id: '',
         username: 'Unknown',

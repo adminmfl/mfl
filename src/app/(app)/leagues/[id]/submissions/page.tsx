@@ -101,6 +101,7 @@ interface LeagueSubmission {
   date: string;
   type: 'workout' | 'rest';
   workout_type: string | null;
+  custom_activity_name?: string | null;
   duration: number | null;
   distance: number | null;
   steps: number | null;
@@ -526,7 +527,8 @@ export default function AllSubmissionsPage({
   }, [submissions, statusFilter, teamFilter, dateFilter]);
 
   // Format workout type for display
-  const formatWorkoutType = (type: string | null) => {
+  const formatWorkoutType = (type: string | null, customActivityName?: string | null) => {
+    if (customActivityName) return customActivityName;
     if (!type) return 'General';
     return type
       .split('_')
@@ -598,7 +600,7 @@ export default function AllSubmissionsPage({
             )}
             <span className="text-sm">
               {isWorkout
-                ? formatWorkoutType(row.original.workout_type)
+                ? formatWorkoutType(row.original.workout_type, row.original.custom_activity_name)
                 : isExemption
                   ? 'Exemption Request'
                   : 'Rest Day'}
@@ -993,7 +995,7 @@ export default function AllSubmissionsPage({
                     <div className="flex items-center gap-1.5 text-muted-foreground">
                       {/* Activity Icon Logic */}
                       {submission.type === 'workout' ? <Dumbbell className="size-3.5" /> : <Moon className="size-3.5" />}
-                      <span>{submission.type === 'workout' ? formatWorkoutType(submission.workout_type) : 'Rest Day'}</span>
+                      <span>{submission.type === 'workout' ? formatWorkoutType(submission.workout_type, submission.custom_activity_name) : 'Rest Day'}</span>
                     </div>
                     <div className="scale-90 origin-right">
                       <StatusBadge status={submission.status} />
