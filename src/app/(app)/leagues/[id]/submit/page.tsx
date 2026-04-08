@@ -1484,6 +1484,7 @@ export default function SubmitActivityPage({
                         <Input
                           id={type}
                           type="number"
+                          inputMode="numeric"
                           min="0"
                           max={type === 'duration' ? '1440' : type === 'distance' ? '1000' : type === 'steps' ? '500000' : type === 'hole' ? '36' : undefined}
                           step={type === 'distance' ? '0.01' : '1'}
