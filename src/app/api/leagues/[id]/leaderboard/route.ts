@@ -154,12 +154,89 @@ export async function GET(
       tzOffsetMinutes: typeof tzOffsetMinutes === 'number' && Number.isFinite(tzOffsetMinutes) ? tzOffsetMinutes : null,
     });
 
-    // Verify league exists and get its date range and status
-    const { data: league, error: leagueError } = await supabase
-      .from('leagues')
-      .select('league_id, league_name, start_date, end_date, status, rr_config, rest_days')
-      .eq('league_id', leagueId)
-      .single();
+    // =========================================================================
+    // 1. Fetch independent league data in parallel
+    // =========================================================================
+    const [
+      leagueRes,
+      teamsRes,
+      membersRes,
+      activityConfigRes,
+      challengeSubmissionsRes,
+      challengeScoresRes
+    ] = await Promise.all([
+      // A. Verify league exists and get its date range and status
+      supabase
+        .from('leagues')
+        .select('league_id, league_name, start_date, end_date, status, rr_config, rest_days')
+        .eq('league_id', leagueId)
+        .single(),
+
+      // B. Get all teams in the league
+      supabase
+        .from('teamleagues')
+        .select(`
+          team_id,
+          teams(team_id, team_name)
+        `)
+        .eq('league_id', leagueId),
+
+      // C. Get all league members with team assignment
+      supabase
+        .from('leaguemembers')
+        .select(`
+          league_member_id,
+          user_id,
+          team_id,
+          users!leaguemembers_user_id_fkey(user_id, username, profile_picture_url)
+        `)
+        .eq('league_id', leagueId),
+
+      // D. Fetch activity points configuration for this league
+      // Note: We try the full version first; if points_per_session/outcome_config 
+      // columns don't exist, we handle it below using the fallback.
+      supabase
+        .from('leagueactivities')
+        .select('activity_id, custom_activity_id, points_per_session, outcome_config, activities(activity_name)')
+        .eq('league_id', leagueId),
+
+      // E. Get league challenge submissions with points
+      supabase
+        .from('challenge_submissions')
+        .select(`
+          id,
+          league_member_id,
+          league_challenge_id,
+          team_id,
+          sub_team_id,
+          status,
+          created_at,
+          awarded_points,
+          leagueschallenges(
+            id,
+            name,
+            total_points,
+            challenge_type,
+            start_date,
+            end_date,
+            league_id
+          )
+        `)
+        .eq('status', 'approved'),
+
+      // F. Get special challenge bonuses for teams (legacy)
+      supabase
+        .from('specialchallengeteamscore')
+        .select(`
+          team_id,
+          score,
+          specialchallenges(challenge_id, name)
+        `)
+        .eq('league_id', leagueId)
+    ]);
+
+    const league = leagueRes.data;
+    const leagueError = leagueRes.error;
 
     if (leagueError || !league) {
       return NextResponse.json({ error: 'League not found' }, { status: 404 });
@@ -217,37 +294,18 @@ export async function GET(
 
 
     // =========================================================================
-    // Get all teams in the league via teamleagues
+    // 2. Process results and derive IDs
     // =========================================================================
-    const { data: teams, error: teamsError } = await supabase
-      .from('teamleagues')
-      .select(`
-        team_id,
-        teams(team_id, team_name)
-      `)
-      .eq('league_id', leagueId);
-
+    const teams = teamsRes.data;
+    const teamsError = teamsRes.error;
     if (teamsError) {
       console.error('Error fetching teams:', teamsError);
       return NextResponse.json({ error: 'Failed to fetch teams' }, { status: 500 });
     }
-
-    // Create a set of valid team IDs for this league (for validation)
     const validTeamIds = new Set((teams || []).map((t) => t.team_id as string));
 
-    // =========================================================================
-    // Get all league members with team assignment
-    // =========================================================================
-    const { data: members, error: membersError } = await supabase
-      .from('leaguemembers')
-      .select(`
-        league_member_id,
-        user_id,
-        team_id,
-        users!leaguemembers_user_id_fkey(user_id, username, profile_picture_url)
-      `)
-      .eq('league_id', leagueId);
-
+    const members = membersRes.data;
+    const membersError = membersRes.error;
     if (membersError) {
       console.error('Error fetching members:', membersError);
       return NextResponse.json({ error: 'Failed to fetch members' }, { status: 500 });
@@ -343,16 +401,10 @@ export async function GET(
     }
 
     // =========================================================================
-    // Fetch activity points configuration for this league
+    // 4. Use activity config results (with fallback)
     // =========================================================================
-    let activityConfigRows: any[] | null = null;
-    const configResult = await supabase
-      .from('leagueactivities')
-      .select('activity_id, custom_activity_id, points_per_session, outcome_config, activities(activity_name)')
-      .eq('league_id', leagueId);
-    if (!configResult.error) {
-      activityConfigRows = configResult.data;
-    } else {
+    let activityConfigRows: any[] | null = activityConfigRes.data;
+    if (activityConfigRes.error) {
       // Fallback if points_per_session/outcome_config columns don't exist yet (pre-migration)
       const fallback = await supabase
         .from('leagueactivities')
@@ -406,28 +458,8 @@ export async function GET(
     // =========================================================================
     // Get league challenge submissions with points
     // =========================================================================
-    const { data: challengeSubmissions, error: challengeSubmissionsError } = await supabase
-      .from('challenge_submissions')
-      .select(`
-        id,
-        league_member_id,
-        league_challenge_id,
-        team_id,
-        sub_team_id,
-        status,
-        created_at,
-        awarded_points,
-        leagueschallenges(
-          id,
-          name,
-          total_points,
-          challenge_type,
-          start_date,
-          end_date,
-          league_id
-        )
-      `)
-      .eq('status', 'approved');
+    const challengeSubmissions = challengeSubmissionsRes.data;
+    const challengeSubmissionsError = challengeSubmissionsRes.error;
 
     // Filter to only this league's challenges
     const leagueSubmissions = (challengeSubmissions || []).filter((sub) => {
@@ -560,18 +592,10 @@ export async function GET(
     });
 
     // =========================================================================
-    // Get special challenge bonuses for teams (legacy)
+    // 6. Use special challenge bonus results
     // =========================================================================
-    let challengesQuery = supabase
-      .from('specialchallengeteamscore')
-      .select(`
-        team_id,
-        score,
-        specialchallenges(challenge_id, name)
-      `)
-      .eq('league_id', leagueId);
-
-    const { data: challengeScores, error: challengeError } = await challengesQuery;
+    const challengeScores = challengeScoresRes.data;
+    const challengeError = challengeScoresRes.error;
 
     if (challengeError) {
       console.error('Error fetching challenge scores:', challengeError);

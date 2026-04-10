@@ -194,7 +194,12 @@ export function useLeagueLeaderboard(
         invalidateClientCache(cacheKey);
       }
 
-      const response = await fetch(url);
+      // Fetch leaderboard data and team metadata in parallel
+      const [response, teamsResp] = await Promise.all([
+        fetch(url),
+        fetch(`/api/leagues/${leagueId}/teams`)
+      ]);
+
       const result = await response.json();
 
       if (!response.ok) {
@@ -211,8 +216,6 @@ export function useLeagueLeaderboard(
       setRawTeams(initialTeams);
       setRawPendingWindow(data?.pendingWindow);
 
-      // Fetch normalization flag and team size variance from teams endpoint
-      const teamsResp = await fetch(`/api/leagues/${leagueId}/teams`);
       if (teamsResp.ok) {
         const teamsJson = await teamsResp.json();
         const normalizeActive = Boolean(
