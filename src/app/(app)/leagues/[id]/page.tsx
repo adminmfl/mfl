@@ -176,18 +176,43 @@ export default function LeagueDashboardPage({
     }
   }, [isHost, isGovernor, id, router]);
 
-  const [league, setLeague] = React.useState<LeagueDetails | null>(null);
-  const [stats, setStats] = React.useState<LeagueStats | null>(null);
+  const [dashboardData, setDashboardData] = React.useState<{
+    league: LeagueDetails;
+    stats: LeagueStats | null;
+    mySummary: {
+      points: number;
+      totalPoints: number;
+      challengePoints: number;
+      avgRR: number | null;
+      restUsed: number;
+      restUnused: number | null;
+      missedDays: number;
+      teamAvgRR: number | null;
+      teamPoints: number | null;
+      teamMissedDays: number | null;
+      teamRestUsed: number | null;
+      teamActivityPoints?: number;
+      teamChallengePoints?: number;
+      teamRank?: number | null;
+    };
+    recentDays: RecentDayRow[];
+    rejectedCount: number;
+    isMonthlyFrequency: boolean;
+  } | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
-  const [rejectedCount, setRejectedCount] = React.useState<number>(0);
-  const [hostName, setHostName] = React.useState<string | null>(null);
-  const [recentDays, setRecentDays] = React.useState<RecentDayRow[] | null>(null);
+
+  const league = dashboardData?.league;
+  const stats = dashboardData?.stats;
+  const rejectedCount = dashboardData?.rejectedCount || 0;
+  const recentDays = dashboardData?.recentDays;
+  const mySummary = dashboardData?.mySummary;
+  const isMonthlyFrequency = dashboardData?.isMonthlyFrequency || false;
+
   const [weekOffset, setWeekOffset] = React.useState(0);
-  const [isMonthlyFrequency, setIsMonthlyFrequency] = React.useState(false);
   const [detailDialogOpen, setDetailDialogOpen] = React.useState(false);
   const [selectedSubmission, setSelectedSubmission] = React.useState<MySubmission | null>(null);
-  const [mySummaryLoading, setMySummaryLoading] = React.useState(true);
+  const [refreshKey, setRefreshKey] = React.useState(0);
 
   const isTrialPeriod = React.useMemo(() => {
     if (!league?.start_date) return false;
@@ -209,608 +234,79 @@ export default function LeagueDashboardPage({
     'stat_label_missed',
   ]);
 
-  const [mySummary, setMySummary] = React.useState<{
-    points: number; // approved workout points
-    totalPoints: number; // includes challenge bonuses
-    challengePoints: number; // difference (total - points)
-    avgRR: number | null;
-    restUsed: number;
-    restUnused: number | null;
-    missedDays: number;
-    teamAvgRR: number | null;
-    teamPoints: number | null;
-    teamMissedDays: number | null;
-    teamRestUsed: number | null;
-    teamActivityPoints?: number;
-    teamChallengePoints?: number;
-    teamRank?: number | null;
-  } | null>(null);
-
-  // Sync active league if navigated directly
+  // Sync active league
   React.useEffect(() => {
     if (userLeagues.length > 0 && (!activeLeague || activeLeague.league_id !== id)) {
       const matchingLeague = userLeagues.find((l) => l.league_id === id);
-      if (matchingLeague) {
-        setActiveLeague(matchingLeague);
-      }
+      if (matchingLeague) setActiveLeague(matchingLeague);
     }
-    // Save this league as the last visited
     saveLastLeagueId(id);
   }, [id, userLeagues, activeLeague, setActiveLeague]);
 
-  const fetchLeagueData = React.useCallback(
-    async (force = false) => {
-      const cacheKey = `league-dashboard:${id}`;
+  // Consolidate Data Fetching
+  React.useEffect(() => {
+    let mounted = true;
+    const cacheKey = `league-dashboard-summary:${id}:${weekOffset}`;
 
-      if (!force) {
-        const cached = getClientCache<{
-          league: LeagueDetails;
-          stats: LeagueStats | null;
-          rejectedCount: number;
-        }>(cacheKey);
-        if (cached?.league) {
-          setLeague(cached.league);
-          setStats(cached.stats);
-          setRejectedCount(cached.rejectedCount);
-          setLoading(false);
-          return;
-        }
-      } else {
-        // Invalidate cache before forced refresh to ensure fresh data
-        invalidateClientCache(cacheKey);
-      }
-
-      try {
-        setLoading(true);
-
-        // Fetch league details and stats in parallel
-        const [leagueRes, statsRes, rejectedRes] = await Promise.all([
-          fetch(`/api/leagues/${id}`),
-          fetch(`/api/leagues/${id}/stats`),
-          // Only need a count; endpoint returns stats alongside the list.
-          fetch(`/api/leagues/${id}/my-submissions`),
-        ]);
-
-        if (!leagueRes.ok) throw new Error('Failed to fetch league');
-
-        const leagueData = await leagueRes.json();
-        if (leagueData.success && leagueData.data) {
-          const leagueInfo = leagueData.data;
-          setLeague(leagueInfo);
-
-          if (leagueInfo.creator_name) {
-            setHostName(leagueInfo.creator_name);
-          }
-        } else {
-          throw new Error('League not found');
-        }
-
-        let nextStats: LeagueStats | null = null;
-        let nextRejected = 0;
-
-        // Stats are optional, don't fail if they can't be fetched
-        if (statsRes.ok) {
-          const statsData = await statsRes.json();
-          if (statsData.success && statsData.stats) {
-            nextStats = statsData.stats;
-            setStats(statsData.stats);
-          } else {
-            setStats(null);
-          }
-
-          // Rejected reminder is best-effort: ignore auth/membership failures.
-          if (rejectedRes.ok) {
-            const rejectedData = await rejectedRes.json();
-            if (rejectedData?.success && rejectedData?.data?.submissions) {
-              const submissions: Array<{ date?: string; status?: string; created_date?: string; modified_date?: string }> = rejectedData.data.submissions;
-
-              // For each date, pick the latest submission and count it only if it is still rejected.
-              const latestByDate = new Map<string, { status: string; ts: string }>();
-              submissions.forEach((s) => {
-                if (!s?.date) return;
-                const ts = (s.modified_date || s.created_date || '').toString();
-                const existing = latestByDate.get(s.date);
-                if (!existing || ts > existing.ts) {
-                  latestByDate.set(s.date, { status: s.status || 'pending', ts });
-                }
-              });
-
-              const rejectedDays = Array.from(latestByDate.values()).filter((v) => v.status === 'rejected').length;
-              nextRejected = rejectedDays;
-              setRejectedCount(rejectedDays);
-            } else {
-              nextRejected = 0;
-              setRejectedCount(0);
-            }
-          } else {
-            nextRejected = 0;
-            setRejectedCount(0);
-          }
-        } else {
-          setStats(null);
-        }
-
-        setClientCache(cacheKey, {
-          league: leagueData.data as LeagueDetails,
-          stats: nextStats,
-          rejectedCount: nextRejected,
-        });
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load league');
-      } finally {
+    async function fetchData() {
+      // Try cache first
+      const cached = getClientCache<any>(cacheKey);
+      if (cached && mounted) {
+        setDashboardData(cached);
         setLoading(false);
+      } else {
+        setLoading(true);
       }
-    },
-    [id]
-  );
 
-  // Fetch league details and stats
-  React.useEffect(() => {
-    fetchLeagueData();
-  }, [fetchLeagueData]);
-
-  // Week/month view anchored to league start weekday
-  React.useEffect(() => {
-    if (!league) return;
-
-    let cancelled = false;
-    setRecentDays(null);
-
-    const run = async () => {
+      setError(null);
       try {
-        // Check if all activities are monthly frequency
-        try {
-          const actRes = await fetch(`/api/leagues/${id}/activities`);
-          if (actRes.ok) {
-            const actData = await actRes.json();
-            const activities = actData?.data?.activities || actData?.activities || [];
-            const allMonthly = activities.length > 0 && activities.every((a: any) => a.frequency_type === 'monthly');
-            if (!cancelled) setIsMonthlyFrequency(allMonthly);
-          }
-        } catch { /* ignore */ }
-
-        const todayLocal = new Date();
-        const todayStr = localYmd(todayLocal);
-
-        // Anchor the week to the league's start weekday
-        const leagueStartLocal = parseLocalYmd(league.start_date);
-        const anchorDay = leagueStartLocal ? leagueStartLocal.getDay() : 0; // default Sunday
-        const currentWeekStart = startOfWeekAnchored(todayLocal, anchorDay);
-        const weekStartLocal = addDays(currentWeekStart, -weekOffset * 7);
-
-        // For monthly: use full month range; for weekly: use 7-day range
-        let startDate: string;
-        let endDate: string;
-        let numDays: number;
-        if (isMonthlyFrequency) {
-          const monthStart = new Date(weekStartLocal.getFullYear(), weekStartLocal.getMonth(), 1);
-          const monthEnd = new Date(weekStartLocal.getFullYear(), weekStartLocal.getMonth() + 1, 0);
-          startDate = localYmd(monthStart);
-          endDate = localYmd(monthEnd);
-          numDays = monthEnd.getDate();
-        } else {
-          startDate = localYmd(weekStartLocal);
-          endDate = localYmd(addDays(weekStartLocal, 6));
-          numDays = 7;
+        const tzOffsetMinutes = new Date().getTimezoneOffset();
+        const ianaTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+        
+        let url = `/api/leagues/${id}/dashboard-summary?tzOffsetMinutes=${tzOffsetMinutes}&ianaTimezone=${encodeURIComponent(ianaTimezone)}`;
+        
+        // Handle week navigation range if needed
+        if (weekOffset !== 0) {
+          const today = new Date();
+          const leagueStartLocal = parseLocalYmd(league?.start_date || "");
+          const anchorDay = leagueStartLocal ? leagueStartLocal.getDay() : 0;
+          const currentWeekStart = startOfWeekAnchored(today, anchorDay);
+          const rangeStart = addDays(currentWeekStart, -weekOffset * 7);
+          const rangeEnd = addDays(rangeStart, 6);
+          
+          url += `&startDate=${localYmd(rangeStart)}&endDate=${localYmd(rangeEnd)}`;
         }
 
-        const recentUrl = `/api/leagues/${id}/my-submissions?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`;
-        const recentRes = await fetch(recentUrl);
-        if (!recentRes.ok) {
-          if (!cancelled) setRecentDays([]);
-          return;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Failed to fetch dashboard summary");
+        
+        const json = await res.json();
+        if (mounted && json.success) {
+          setDashboardData(json.data);
+          setClientCache(cacheKey, json.data);
         }
-
-        const recentData = await recentRes.json();
-        const submissions: MySubmission[] =
-          recentData?.success && recentData?.data?.submissions ? (recentData.data.submissions as MySubmission[]) : [];
-
-        const byDate = new Map<string, MySubmission>();
-        const allByDate = new Map<string, MySubmission[]>();
-        const countByDate = new Map<string, number>();
-        for (const s of submissions) {
-          if (!s?.date) continue;
-          countByDate.set(s.date, (countByDate.get(s.date) || 0) + 1);
-          if (!allByDate.has(s.date)) allByDate.set(s.date, []);
-          allByDate.get(s.date)!.push(s);
-          const existing = byDate.get(s.date);
-          if (!existing) {
-            byDate.set(s.date, s);
-            continue;
-          }
-          const a = String(existing.created_date || existing.modified_date || '');
-          const b = String(s.created_date || s.modified_date || '');
-          if (b > a) byDate.set(s.date, s);
-        }
-
-        const rows: RecentDayRow[] = [];
-        const leagueStart = typeof league.start_date === 'string' ? league.start_date : null;
-        const leagueEnd = typeof league.end_date === 'string' ? league.end_date : null;
-
-        const rangeStart = isMonthlyFrequency
-          ? new Date(weekStartLocal.getFullYear(), weekStartLocal.getMonth(), 1)
-          : weekStartLocal;
-
-        for (let offset = 0; offset < numDays; offset += 1) {
-          const d = addDays(rangeStart, offset);
-          const ymd = localYmd(d);
-          const label = d.toLocaleDateString(undefined, {
-            weekday: 'short',
-            month: 'short',
-            day: '2-digit',
-            year: 'numeric',
-          });
-
-          const entry = byDate.get(ymd) || null;
-
-          // Strict range check:
-          // - If AFTER league end, definitely out of range.
-          // - If BEFORE league start, consider it "Trial Mode". Only show if there's an actual submission.
-          const isAfterEnd = leagueEnd && ymd > leagueEnd;
-          const isBeforeStart = leagueStart && ymd < leagueStart;
-
-          // Monthly view: show each submission as its own row
-          if (isMonthlyFrequency) {
-            const dayEntries = allByDate.get(ymd);
-            if (!dayEntries || dayEntries.length === 0) continue;
-
-            for (const sub of dayEntries) {
-              const isWorkout = sub.type === 'workout';
-              const wt = isWorkout
-                ? (sub.custom_activity_name || (sub.workout_type ? String(sub.workout_type).replace(/_/g, ' ') : ''))
-                : '';
-              const tl = isWorkout ? (wt ? wt : 'Workout') : 'Rest Day';
-              const sl = sub.status ? String(sub.status) : '';
-              const st = sl ? `${tl} • ${sl}` : tl;
-              const leagueFormula = (league as any)?.rr_config?.formula || 'standard';
-              const ep = (sub as any).effective_points;
-              const rv = typeof sub.rr_value === 'number' ? sub.rr_value : null;
-              const pl = leagueFormula === 'standard'
-                ? (rv !== null ? `${rv.toFixed(1)} RR` : '0 pt')
-                : `${ep != null ? ep : (rv !== null ? Math.round(rv) : 0)} pt`;
-              rows.push({ date: ymd, label, subtitle: st, status: sl, pointsLabel: pl, submission: sub });
-            }
-            continue;
-          }
-
-          if (isAfterEnd) {
-            rows.push({ date: ymd, label, subtitle: '—', pointsLabel: '—', submission: null });
-            continue;
-          }
-
-          if (isBeforeStart && !entry) {
-            rows.push({ date: ymd, label, subtitle: '—', pointsLabel: '—', submission: null });
-            continue;
-          }
-
-          if (!entry) {
-            if (ymd > todayStr) {
-              rows.push({ date: ymd, label, subtitle: 'Upcoming', pointsLabel: '—', submission: null });
-              continue;
-            }
-
-            if (ymd === todayStr) {
-              rows.push({ date: ymd, label, subtitle: 'No submission yet', pointsLabel: '—', submission: null });
-              continue;
-            }
-
-            rows.push({ date: ymd, label, subtitle: 'Missed day', pointsLabel: '0 pt', submission: null });
-            continue;
-          }
-
-          const isWorkout = entry.type === 'workout';
-          const workoutType = isWorkout
-            ? (entry.custom_activity_name || (entry.workout_type ? String(entry.workout_type).replace(/_/g, ' ') : ''))
-            : '';
-          const typeLabel = isWorkout ? (workoutType ? workoutType : 'Workout') : 'Rest Day';
-          const statusLabel = entry.status ? String(entry.status) : '';
-
-          let subtitle = statusLabel ? `${typeLabel} • ${statusLabel}` : typeLabel;
-
-          // Add Trial indication
-          if (isBeforeStart) {
-            subtitle = `(Trial) ${subtitle}`;
-          }
-
-          const leagueFormula = (league as any)?.rr_config?.formula || 'standard';
-          const effectivePts = (entry as any).effective_points;
-          const rr = typeof entry.rr_value === 'number' ? entry.rr_value : null;
-          const pointsLabel = leagueFormula === 'standard'
-            ? (rr !== null ? `${rr.toFixed(1)} RR` : '0 pt')
-            : `${effectivePts != null ? effectivePts : (rr !== null ? Math.round(rr) : 0)} pt`;
-
-          const entryCount = countByDate.get(ymd) || 1;
-          rows.push({ date: ymd, label, subtitle, status: statusLabel, pointsLabel, submission: entry, entryCount });
-        }
-
-        if (!cancelled) setRecentDays(rows.reverse());
-      } catch {
-        if (!cancelled) setRecentDays([]);
-      }
-    };
-
-    void run();
-    return () => {
-      cancelled = true;
-    };
-  }, [id, league, weekOffset, isMonthlyFrequency]);
-
-  // Player summary (mirrors the metrics shown on /league-dashboard)
-  React.useEffect(() => {
-    if (!league) return;
-
-    setMySummaryLoading(true);
-
-    const localYmd = (d: Date) => {
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${y}-${m}-${day}`;
-    };
-
-    const parseLocalYYYYMMDD = (ymd: string): Date | null => {
-      const match = /^\d{4}-\d{2}-\d{2}$/.exec(String(ymd));
-      if (!match) return null;
-      const [y, m, d] = ymd.split('-').map((p) => Number(p));
-      if (!y || !m || !d) return null;
-      const dt = new Date(y, m - 1, d);
-      if (Number.isNaN(dt.getTime())) return null;
-      return dt;
-    };
-
-    const run = async () => {
-      try {
-        // Check cache first for instant display (stale-while-revalidate pattern)
-        const cacheKey = `mySummary_${id}_${user?.id}`;
-        const cached = getClientCache<typeof mySummary>(cacheKey);
-        if (cached) {
-          setMySummary(cached);
-          setMySummaryLoading(false);
-          // Continue to refresh in background
-        }
-
-        const todayLocal = new Date();
-        const todayStr = localYmd(todayLocal);
-
-        const leagueEndLocal = parseLocalYYYYMMDD(league.end_date);
-        const effectiveEndStr = leagueEndLocal && localYmd(leagueEndLocal) < todayStr ? localYmd(leagueEndLocal) : todayStr;
-
-        const qs = new URLSearchParams();
-        qs.set('startDate', league.start_date);
-        qs.set('endDate', effectiveEndStr);
-
-        const [myRes, restRes, teamSummaryRes] = await Promise.all([
-          fetch(`/api/leagues/${id}/my-submissions?${qs.toString()}`, { credentials: 'include' }),
-          fetch(`/api/leagues/${id}/rest-days`, { credentials: 'include' }),
-          fetch(`/api/leagues/${id}/my-team/summary`, { credentials: 'include' }),
-        ]);
-
-        let points = 0;
-        let avgRR: number | null = null;
-        let restUsed = 0;
-        let missedDays = 0;
-        let restUnused: number | null = null;
-        let teamAvgRR: number | null = null;
-        let teamPoints: number | null = null;
-        let teamMissedDays: number | null = null;
-        let teamRestUsed: number | null = null;
-
-        let teamId: string | null = null;
-
-        if (myRes.ok) {
-          const json = await myRes.json();
-          const subs: Array<{ date: string; type: string; rr_value: number | string | null; status?: string | null }> =
-            json?.success && json?.data?.submissions ? json.data.submissions : [];
-
-          // DEBUG: log what we're receiving from the API
-          console.log('[MySummary] Raw submissions:', subs);
-          console.log('[MySummary] Query range:', league.start_date, 'to', effectiveEndStr);
-
-          teamId = (json?.data?.teamId as string | null) ?? null;
-
-          const isApproved = (s: { status?: string | null }) => {
-            const v = String(s.status || '').toLowerCase();
-            return v === 'approved' || v === 'accepted';
-          };
-
-          const approvedSubs = subs.filter((s) => isApproved(s));
-          console.log('[MySummary] Approved submissions:', approvedSubs);
-
-          // Deduplicate: one approved entry per date+activity (matches leaderboard logic).
-          // Multiple different activities on the same date each count separately.
-          const uniqueByDateActivity = new Map<string, (typeof approvedSubs)[number]>();
-          approvedSubs.forEach((s: any) => {
-            const dateKey = String(s.date).slice(0, 10);
-            const actKey = `${dateKey}_${s.workout_type || ''}`;
-            const existing = uniqueByDateActivity.get(actKey);
-            if (!existing || (!existing.rr_value && s.rr_value)) {
-              uniqueByDateActivity.set(actKey, s);
-            }
-          });
-          const dedupedApproved = Array.from(uniqueByDateActivity.values());
-
-          // Use effective_points from API when available (handles outcome-based points)
-          const leagueFormulaSummary = (league as any)?.rr_config?.formula || 'standard';
-          if (leagueFormulaSummary === 'points_only') {
-            points = dedupedApproved.reduce((sum, s: any) => sum + (typeof s.effective_points === 'number' ? s.effective_points : 1), 0);
-          } else {
-            points = dedupedApproved.length;
-          }
-          restUsed = dedupedApproved.filter((s) => String(s.type).toLowerCase() === 'rest').length;
-
-          const totalRR = dedupedApproved
-            .map((s) => {
-              // User Rule: Rest days give 1 RR
-              if (String(s.type).toLowerCase() === 'rest') return 1;
-
-              const v = s.rr_value;
-              if (typeof v === 'number') return v;
-              if (typeof v === 'string') {
-                const parsed = parseFloat(v);
-                return Number.isFinite(parsed) ? parsed : 0;
-              }
-              return 0;
-            })
-            .filter((v) => Number.isFinite(v) && v > 0)
-            .reduce((a, b) => a + b, 0);
-
-          const rrCount = dedupedApproved.length;
-          avgRR = rrCount > 0 ? Math.round((totalRR / rrCount) * 100) / 100 : null;
-
-          // Missed days: from league start through yesterday (local), or league end if earlier.
-          const startDt = parseLocalYYYYMMDD(league.start_date);
-          const endDt = parseLocalYYYYMMDD(effectiveEndStr);
-          if (startDt && endDt) {
-            const yesterday = new Date(todayLocal);
-            yesterday.setHours(0, 0, 0, 0);
-            yesterday.setDate(yesterday.getDate() - 1);
-            const yStr = localYmd(yesterday);
-            const missedEndStr = localYmd(endDt) < yStr ? localYmd(endDt) : yStr;
-            const missedEndDt = parseLocalYYYYMMDD(missedEndStr);
-
-            if (missedEndDt && startDt.getTime() <= missedEndDt.getTime()) {
-              // Missed days are days with no submission at all (any status).
-              const byDate = new Set(subs.map((s) => String(s.date)));
-              const cur = new Date(startDt);
-              while (cur.getTime() <= missedEndDt.getTime()) {
-                const ds = localYmd(cur);
-                if (!byDate.has(ds)) missedDays += 1;
-                cur.setDate(cur.getDate() + 1);
-              }
-            }
-          }
-        }
-
-        if (restRes.ok) {
-          const json = await restRes.json();
-          const data = json?.data;
-          const used = typeof data?.used === 'number' ? data.used : null;
-          const remaining = typeof data?.remaining === 'number' ? data.remaining : null;
-          const totalAllowed = typeof data?.totalAllowed === 'number' ? data.totalAllowed : null;
-
-          // Prefer the dedicated rest-days endpoint for consistency.
-          if (typeof used === 'number' && Number.isFinite(used)) {
-            restUsed = Math.max(0, used);
-          }
-          if (typeof remaining === 'number' && Number.isFinite(remaining)) {
-            restUnused = Math.max(0, remaining);
-          } else if (typeof totalAllowed === 'number' && Number.isFinite(totalAllowed)) {
-            restUnused = Math.max(0, totalAllowed - restUsed);
-          }
-        }
-
-        if (teamSummaryRes.ok) {
-          const json = await teamSummaryRes.json();
-          const data = json?.data;
-          if (typeof data?.missedDays === 'number') {
-            teamMissedDays = Math.max(0, data.missedDays);
-          }
-          if (typeof data?.restUsed === 'number') {
-            teamRestUsed = Math.max(0, data.restUsed);
-          }
-        }
-
-        // Fetch leaderboard data (for both team and individual stats) - single call with full=true
-        let leaderboardData: any = null;
-        let totalPoints = points;
-        let challengePoints = 0;
-        let teamActivityPoints = 0;
-        let teamChallengePoints = 0;
-        let teamRank: number | null = null;
-
-        try {
-          const tzOffsetMinutes = new Date().getTimezoneOffset();
-          const ianaTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
-          const query = `full=true&tzOffsetMinutes=${encodeURIComponent(String(tzOffsetMinutes))}&ianaTimezone=${encodeURIComponent(ianaTimezone)}`;
-          const lbRes = await fetch(
-            `/api/leagues/${id}/leaderboard?${query}`,
-            { credentials: 'include' }
-          );
-
-          if (lbRes.ok) {
-            leaderboardData = await lbRes.json();
-
-            // Extract team stats if teamId exists
-            if (teamId) {
-              const teams: Array<{ team_id: string; avg_rr: number; points?: number; total_points?: number; challenge_bonus?: number }> =
-                leaderboardData?.data?.teams || leaderboardData?.data?.teamRankings || [];
-              const mine = teams.find((t) => String(t.team_id) === String(teamId));
-              const v = mine && typeof mine.avg_rr === 'number' ? mine.avg_rr : null;
-              teamAvgRR = typeof v === 'number' && Number.isFinite(v) ? Math.round(v * 100) / 100 : null;
-
-              const p =
-                mine && typeof mine.total_points === 'number'
-                  ? mine.total_points
-                  : mine && typeof mine.points === 'number'
-                    ? mine.points
-                    : null;
-              teamPoints = typeof p === 'number' && Number.isFinite(p) ? Math.max(0, p) : null;
-
-              // Use team's base points (before challenge bonus) for activity points
-              teamActivityPoints = mine && typeof mine.points === 'number' ? Math.max(0, mine.points) : 0;
-              teamChallengePoints = mine && typeof mine.challenge_bonus === 'number' ? Math.max(0, mine.challenge_bonus) : 0;
-
-              // Extract team rank
-              if (mine && typeof (mine as any).rank === 'number') {
-                teamRank = (mine as any).rank;
-              } else {
-                // Derive rank from position in sorted array
-                const sortedTeams = [...teams].sort((a, b) => (b.total_points ?? b.points ?? 0) - (a.total_points ?? a.points ?? 0));
-                const idx = sortedTeams.findIndex((t) => String(t.team_id) === String(teamId));
-                teamRank = idx >= 0 ? idx + 1 : null;
-              }
-            }
-
-            // Extract individual points from leaderboard (respects points_per_session config)
-            const individuals: Array<{ user_id: string; points?: number }> =
-              leaderboardData?.data?.individuals || [];
-            const myIndividual = individuals.find((i) => String(i.user_id) === String(user?.id));
-            if (myIndividual && typeof myIndividual.points === 'number') {
-              points = myIndividual.points;
-            }
-
-            // Individual stats: challenge points are no longer added to individual totals.
-            // Individual players only see activity points - all challenge points go to team.
-            // totalPoints for individual = activity points only
-            totalPoints = points;
-          }
-        } catch (err) {
-          // Fallback: no leaderboard available, use workout-only points
-          console.warn('[MySummary] Leaderboard fetch failed, using workout-only points:', err);
-        }
-
-        // Set summary with all calculated values
-        const summaryData = {
-          points,
-          totalPoints,
-          challengePoints,
-          avgRR,
-          restUsed,
-          restUnused,
-          missedDays,
-          teamAvgRR,
-          teamPoints,
-          teamMissedDays,
-          teamRestUsed,
-          teamActivityPoints,
-          teamChallengePoints,
-          teamRank,
-        };
-        setMySummary(summaryData);
-
-        // Cache the summary data for faster subsequent loads
-        setClientCache(cacheKey, summaryData);
-
-        console.log('[MySummary] Final values:', summaryData);
-      } catch {
-        setMySummary(null);
+      } catch (err: any) {
+        console.error("Dashboard fetch error:", err);
+        if (mounted) setError(err.message || "Failed to load dashboard data");
       } finally {
-        setMySummaryLoading(false);
+        if (mounted) setLoading(false);
       }
-    };
+    }
 
-    run();
-  }, [id, league, user]);
+    fetchData();
+    return () => {
+      mounted = false;
+    };
+  }, [id, weekOffset, league?.start_date, refreshKey]);
+
+
+
+
+
+
+
+
+
 
   const openSubmissionDetails = (submission: MySubmission | null) => {
     if (!submission) return;
@@ -1007,7 +503,7 @@ export default function LeagueDashboardPage({
         </div>
       )}
 
-      {mySummaryLoading || !mySummaryStats ? (
+      {loading || !mySummary ? (
         <>
           <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 px-4 lg:px-6 py-2 border-b">
             <div className="grid grid-cols-2 gap-2">
@@ -1046,7 +542,10 @@ export default function LeagueDashboardPage({
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => fetchLeagueData(true)}
+                    onClick={() => {
+                      invalidateClientCache(`league-dashboard-summary:${id}:${weekOffset}`);
+                      setRefreshKey(prev => prev + 1);
+                    }}
                     aria-label="Refresh summary"
                   >
                     <RefreshCw className="size-4" />
@@ -1163,7 +662,10 @@ export default function LeagueDashboardPage({
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => fetchLeagueData(true)}
+                      onClick={() => {
+                        invalidateClientCache(`league-dashboard-summary:${id}:${weekOffset}`);
+                        setRefreshKey(prev => prev + 1);
+                      }}
                       aria-label="Refresh summary"
                     >
                       <RefreshCw className="size-4" />
