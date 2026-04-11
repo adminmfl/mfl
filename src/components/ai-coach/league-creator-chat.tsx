@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import Confetti from 'react-confetti';
@@ -74,44 +74,87 @@ declare global {
 // Lightweight markdown renderer for AI assistant messages
 // ---------------------------------------------------------------------------
 
-function renderMarkdown(text: string): (string | JSX.Element)[] {
-  const parts: (string | JSX.Element)[] = [];
-  // Match **bold**, *italic*, and `code`
-  const regex = /(\*\*(.+?)\*\*)|(\*(.+?)\*)|(`(.+?)`)/g;
-  let lastIdx = 0;
-  let match: RegExpExecArray | null;
+function parseInlineMarkdown(text: string, keyPrefix: string): ReactNode[] {
+  const parts: ReactNode[] = [];
+  let i = 0;
+  let tokenIndex = 0;
 
-  while ((match = regex.exec(text)) !== null) {
-    if (match.index > lastIdx) {
-      parts.push(text.slice(lastIdx, match.index));
+  while (i < text.length) {
+    // **bold**
+    if (text.startsWith('**', i)) {
+      const end = text.indexOf('**', i + 2);
+      if (end !== -1) {
+        const inner = text.slice(i + 2, end);
+        parts.push(
+          <strong key={`${keyPrefix}-b-${tokenIndex++}`} className="font-semibold">
+            {parseInlineMarkdown(inner, `${keyPrefix}-b-${tokenIndex}`)}
+          </strong>
+        );
+        i = end + 2;
+        continue;
+      }
     }
-    if (match[1]) {
-      // **bold**
-      parts.push(
-        <strong key={match.index} className="font-semibold">
-          {match[2]}
-        </strong>
-      );
-    } else if (match[3]) {
-      // *italic*
-      parts.push(
-        <em key={match.index}>
-          {match[4]}
-        </em>
-      );
-    } else if (match[5]) {
-      // `code`
-      parts.push(
-        <code key={match.index} className="bg-muted-foreground/10 rounded px-1 py-0.5 text-xs font-mono">
-          {match[6]}
-        </code>
-      );
+
+    // *italic*
+    if (text[i] === '*') {
+      const end = text.indexOf('*', i + 1);
+      if (end !== -1) {
+        const inner = text.slice(i + 1, end);
+        parts.push(
+          <em key={`${keyPrefix}-i-${tokenIndex++}`}>
+            {parseInlineMarkdown(inner, `${keyPrefix}-i-${tokenIndex}`)}
+          </em>
+        );
+        i = end + 1;
+        continue;
+      }
     }
-    lastIdx = match.index + match[0].length;
+
+    // `code`
+    if (text[i] === '`') {
+      const end = text.indexOf('`', i + 1);
+      if (end !== -1) {
+        const inner = text.slice(i + 1, end);
+        parts.push(
+          <code
+            key={`${keyPrefix}-c-${tokenIndex++}`}
+            className="bg-muted-foreground/10 rounded px-1 py-0.5 text-xs font-mono"
+          >
+            {inner}
+          </code>
+        );
+        i = end + 1;
+        continue;
+      }
+    }
+
+    // Plain text until the next formatting token
+    let next = text.length;
+    const nextBold = text.indexOf('**', i);
+    const nextItalic = text.indexOf('*', i);
+    const nextCode = text.indexOf('`', i);
+    if (nextBold !== -1 && nextBold < next) next = nextBold;
+    if (nextItalic !== -1 && nextItalic < next) next = nextItalic;
+    if (nextCode !== -1 && nextCode < next) next = nextCode;
+
+    parts.push(text.slice(i, next));
+    i = next;
   }
-  if (lastIdx < text.length) {
-    parts.push(text.slice(lastIdx));
-  }
+
+  return parts;
+}
+
+function renderMarkdown(text: string): ReactNode[] {
+  const lines = text.split('\n');
+  const parts: ReactNode[] = [];
+
+  lines.forEach((line, index) => {
+    parts.push(...parseInlineMarkdown(line, `line-${index}`));
+    if (index < lines.length - 1) {
+      parts.push(<br key={`br-${index}`} />);
+    }
+  });
+
   return parts;
 }
 
@@ -495,7 +538,7 @@ export function LeagueCreatorChat() {
       {/* FAB */}
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-20 right-4 z-50 flex items-center gap-2 rounded-full bg-gradient-to-r from-primary to-purple-600 text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all px-4 py-3 md:bottom-6"
+        className="fixed bottom-20 right-4 z-50 flex items-center gap-2 rounded-full bg-linear-to-r from-primary to-purple-600 text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all px-4 py-3 md:bottom-6"
       >
         <Bot className="size-5" />
         <span className="text-sm font-medium">AI Assistant</span>
@@ -506,7 +549,7 @@ export function LeagueCreatorChat() {
       <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
         <DialogContent className="sm:max-w-lg p-0 gap-0 overflow-hidden max-h-[85vh] flex flex-col">
           {/* Header */}
-          <DialogHeader className="px-4 py-3 border-b bg-gradient-to-r from-primary/5 to-purple-500/5 shrink-0">
+          <DialogHeader className="px-4 py-3 border-b bg-linear-to-r from-primary/5 to-purple-500/5 shrink-0">
             <DialogTitle className="flex items-center gap-2 text-base">
               <Bot className="size-5 text-primary" />
               League Creation Assistant
@@ -546,7 +589,7 @@ export function LeagueCreatorChat() {
             <>
               <div
                 ref={scrollRef}
-                className="flex-1 overflow-y-auto px-4 py-3 space-y-3 min-h-[300px] max-h-[50vh]"
+                className="flex-1 overflow-y-auto px-4 py-3 space-y-3 min-h-75 max-h-[50vh]"
               >
                 {messages.map((msg) => (
                   <div
@@ -627,7 +670,7 @@ export function LeagueCreatorChat() {
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={handleKeyDown}
                     placeholder={isComplete ? 'Edit details or review summary...' : 'Describe your league...'}
-                    className="min-h-[36px] max-h-24 resize-none text-sm py-2"
+                    className="min-h-9 max-h-24 resize-none text-sm py-2"
                     rows={1}
                     disabled={sending}
                   />
@@ -663,7 +706,7 @@ export function LeagueCreatorChat() {
           {/* ============================================================ */}
           {view === 'summary' && (
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-              <div className="bg-gradient-to-br from-primary/5 to-purple-500/5 rounded-xl p-4 space-y-3">
+              <div className="bg-linear-to-br from-primary/5 to-purple-500/5 rounded-xl p-4 space-y-3">
                 <h3 className="font-semibold text-base">{fields.league_name}</h3>
                 {fields.description && (
                   <p className="text-sm text-muted-foreground">{fields.description}</p>
@@ -779,7 +822,7 @@ export function LeagueCreatorChat() {
                 />
               )}
 
-              <div className="size-20 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center animate-bounce mb-4">
+              <div className="size-20 rounded-full bg-linear-to-br from-green-400 to-emerald-600 flex items-center justify-center animate-bounce mb-4">
                 <PartyPopper className="size-10 text-white" />
               </div>
               <h3 className="text-xl font-bold mb-1">League Created!</h3>
