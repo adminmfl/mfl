@@ -71,9 +71,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { DumbbellLoading } from '@/components/ui/dumbbell-loading';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useAiInsights } from '@/hooks/use-ai-insights';
 import { Sparkles } from 'lucide-react';
 
@@ -84,7 +84,73 @@ import type { TeamMember } from '@/hooks/use-league-teams';
 // ============================================================================
 
 function PageSkeleton() {
-  return <DumbbellLoading label="Loading team..." />;
+  return (
+    <div className="@container/main flex flex-1 flex-col gap-4 lg:gap-6">
+      <div className="flex flex-col gap-4 px-4 lg:px-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-4">
+          <Skeleton className="size-14 rounded-xl" />
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-40" />
+            <Skeleton className="h-4 w-36" />
+            <Skeleton className="h-3 w-44" />
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-9 w-40 rounded-md" />
+          <Skeleton className="h-7 w-28 rounded-full" />
+          <Skeleton className="h-9 w-28 rounded-md" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 px-4 lg:px-6">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <Card key={index} className="p-2.5">
+            <div className="mb-1 flex items-center gap-1.5 text-[10px] text-muted-foreground">
+              <Skeleton className="size-3 rounded-sm" />
+              <Skeleton className="h-3 w-16" />
+            </div>
+            <Skeleton className="h-6 w-16" />
+            <Skeleton className="mt-1 h-3 w-full" />
+          </Card>
+        ))}
+      </div>
+
+      <div className="px-4 lg:px-6">
+        <Skeleton className="h-3 w-52" />
+      </div>
+
+      <div className="px-4 lg:px-6">
+        <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-6 w-32" />
+            <Skeleton className="h-4 w-40" />
+          </div>
+          <Skeleton className="h-10 w-full sm:w-64" />
+        </div>
+
+        <div className="rounded-lg border">
+          <div className="grid grid-cols-5 gap-3 border-b bg-muted/50 px-4 py-3">
+            {Array.from({ length: 5 }).map((_, index) => (
+              <Skeleton key={index} className="h-4 w-full" />
+            ))}
+          </div>
+          <div className="space-y-4 px-4 py-4">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div key={index} className="grid grid-cols-5 items-center gap-3">
+                <Skeleton className="h-4 w-6" />
+                <div className="col-span-2 flex items-center gap-2">
+                  <Skeleton className="size-8 rounded-full" />
+                  <Skeleton className="h-4 w-24" />
+                </div>
+                <Skeleton className="h-4 w-12" />
+                <Skeleton className="h-4 w-12" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ============================================================================
@@ -264,6 +330,7 @@ export default function MyTeamPage({
     try {
       let successCount = 0;
       let failCount = 0;
+      let firstError: string | null = null;
 
       // Assign all selected members
       for (const memberId of selectedMemberIds) {
@@ -272,10 +339,13 @@ export default function MyTeamPage({
           if (success) {
             successCount++;
           } else {
+            firstError = firstError || 'Failed to assign member';
+            console.error('Failed to assign member');
             failCount++;
           }
         } catch (err) {
           console.error('Error assigning member:', err);
+          firstError = firstError || 'Failed to assign member';
           failCount++;
         }
       }
@@ -285,7 +355,7 @@ export default function MyTeamPage({
         toast.success(`${successCount} member${successCount !== 1 ? 's' : ''} assigned to ${teamName}`);
       }
       if (failCount > 0) {
-        toast.error(`Failed to assign ${failCount} member${failCount !== 1 ? 's' : ''}`);
+        toast.error(firstError || `Failed to assign ${failCount} member${failCount !== 1 ? 's' : ''}`);
       }
 
       // Clear selections and refetch

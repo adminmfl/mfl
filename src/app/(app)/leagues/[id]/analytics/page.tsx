@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { DumbbellLoading } from '@/components/ui/dumbbell-loading';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   LineChart,
   Line,
@@ -53,7 +53,87 @@ const CACHE_TTL_MS = 10 * 60 * 1000;
 const analyticsCache = new Map<string, { data: AnalyticsData; fetchedAt: number; generatedAt?: string }>();
 
 function AnalyticsSkeleton() {
-  return <DumbbellLoading label="Loading analytics..." />;
+  return (
+    <div className="flex flex-col gap-6 px-4 lg:px-6 py-6">
+      {/* Header Skeleton */}
+      <Card className="bg-muted/30">
+        <CardContent className="py-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div className="flex items-start gap-3">
+              <Skeleton className="size-9 rounded-md" />
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-9 w-64" />
+                  <Skeleton className="h-5 w-24 rounded-full" />
+                  <Skeleton className="h-5 w-24 rounded-full" />
+                </div>
+                <Skeleton className="h-4 w-80" />
+              </div>
+            </div>
+            <Skeleton className="h-9 w-28 rounded-md" />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Grid Overview Skeletons */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Card key={i}>
+            <CardContent className="pt-6">
+              <div className="flex flex-col items-center gap-2">
+                <Skeleton className="h-10 w-16" />
+                <Skeleton className="h-4 w-24" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Charts Skeleton */}
+      <div className="grid grid-cols-1 gap-6">
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-4 w-64" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-[300px] w-full rounded-md" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-4 w-64" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-[300px] w-full rounded-md" />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Performers Skeleton */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <div key={i}>
+            <Skeleton className="h-6 w-36 mb-4" />
+            <Card>
+              <CardContent className="pt-6 space-y-4">
+                {Array.from({ length: 5 }).map((_, j) => (
+                  <div key={j} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="h-6 w-8 rounded-md" />
+                      <Skeleton className="h-5 w-32" />
+                    </div>
+                    <Skeleton className="h-5 w-12" />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export default function LeagueAnalyticsPage({ params }: { params: Promise<{ id: string }> }) {

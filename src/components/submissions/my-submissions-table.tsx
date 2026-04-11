@@ -53,9 +53,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { DumbbellLoading } from '@/components/ui/dumbbell-loading';
 import { cn } from '@/lib/utils';
 import { isReuploadWindowOpen } from '@/lib/utils/reupload-window';
+import { Skeleton } from '@/components/ui/skeleton';
 
 import { SubmissionDetailDialog } from './submission-detail-dialog';
 import type { MySubmission, SubmissionStats } from '@/hooks/use-my-submissions';
@@ -68,7 +68,53 @@ import { useLeague } from '@/contexts/league-context';
 // ============================================================================
 
 function TableSkeleton() {
-  return <DumbbellLoading label="Loading activities..." />;
+  return (
+    <div className="space-y-4">
+      {/* Stats Cards Skeleton */}
+      <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="flex flex-col items-center justify-center p-2 rounded-md border bg-card h-14 space-y-1">
+            <Skeleton className="h-4 w-12" />
+            <Skeleton className="h-2 w-16" />
+          </div>
+        ))}
+      </div>
+
+      {/* Filters Skeleton */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+        <Skeleton className="h-10 flex-1 sm:max-w-xs" />
+        <Skeleton className="h-10 w-[160px]" />
+      </div>
+
+      {/* Table Skeleton */}
+      <div className="rounded-lg border overflow-hidden">
+        <div className="bg-muted p-4 border-b">
+          <div className="grid grid-cols-4 gap-4">
+            <Skeleton className="h-4 w-12" />
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-4 w-8 ml-auto" />
+          </div>
+        </div>
+        <div className="p-4 space-y-4">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="grid grid-cols-4 items-center gap-4">
+              <Skeleton className="h-4 w-12" />
+              <div className="flex items-center gap-2">
+                <Skeleton className="size-7 rounded-md" />
+                <div className="space-y-1">
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-3 w-12" />
+                </div>
+              </div>
+              <Skeleton className="h-6 w-20 rounded-full" />
+              <Skeleton className="size-7 rounded-md ml-auto" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ============================================================================

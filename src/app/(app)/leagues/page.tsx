@@ -27,7 +27,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { DumbbellLoading } from '@/components/ui/dumbbell-loading';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -60,6 +59,7 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // ============================================================================
 // Leagues Page
@@ -275,7 +275,7 @@ export default function LeaguesPage() {
       {/* Leagues Table */}
       <div className="px-4 lg:px-6">
         {isLoading ? (
-          <DumbbellLoading label="Loading leagues..." />
+          <LeaguesPageSkeleton />
         ) : filteredLeagues.length === 0 ? (
           <EmptyState
             hasLeagues={userLeagues.length > 0}
@@ -504,6 +504,36 @@ function EmptyState({
 // Skeleton Component
 // ============================================================================
 
-function LeaguesTableSkeleton() {
-  return <DumbbellLoading label="Loading leagues..." />;
+function LeaguesPageSkeleton() {
+  return (
+    <div className="@container/main flex flex-1 flex-col gap-4 lg:gap-6 -mt-4">
+      {/* Table Skeleton */}
+      <div className="overflow-hidden rounded-lg border">
+        <div className="grid grid-cols-5 gap-3 border-b bg-muted px-4 py-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-4 w-full" />
+          ))}
+        </div>
+        <div className="space-y-4 px-4 py-4">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="grid grid-cols-5 items-center gap-3">
+              <div className="flex items-center gap-3">
+                <Skeleton className="size-10 rounded-lg" />
+                <div className="space-y-1">
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="h-3 w-36" />
+                </div>
+              </div>
+              <Skeleton className="h-6 w-16 rounded-full" />
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-4 w-24" />
+              <div className="flex justify-end">
+                <Skeleton className="size-8 rounded-md" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }

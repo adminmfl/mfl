@@ -32,7 +32,7 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { DumbbellLoading } from '@/components/ui/dumbbell-loading';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // ============================================================================
 // Types
@@ -383,7 +383,7 @@ export default function ManageRulesPage({
   }
 
   if (loading) {
-    return <DumbbellLoading label="Loading rules..." />;
+    return <ManageRulesSkeleton />;
   }
 
   if (error) {
@@ -494,6 +494,53 @@ export default function ManageRulesPage({
         onOpenChange={setEditorOpen}
         onSaved={fetchRules}
       />
+    </div>
+  );
+}
+// ============================================================================
+// Skeleton Component
+// ============================================================================
+
+function ManageRulesSkeleton() {
+  return (
+    <div className="flex flex-col gap-6 py-4 md:py-6">
+      {/* Header Skeleton */}
+      <div className="flex flex-col gap-4 px-4 lg:px-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Skeleton className="size-6 rounded-md" />
+              <Skeleton className="h-8 w-64" />
+            </div>
+            <Skeleton className="h-4 w-80" />
+          </div>
+          <Skeleton className="h-10 w-32 rounded-md" />
+        </div>
+      </div>
+
+      {/* Content Skeleton */}
+      <div className="px-4 lg:px-6">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-24" />
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+            </CardContent>
+          </Card>
+
+          <div className="space-y-3 mt-6">
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-6 w-40" />
+              <Skeleton className="h-9 w-28" />
+            </div>
+            <Skeleton className="w-full rounded-lg border h-[500px]" />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

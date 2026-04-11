@@ -43,7 +43,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { DumbbellLoading } from '@/components/ui/dumbbell-loading';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -467,7 +467,7 @@ export default function PaymentsPage() {
       {/* Data Table */}
       <div className="px-4 lg:px-6">
         {isLoading ? (
-          <DumbbellLoading label="Loading payments..." />
+          <PaymentsPageSkeleton />
         ) : error ? (
           <Card className="border-destructive">
             <CardContent className="p-6 text-center text-destructive">
@@ -623,6 +623,54 @@ export default function PaymentsPage() {
             </div>
           </>
         )}
+      </div>
+    </div>
+  );
+}
+// ============================================================================
+// Skeleton Component
+// ============================================================================
+
+function PaymentsPageSkeleton() {
+  return (
+    <div className="space-y-6">
+      {/* Stats Cards Skeleton */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Card key={i} className="py-4 sm:py-6">
+            <CardHeader className="gap-1.5 px-4 sm:px-6">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-8 w-32" />
+              <Skeleton className="h-5 w-16" />
+            </CardHeader>
+            <CardFooter className="flex-col items-start gap-1 px-4 pt-3 sm:px-6 sm:pt-6">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-3 w-2/3" />
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+
+      {/* Table Skeleton */}
+      <div className="overflow-hidden rounded-lg border">
+        <div className="bg-muted p-4 border-b">
+          <div className="grid grid-cols-5 gap-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-4 w-full" />
+            ))}
+          </div>
+        </div>
+        <div className="p-4 space-y-4">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="grid grid-cols-5 items-center gap-4">
+              <Skeleton className="h-10 w-full rounded-md" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-6 w-20 rounded-full" />
+              <Skeleton className="h-4 w-full" />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

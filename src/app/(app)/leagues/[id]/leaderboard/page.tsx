@@ -35,12 +35,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { DumbbellLoading } from '@/components/ui/dumbbell-loading';
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 import { useLeagueLeaderboard } from '@/hooks/use-league-leaderboard';
@@ -96,7 +96,55 @@ function calculateWeekPresets(leagueStartDate: string, leagueEndDate: string): W
 // ============================================================================
 
 function LoadingSkeleton() {
-  return <DumbbellLoading label="Loading leaderboard..." />;
+  return (
+    <div className="@container/main flex flex-1 flex-col gap-3 lg:gap-4">
+      <div className="px-4 lg:px-6">
+        <div className="rounded-lg border bg-card/70 px-3 py-3 shadow-sm">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <div className="space-y-2">
+              <Skeleton className="h-7 w-32" />
+              <Skeleton className="h-4 w-40" />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Skeleton className="h-8 w-28 rounded-md" />
+              <Skeleton className="size-8 rounded-md" />
+            </div>
+          </div>
+          <div className="border-t pt-3">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <div className="space-y-2">
+                <Skeleton className="h-6 w-40" />
+                <Skeleton className="h-4 w-48" />
+              </div>
+              <Skeleton className="h-8 w-28 rounded-md" />
+            </div>
+            <Skeleton className="mb-3 h-4 w-56" />
+            <div className="overflow-hidden rounded-lg border">
+              <div className="grid grid-cols-4 gap-3 border-b bg-muted/40 px-4 py-3 sm:grid-cols-5">
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <Skeleton key={index} className="h-4 w-full" />
+                ))}
+              </div>
+              <div className="space-y-4 px-4 py-4">
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <div key={index} className="grid grid-cols-4 items-center gap-3 sm:grid-cols-5">
+                    <Skeleton className="h-4 w-8" />
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="size-9 rounded-full" />
+                      <Skeleton className="h-4 w-28" />
+                    </div>
+                    <Skeleton className="h-4 w-14" />
+                    <Skeleton className="h-4 w-12" />
+                    <Skeleton className="hidden h-4 w-16 sm:block" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ============================================================================
