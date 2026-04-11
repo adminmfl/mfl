@@ -16,6 +16,7 @@ import {
   Loader2,
   Link2,
 } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { useLeague } from '@/contexts/league-context';
 import { Button } from '@/components/ui/button';
@@ -33,8 +34,15 @@ import {
 } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { CannedMessagePicker } from './canned-message-picker';
+import { RecentWorkoutPicker } from './recent-workout-picker';
 import { MentionDropdown, type MentionMember } from './mention-dropdown';
 import type { Message } from './message-bubble';
+
+interface RecentWorkout {
+  id: string;
+  date: string;
+  workout_type: string | null;
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -72,6 +80,7 @@ export function MessageInput({
   const [deepLink, setDeepLink] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [motivating, setMotivating] = useState(false);
+  const [attachMenuOpen, setAttachMenuOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Mention state
@@ -263,6 +272,23 @@ export function MessageInput({
     textareaRef.current?.focus();
   };
 
+  const handleWorkoutSelect = (workout: RecentWorkout) => {
+    const workoutLabel = workout.workout_type
+      ? workout.workout_type
+          .split('_')
+          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ')
+      : 'Workout';
+    const label = `${workoutLabel} • ${format(parseISO(workout.date), 'MMM d')}`;
+    const params = new URLSearchParams({
+      submissionId: workout.id,
+      label,
+    });
+
+    setDeepLink(`/leagues/${leagueId}/submit?${params.toString()}`);
+    setAttachMenuOpen(false);
+  };
+
   return (
     <div className="border-t bg-background px-3 py-2 sm:px-4 sm:py-3">
       {/* Reply preview */}
@@ -417,7 +443,7 @@ export function MessageInput({
         )}
 
         {/* Attach link — popover with selectable options */}
-        <Popover>
+        <Popover open={attachMenuOpen} onOpenChange={setAttachMenuOpen}>
           <PopoverTrigger asChild>
             <Button
               type="button"
@@ -441,24 +467,17 @@ export function MessageInput({
                 Remove attached link
               </button>
             )}
-            <button
-              type="button"
-              className={cn(
-                'w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent',
-                deepLink === `/leagues/${leagueId}/submit` && 'bg-accent font-medium'
-              )}
-              onClick={() => setDeepLink(`/leagues/${leagueId}/submit`)}
-            >
-              <Dumbbell className="size-3.5" />
-              Submit Workout
-            </button>
+            <RecentWorkoutPicker leagueId={leagueId} onSelect={handleWorkoutSelect} />
             <button
               type="button"
               className={cn(
                 'w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent',
                 deepLink === `/leagues/${leagueId}/challenges` && 'bg-accent font-medium'
               )}
-              onClick={() => setDeepLink(`/leagues/${leagueId}/challenges`)}
+              onClick={() => {
+                setDeepLink(`/leagues/${leagueId}/challenges`);
+                setAttachMenuOpen(false);
+              }}
             >
               <Link2 className="size-3.5" />
               Challenges
@@ -469,7 +488,10 @@ export function MessageInput({
                 'w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent',
                 deepLink === `/leagues/${leagueId}/leaderboard` && 'bg-accent font-medium'
               )}
-              onClick={() => setDeepLink(`/leagues/${leagueId}/leaderboard`)}
+              onClick={() => {
+                setDeepLink(`/leagues/${leagueId}/leaderboard`);
+                setAttachMenuOpen(false);
+              }}
             >
               <Link2 className="size-3.5" />
               Leaderboard
@@ -480,7 +502,10 @@ export function MessageInput({
                 'w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent',
                 deepLink === `/leagues/${leagueId}/activities` && 'bg-accent font-medium'
               )}
-              onClick={() => setDeepLink(`/leagues/${leagueId}/activities`)}
+              onClick={() => {
+                setDeepLink(`/leagues/${leagueId}/activities`);
+                setAttachMenuOpen(false);
+              }}
             >
               <Link2 className="size-3.5" />
               Activities
@@ -509,7 +534,7 @@ export function MessageInput({
             onChange={handleContentChange}
             onKeyDown={handleKeyDown}
             placeholder="Type a message... Use @ to mention"
-            className="min-h-[40px] max-h-32 resize-none text-sm py-2"
+            className="min-h-10 max-h-32 resize-none text-sm py-2"
             rows={1}
             disabled={sending}
           />
