@@ -213,31 +213,70 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check permissions (must be host or governor)
-    const canRemove = await userHasAnyRole(session.user.id, leagueId, [
+    const body = await request.json();
+    const validated = removeMemberSchema.parse(body);
+
+    const supabase = getSupabaseServiceRole();
+    const { data: targetMember } = await supabase
+      .from('leaguemembers')
+      .select('league_member_id, team_id, league_id')
+      .eq('league_member_id', validated.league_member_id)
+      .eq('league_id', leagueId)
+      .maybeSingle();
+
+    if (!targetMember) {
+      return NextResponse.json(
+        { error: 'Member not found in this league' },
+        { status: 404 }
+      );
+    }
+
+    if (targetMember.team_id !== teamId) {
+      return NextResponse.json(
+        { error: 'Member is not assigned to this team' },
+        { status: 400 }
+      );
+    }
+
+    const isHostOrGovernor = await userHasAnyRole(session.user.id, leagueId, [
       'host',
       'governor',
     ]);
 
+    let canRemove = isHostOrGovernor;
+
+    if (!canRemove) {
+      const isCaptain = await userHasAnyRole(session.user.id, leagueId, ['captain']);
+      if (isCaptain) {
+        const { data: captainMembership } = await supabase
+          .from('leaguemembers')
+          .select('team_id')
+          .eq('user_id', session.user.id)
+          .eq('league_id', leagueId)
+          .maybeSingle();
+
+        if (captainMembership?.team_id === teamId) {
+          canRemove = true;
+        }
+      }
+    }
+
     if (!canRemove) {
       return NextResponse.json(
-        { error: 'Only host or governor can remove members from teams' },
+        { error: 'Only host, governor, or the team captain can remove members from this team' },
         { status: 403 }
       );
     }
 
-    const body = await request.json();
-    const validated = removeMemberSchema.parse(body);
-
-    const success = await removeMemberFromTeam(
+    const removalResult = await removeMemberFromTeam(
       validated.league_member_id,
       session.user.id
     );
 
-    if (!success) {
+    if (!removalResult.success) {
       return NextResponse.json(
-        { error: 'Failed to remove member from team' },
-        { status: 500 }
+        { error: removalResult.error || 'Failed to remove member from team' },
+        { status: 400 }
       );
     }
 
@@ -248,8 +287,9 @@ export async function DELETE(
   } catch (error) {
     console.error('Error removing member from team:', error);
     if (error instanceof z.ZodError) {
+      const validationMessage = error.errors[0]?.message || 'Validation failed';
       return NextResponse.json(
-        { error: 'Validation failed', details: error.errors },
+        { error: validationMessage, details: error.errors },
         { status: 400 }
       );
     }
