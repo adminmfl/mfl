@@ -959,7 +959,7 @@ export default function LeagueDashboardPage({
 
           <CardContent className="p-0">
             <div className="divide-y">
-              {recentDays === null ? (
+              {!recentDays ? (
                 <div className="px-4 py-6 text-sm text-muted-foreground">Loading…</div>
               ) : recentDays.length === 0 ? (
                 <div className="px-4 py-6 text-sm text-muted-foreground">{isMonthlyFrequency ? 'No submissions this month.' : 'No recent activity.'}</div>
