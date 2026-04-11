@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Loader2, Search, UserPlus, Check } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
-import type { LeagueMember } from "@/hooks/use-league-teams";
+import type { LeagueMember, MutationResult } from "@/hooks/use-league-teams";
 
 interface AddMembersDialogProps {
   open: boolean;
@@ -27,7 +28,7 @@ interface AddMembersDialogProps {
   teamCapacity: number;
   currentMemberCount: number;
   unallocatedMembers: LeagueMember[];
-  onAddMember: (teamId: string, leagueMemberId: string) => Promise<boolean>;
+  onAddMember: (teamId: string, leagueMemberId: string) => Promise<MutationResult>;
 }
 
 export function AddMembersDialog({
@@ -70,11 +71,29 @@ export function AddMembersDialog({
 
     setIsLoading(true);
     try {
-      for (const memberId of selectedMembers) {
-        if (currentMemberCount + selectedMembers.indexOf(memberId) >= teamCapacity) break;
-        await onAddMember(teamId, memberId);
+      let successCount = 0;
+      const membersToAdd = selectedMembers.slice(0, remainingSlots);
+
+      if (membersToAdd.length === 0) {
+        toast.error("This team has no remaining slots");
+        return;
       }
-      onOpenChange(false);
+
+      for (const memberId of membersToAdd) {
+        const result = await onAddMember(teamId, memberId);
+        if (!result.success) {
+          toast.error(result.error || "Failed to add member");
+          return;
+        }
+        successCount++;
+      }
+
+      if (successCount > 0) {
+        toast.success(
+          `${successCount} member${successCount !== 1 ? "s" : ""} added to ${teamName}`
+        );
+        onOpenChange(false);
+      }
     } finally {
       setIsLoading(false);
     }

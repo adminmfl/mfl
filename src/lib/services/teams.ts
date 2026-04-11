@@ -58,6 +58,11 @@ export interface LeagueMemberWithDetails {
   team_name?: string | null;
 }
 
+export interface TeamMembershipMutationResult {
+  success: boolean;
+  error?: string;
+}
+
 // ============================================================================
 // Team CRUD Operations
 // ============================================================================
@@ -559,21 +564,38 @@ export async function assignMemberToTeam(
   leagueMemberId: string,
   teamId: string,
   modifiedBy: string
-): Promise<boolean> {
+): Promise<TeamMembershipMutationResult> {
   try {
-    const { error } = await getSupabaseServiceRole()
+    const { data, error } = await getSupabaseServiceRole()
       .from('leaguemembers')
       .update({
         team_id: teamId,
         modified_by: modifiedBy,
         modified_date: new Date().toISOString(),
       })
-      .eq('league_member_id', leagueMemberId);
+      .eq('league_member_id', leagueMemberId)
+      .is('team_id', null)
+      .select('league_member_id')
+      .maybeSingle();
 
-    return !error;
+    if (error) {
+      return {
+        success: false,
+        error: error.message || 'Failed to assign member to team',
+      };
+    }
+
+    if (!data) {
+      return {
+        success: false,
+        error: 'Member is no longer unassigned or could not be found',
+      };
+    }
+
+    return { success: true };
   } catch (err) {
     console.error('Error assigning member to team:', err);
-    return false;
+    return { success: false, error: 'Failed to assign member to team' };
   }
 }
 
