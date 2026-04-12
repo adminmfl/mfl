@@ -18,10 +18,14 @@ import { Separator } from '@/components/ui/separator';
 interface RecentWorkout {
   id: string;
   date: string;
+  type: 'workout' | 'rest';
   workout_type: string | null;
+  custom_activity_name?: string | null;
   status: 'pending' | 'approved' | 'rejected' | 'rejected_resubmit' | 'rejected_permanent';
   duration: number | null;
   distance: number | null;
+  steps?: number | null;
+  holes?: number | null;
   rr_value: number | null;
 }
 
@@ -32,6 +36,12 @@ interface RecentWorkoutPickerProps {
 
 function formatWorkoutType(type: string | null): string {
   if (!type) return 'Workout';
+
+  // If it's a UUID and no custom label was provided, keep the UI readable.
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(type)) {
+    return 'Custom Activity';
+  }
+
   return type
     .split('_')
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
@@ -57,10 +67,9 @@ export function RecentWorkoutPicker({ leagueId, onSelect }: RecentWorkoutPickerP
   const [open, setOpen] = useState(false);
   const [workouts, setWorkouts] = useState<RecentWorkout[]>([]);
   const [loading, setLoading] = useState(false);
-  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    if (!open || loaded) return;
+    if (!open) return;
 
     let cancelled = false;
 
@@ -78,7 +87,6 @@ export function RecentWorkoutPicker({ leagueId, onSelect }: RecentWorkoutPickerP
         const recentWorkouts = raw.filter((entry) => entry.type === 'workout').slice(0, 12);
 
         setWorkouts(recentWorkouts);
-        setLoaded(true);
       } catch {
         if (!cancelled) {
           setWorkouts([]);
@@ -93,7 +101,7 @@ export function RecentWorkoutPicker({ leagueId, onSelect }: RecentWorkoutPickerP
     return () => {
       cancelled = true;
     };
-  }, [leagueId, loaded, open]);
+  }, [leagueId, open]);
 
   return (
     <>
@@ -150,7 +158,7 @@ export function RecentWorkoutPicker({ leagueId, onSelect }: RecentWorkoutPickerP
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium">
-                          {formatWorkoutType(workout.workout_type)}
+                          {workout.custom_activity_name || formatWorkoutType(workout.workout_type)}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {formatWorkoutDetails(workout)}

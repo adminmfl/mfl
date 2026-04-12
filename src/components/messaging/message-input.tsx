@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import {
   Send,
@@ -14,7 +14,6 @@ import {
   Dumbbell,
   Zap,
   Loader2,
-  Link2,
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
@@ -42,6 +41,7 @@ interface RecentWorkout {
   id: string;
   date: string;
   workout_type: string | null;
+  custom_activity_name?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -95,6 +95,21 @@ export function MessageInput({
   const canMarkImportant = isHostOrGovernor;
   const canAnnounce = isHostOrGovernor;
   const isCaptain = currentRole === 'captain';
+
+  // Memoized label for selected workout deep link
+  const deepLinkLabel = useMemo(() => {
+    if (!deepLink) return null;
+
+    // For workout links, prefer the explicit label passed from picker.
+    if (deepLink.includes('/submit')) {
+      const query = deepLink.split('?')[1] || '';
+      const params = new URLSearchParams(query);
+      const selectedLabel = params.get('label');
+      return selectedLabel || 'Workout';
+    }
+
+    return 'Link';
+  }, [deepLink]);
 
   // Motivate Team — AI-generated message for captains
   const handleMotivateTeam = useCallback(async () => {
@@ -206,12 +221,11 @@ export function MessageInput({
         is_read: true,
         deep_link: deepLink || null,
         parent_message_id: replyTo?.message_id || null,
-        parent_message: replyTo ? { sender_name: replyTo.sender_name || replyTo.sender_username || '', content: replyTo.content } : null,
+        parent_message: replyTo ? { sender_username: replyTo.sender_username || replyTo.sender_name || '', content: replyTo.content } : null,
         created_at: new Date().toISOString(),
         edited_at: null,
-        deleted_at: null,
+        sender_role: currentRole || 'player',
         reactions: [],
-        role: currentRole || 'player',
       };
       onOptimisticMessage(optimistic);
     }
@@ -273,12 +287,12 @@ export function MessageInput({
   };
 
   const handleWorkoutSelect = (workout: RecentWorkout) => {
-    const workoutLabel = workout.workout_type
+    const workoutLabel = workout.custom_activity_name || (workout.workout_type
       ? workout.workout_type
           .split('_')
           .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
           .join(' ')
-      : 'Workout';
+      : 'Workout');
     const label = `${workoutLabel} • ${format(parseISO(workout.date), 'MMM d')}`;
     const params = new URLSearchParams({
       submissionId: workout.id,
@@ -319,7 +333,7 @@ export function MessageInput({
         <div className="flex items-center gap-2 mb-2 px-2 py-1.5 rounded-lg bg-muted/50 border-l-2 border-green-400">
           <Dumbbell className="size-3.5 text-green-500 shrink-0" />
           <span className="text-[11px] text-muted-foreground flex-1 truncate">
-            Workout link attached
+            {deepLinkLabel ? `${deepLinkLabel} link attached` : 'Link attached'}
           </span>
           <button
             type="button"
@@ -442,7 +456,7 @@ export function MessageInput({
           </Button>
         )}
 
-        {/* Attach link — popover with selectable options */}
+        {/* Attach workout — explicit selection via picker */}
         <Popover open={attachMenuOpen} onOpenChange={setAttachMenuOpen}>
           <PopoverTrigger asChild>
             <Button
@@ -450,13 +464,13 @@ export function MessageInput({
               variant="ghost"
               size="icon"
               className={cn('size-8 shrink-0', deepLink && 'text-green-600 dark:text-green-400')}
-              title="Attach a link"
+              title="Attach a workout"
             >
               <Dumbbell className="size-4" />
             </Button>
           </PopoverTrigger>
           <PopoverContent align="start" side="top" className="w-56 p-1">
-            <p className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Attach a link</p>
+            <p className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Attach a workout</p>
             {deepLink && (
               <button
                 type="button"
@@ -468,48 +482,6 @@ export function MessageInput({
               </button>
             )}
             <RecentWorkoutPicker leagueId={leagueId} onSelect={handleWorkoutSelect} />
-            <button
-              type="button"
-              className={cn(
-                'w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent',
-                deepLink === `/leagues/${leagueId}/challenges` && 'bg-accent font-medium'
-              )}
-              onClick={() => {
-                setDeepLink(`/leagues/${leagueId}/challenges`);
-                setAttachMenuOpen(false);
-              }}
-            >
-              <Link2 className="size-3.5" />
-              Challenges
-            </button>
-            <button
-              type="button"
-              className={cn(
-                'w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent',
-                deepLink === `/leagues/${leagueId}/leaderboard` && 'bg-accent font-medium'
-              )}
-              onClick={() => {
-                setDeepLink(`/leagues/${leagueId}/leaderboard`);
-                setAttachMenuOpen(false);
-              }}
-            >
-              <Link2 className="size-3.5" />
-              Leaderboard
-            </button>
-            <button
-              type="button"
-              className={cn(
-                'w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent',
-                deepLink === `/leagues/${leagueId}/activities` && 'bg-accent font-medium'
-              )}
-              onClick={() => {
-                setDeepLink(`/leagues/${leagueId}/activities`);
-                setAttachMenuOpen(false);
-              }}
-            >
-              <Link2 className="size-3.5" />
-              Activities
-            </button>
           </PopoverContent>
         </Popover>
 
