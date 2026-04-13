@@ -59,6 +59,7 @@ import { SubmissionDetailDialog } from '@/components/submissions';
 import { WhatsAppReminderButton } from '@/components/league/whatsapp-reminder-button';
 import { useRouter } from 'next/navigation';
 import { useAiInsights } from '@/hooks/use-ai-insights';
+import { preload } from 'react-dom';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -167,14 +168,11 @@ export default function LeagueDashboardPage({
   const { isHost, isGovernor, isCaptain, activeRole } = useRole();
   const router = useRouter();
 
-  // Host/Governor should not see the player dashboard — redirect to their first action
-  React.useEffect(() => {
-    if (isHost) {
-      router.replace(`/leagues/${id}/settings`);
-    } else if (isGovernor) {
-      router.replace(`/leagues/${id}/submissions`);
-    }
-  }, [isHost, isGovernor, id, router]);
+  // Preload logo for performance
+  const logoUrl = activeLeague?.logo_url;
+  if (logoUrl) {
+    preload(logoUrl, { as: 'image' });
+  }
 
   const [dashboardData, setDashboardData] = React.useState<{
     league: LeagueDetails;
