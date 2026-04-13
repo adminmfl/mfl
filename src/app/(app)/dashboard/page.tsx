@@ -18,9 +18,10 @@ import {
   Award,
 } from "lucide-react";
 
-import { useLeague, LeagueWithRoles } from "@/contexts/league-context";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { useLeague, LeagueWithRoles } from '@/contexts/league-context';
+import { isLeagueEnded as isLeagueEndedByDate } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardDescription,
@@ -68,9 +69,7 @@ export default function DashboardPage() {
 
   // League involvement stats
   const leagueStats = React.useMemo(() => {
-    const activeLeagues = userLeagues.filter(
-      (l) => l.status === "active",
-    ).length;
+    const activeLeagues = userLeagues.filter((l) => l.status === 'active' && !isLeagueEndedByDate(l.end_date)).length;
     const hostingCount = userLeagues.filter((l) => l.is_host).length;
     const governorCount = userLeagues.filter((l) =>
       (l.roles || []).includes("governor"),
@@ -341,13 +340,11 @@ function LeagueCard({
   onSelect: () => void;
 }) {
   const statusColors: Record<string, string> = {
-    draft:
-      "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-    launched:
-      "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-    active:
-      "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-    completed: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400",
+    draft: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+    launched: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+    active: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+    completed: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400',
+    ended: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400',
   };
 
   const roleIcons: Record<string, React.ElementType> = {
@@ -364,9 +361,15 @@ function LeagueCard({
         <div className="relative h-16 lg:h-28 rounded-t-lg bg-linear-to-br from-primary/80 to-primary">
           <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent" />
           <div className="absolute top-1.5 right-1.5 lg:top-3 lg:right-3">
-            <Badge className={statusColors[league.status]} variant="secondary">
-              {league.status}
-            </Badge>
+            {(() => {
+              const leagueEnded = isLeagueEndedByDate(league.end_date);
+              const displayStatus = leagueEnded ? 'ended' : league.status;
+              return (
+                <Badge className={statusColors[displayStatus]} variant="secondary">
+                  {displayStatus === 'ended' ? 'League Ended' : displayStatus}
+                </Badge>
+              );
+            })()}
           </div>
           <div className="absolute top-1.5 left-1.5 lg:top-3 lg:left-3">
             <Avatar className="size-6 lg:size-10 border-2 border-white/70 shadow-sm">

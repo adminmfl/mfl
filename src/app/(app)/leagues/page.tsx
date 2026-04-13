@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 
 import { useLeague, LeagueWithRoles } from '@/contexts/league-context';
+import { isLeagueEnded as isLeagueEndedByDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -74,6 +75,8 @@ export default function LeaguesPage() {
   // Filter leagues
   const filteredLeagues = React.useMemo(() => {
     const filtered = userLeagues.filter((league) => {
+      const leagueEnded = isLeagueEndedByDate(league.end_date);
+
       // Search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
@@ -83,8 +86,14 @@ export default function LeaguesPage() {
       }
 
       // Status filter
-      if (statusFilter !== 'all' && league.status !== statusFilter) {
-        return false;
+      if (statusFilter !== 'all') {
+        if (statusFilter === 'active') {
+          return !leagueEnded && league.status === 'active';
+        }
+        if (statusFilter === 'completed') {
+          return leagueEnded || league.status === 'completed';
+        }
+        return league.status === statusFilter;
       }
 
       // Role filter
@@ -96,8 +105,8 @@ export default function LeaguesPage() {
     });
 
     return [...filtered].sort((a, b) => {
-      const aCompleted = a.status === 'completed';
-      const bCompleted = b.status === 'completed';
+      const aCompleted = a.status === 'completed' || isLeagueEndedByDate(a.end_date);
+      const bCompleted = b.status === 'completed' || isLeagueEndedByDate(b.end_date);
       if (aCompleted === bCompleted) return 0;
       return aCompleted ? 1 : -1;
     });
@@ -105,7 +114,7 @@ export default function LeaguesPage() {
 
   // Calculate stats
   const stats = React.useMemo(() => {
-    const activeCount = userLeagues.filter((l) => l.status === 'active').length;
+    const activeCount = userLeagues.filter((l) => l.status === 'active' && !isLeagueEndedByDate(l.end_date)).length;
     const hostCount = userLeagues.filter((l) => (l.roles || []).includes('host')).length;
     return { total: userLeagues.length, active: activeCount, hosting: hostCount };
   }, [userLeagues]);
@@ -317,6 +326,7 @@ function LeaguesTable({
     launched: 'outline',
     active: 'default',
     completed: 'secondary',
+    ended: 'secondary',
   };
 
   return (
@@ -364,9 +374,15 @@ function LeaguesTable({
                   </Link>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={statusVariants[league.status] || 'secondary'}>
-                    {league.status}
-                  </Badge>
+                  {(() => {
+                    const leagueEnded = isLeagueEndedByDate(league.end_date);
+                    const displayStatus = leagueEnded ? 'ended' : league.status;
+                    return (
+                      <Badge variant={statusVariants[displayStatus] || 'secondary'}>
+                        {displayStatus === 'ended' ? 'League Ended' : displayStatus}
+                      </Badge>
+                    );
+                  })()}
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
