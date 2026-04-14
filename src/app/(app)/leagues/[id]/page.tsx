@@ -3,8 +3,10 @@ import Link from "next/link";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth/config";
 import { getLeagueById } from "@/lib/services/leagues";
+import { getLeaderboardData } from "@/lib/services/leaderboard-fetcher";
 
 // Modular Components
+
 import { DashboardHeader } from "@/components/league/dashboard/dashboard-header";
 import { HeaderActions } from "@/components/league/dashboard/header-actions";
 import { ActivityTimeline } from "@/components/league/dashboard/activity-timeline";
@@ -27,14 +29,21 @@ export default async function LeagueDashboardPage({
 }) {
   const { id } = await params;
   
-  // Parallel Fetch: session, league, and dashboard summary
-  const session = (await getServerSession(authOptions as any)) as import('next-auth').Session | null;
+  // Parallel Fetch: session, league, dashboard summary, and leaderboard pre-warm
+  const sessionPromise = getServerSession(authOptions as any) as Promise<import('next-auth').Session | null>;
+  const leaguePromise = getLeagueById(id);
+  const leaderboardPromise = getLeaderboardData(id); // Pre-fetch for 60s cache
+
+  const [session, league] = await Promise.all([
+    sessionPromise,
+    leaguePromise,
+    leaderboardPromise,
+  ]);
+
   const user = session?.user;
 
-  // Only fetch league here; it's fast and needed for the shell
-  const league = await getLeagueById(id);
-
   if (!league) {
+
     return (
       <div className="flex flex-col gap-6 py-4 md:py-6">
         <div className="px-4 lg:px-6">

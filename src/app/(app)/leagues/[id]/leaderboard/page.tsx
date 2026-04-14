@@ -2,31 +2,16 @@ import React, { Suspense } from "react";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth/config";
 import { getUserRolesForLeague } from "@/lib/services/roles";
+import { getLeaderboardData } from "@/lib/services/leaderboard-fetcher";
 import { LeaderboardClientContainer } from "./leaderboard-client-container";
 import { HeaderSkeleton, TableSkeleton, StatsSkeleton } from "@/components/leaderboard/leaderboard-skeletons";
-
-async function getLeaderboardData(leagueId: string) {
-  const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-  const url = `${baseUrl}/api/leagues/${leagueId}/leaderboard`;
-  
-  try {
-    const res = await fetch(url, {
-      next: { revalidate: 60 }, // Cache for 60 seconds
-    });
-    if (!res.ok) return null;
-    const json = await res.json();
-    return json.success ? json.data : null;
-  } catch (error) {
-    console.error('Error fetching leaderboard data on server:', error);
-    return null;
-  }
-}
 
 export default async function LeaderboardPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+
   const { id: leagueId } = await params;
   const session = await getServerSession(authOptions as any);
 
