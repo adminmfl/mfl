@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Users, Search, Loader2, Check } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -24,14 +25,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { LeagueMember } from "@/hooks/use-league-teams";
+import type { LeagueMember, MutationResult } from "@/hooks/use-league-teams";
 
 interface ViewUnallocatedDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   members: LeagueMember[];
   teams?: Array<{ id: string; name: string }>;
-  onAddMember?: (teamId: string, leagueMemberId: string) => Promise<boolean>;
+  onAddMember?: (teamId: string, leagueMemberId: string) => Promise<MutationResult>;
 }
 
 export function ViewUnallocatedDialog({
@@ -82,10 +83,22 @@ export function ViewUnallocatedDialog({
 
     setIsLoading(true);
     try {
+      let successCount = 0;
       for (const memberId of selectedMembers) {
-        await onAddMember(selectedTeam, memberId);
+        const result = await onAddMember(selectedTeam, memberId);
+        if (!result.success) {
+          toast.error(result.error || "Failed to add member");
+          return;
+        }
+        successCount++;
       }
-      onOpenChange(false);
+
+      if (successCount > 0) {
+        toast.success(
+          `${successCount} member${successCount !== 1 ? "s" : ""} added to the selected team`
+        );
+        onOpenChange(false);
+      }
     } finally {
       setIsLoading(false);
     }

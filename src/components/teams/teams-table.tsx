@@ -299,13 +299,13 @@ export function TeamsTable({ leagueId, isHost, isGovernor }: TeamsTableProps) {
   };
 
   const handleAddMember = async (teamId: string, leagueMemberId: string): Promise<boolean> => {
-    const success = await assignMember(teamId, leagueMemberId);
-    if (success) {
+    const result = await assignMember(teamId, leagueMemberId);
+    if (result.success) {
       toast.success("Member added to team");
     } else {
-      toast.error("Failed to add member");
+      toast.error(result.error || "Failed to add member");
     }
-    return success;
+    return result.success;
   };
 
   const handleAssignCaptain = async (teamId: string, userId: string): Promise<boolean> => {

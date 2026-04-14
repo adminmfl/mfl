@@ -127,10 +127,56 @@ export async function POST(
       );
     }
 
-    // Get league to check capacity - capacity now comes from tier
-    const league = await getLeagueById(leagueId);
+    const body = await request.json();
+    const validated = addMemberSchema.parse(body);
+
+    const supabase = getSupabaseServiceRole();
+    const [{ data: member }, { data: teamLink }, league] = await Promise.all([
+      supabase
+        .from('leaguemembers')
+        .select('league_member_id, team_id, league_id')
+        .eq('league_member_id', validated.league_member_id)
+        .eq('league_id', leagueId)
+        .maybeSingle(),
+      supabase
+        .from('teamleagues')
+        .select('team_id')
+        .eq('league_id', leagueId)
+        .eq('team_id', teamId)
+        .maybeSingle(),
+      getLeagueById(leagueId),
+    ]);
+
+    if (!teamLink) {
+      return NextResponse.json(
+        { error: 'Team not found in this league' },
+        { status: 404 }
+      );
+    }
+
     if (!league) {
       return NextResponse.json({ error: 'League not found' }, { status: 404 });
+    }
+
+    if (!member) {
+      return NextResponse.json(
+        { error: 'Member not found in this league' },
+        { status: 404 }
+      );
+    }
+
+    if (member.team_id === teamId) {
+      return NextResponse.json(
+        { error: 'Member is already assigned to this team' },
+        { status: 400 }
+      );
+    }
+
+    if (member.team_id !== null) {
+      return NextResponse.json(
+        { error: 'Member is already assigned to another team' },
+        { status: 400 }
+      );
     }
 
     // Get current team size - use a reasonable per-team limit (league_capacity / num_teams or 5)
@@ -143,42 +189,16 @@ export async function POST(
       );
     }
 
-    const body = await request.json();
-    const validated = addMemberSchema.parse(body);
-
-    // Verify the member exists and belongs to this league
-    const supabase = getSupabaseServiceRole();
-    const { data: member } = await supabase
-      .from('leaguemembers')
-      .select('league_member_id, team_id, league_id')
-      .eq('league_member_id', validated.league_member_id)
-      .eq('league_id', leagueId)
-      .maybeSingle();
-
-    if (!member) {
-      return NextResponse.json(
-        { error: 'Member not found in this league' },
-        { status: 404 }
-      );
-    }
-
-    if (member.team_id) {
-      return NextResponse.json(
-        { error: 'Member is already assigned to a team' },
-        { status: 400 }
-      );
-    }
-
-    const success = await assignMemberToTeam(
+    const assignmentResult = await assignMemberToTeam(
       validated.league_member_id,
       teamId,
       session.user.id
     );
 
-    if (!success) {
+    if (!assignmentResult.success) {
       return NextResponse.json(
-        { error: 'Failed to assign member to team' },
-        { status: 500 }
+        { error: assignmentResult.error || 'Failed to assign member to team' },
+        { status: 400 }
       );
     }
 
@@ -189,8 +209,9 @@ export async function POST(
   } catch (error) {
     console.error('Error assigning member to team:', error);
     if (error instanceof z.ZodError) {
+      const validationMessage = error.errors[0]?.message || 'Validation failed';
       return NextResponse.json(
-        { error: 'Validation failed', details: error.errors },
+        { error: validationMessage, details: error.errors },
         { status: 400 }
       );
     }

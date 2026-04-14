@@ -48,6 +48,11 @@ export interface Governor {
   username: string;
 }
 
+export interface MutationResult {
+  success: boolean;
+  error?: string;
+}
+
 export interface LeagueTeamsData {
   teams: TeamWithDetails[];
   members: {
@@ -79,7 +84,7 @@ interface UseLeagueTeamsReturn {
   refetch: () => Promise<void>;
   createTeam: (teamName: string) => Promise<boolean>;
   deleteTeam: (teamId: string) => Promise<boolean>;
-  assignMember: (teamId: string, leagueMemberId: string) => Promise<boolean>;
+  assignMember: (teamId: string, leagueMemberId: string) => Promise<MutationResult>;
   removeMember: (teamId: string, leagueMemberId: string) => Promise<boolean>;
   assignCaptain: (teamId: string, userId: string) => Promise<boolean>;
   removeCaptain: (teamId: string) => Promise<boolean>;
@@ -176,8 +181,10 @@ export function useLeagueTeams(leagueId: string | null): UseLeagueTeamsReturn {
   const assignMember = async (
     teamId: string,
     leagueMemberId: string
-  ): Promise<boolean> => {
-    if (!leagueId) return false;
+  ): Promise<MutationResult> => {
+    if (!leagueId) {
+      return { success: false, error: "League not found" };
+    }
 
     try {
       const response = await fetch(
@@ -192,14 +199,22 @@ export function useLeagueTeams(leagueId: string | null): UseLeagueTeamsReturn {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || "Failed to assign member");
+        const message =
+          typeof result?.error === "string"
+            ? result.error
+            : "Failed to assign member";
+        setError(message);
+        return { success: false, error: message };
       }
 
+      setError(null);
       await fetchTeams();
-      return true;
+      return { success: true };
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to assign member");
-      return false;
+      const message =
+        err instanceof Error ? err.message : "Failed to assign member";
+      setError(message);
+      return { success: false, error: message };
     }
   };
 

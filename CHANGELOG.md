@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dashboard: `deriveLeagueStatus` wrapped in try-catch to prevent blank screen on corrupt data (#14)
 - Null guards added on `.roles` and `.name` across dashboard, profile, leagues, sidebar, header, and league context (#15)
 - Host landing page, activities fetch fallback, and chat badge count
+- Fix failure when adding unassigned members to a team (#125)
 
 ## [2.0.0] — 2026-04-01
 

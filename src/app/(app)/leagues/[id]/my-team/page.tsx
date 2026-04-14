@@ -268,8 +268,8 @@ export default function MyTeamPage({
       // Assign all selected members
       for (const memberId of selectedMemberIds) {
         try {
-          const success = await assignMember(teamId, memberId);
-          if (success) {
+          const result = await assignMember(teamId, memberId);
+          if (result.success) {
             successCount++;
           } else {
             failCount++;
