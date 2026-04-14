@@ -5,11 +5,10 @@
 'use client';
 
 import * as React from 'react';
-import {
-  Trophy,
-  Star,
-  Medal,
-} from 'lucide-react';
+import Trophy from 'lucide-react/dist/esm/icons/trophy';
+import Star from 'lucide-react/dist/esm/icons/star';
+import Medal from 'lucide-react/dist/esm/icons/medal';
+
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -153,4 +152,5 @@ export function LeagueIndividualsTable({
   );
 }
 
-export default LeagueIndividualsTable;
+export default React.memo(LeagueIndividualsTable);
+

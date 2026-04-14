@@ -13,7 +13,11 @@ import {
   type ColumnDef,
   type SortingState,
 } from '@tanstack/react-table';
-import { Trophy, Users, Star, Medal } from 'lucide-react';
+import Trophy from 'lucide-react/dist/esm/icons/trophy';
+import Users from 'lucide-react/dist/esm/icons/users';
+import Star from 'lucide-react/dist/esm/icons/star';
+import Medal from 'lucide-react/dist/esm/icons/medal';
+
 
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -199,4 +203,5 @@ export function LeagueTeamsTable({ teams, showAvgRR = false }: LeagueTeamsTableP
   );
 }
 
-export default LeagueTeamsTable;
+export default React.memo(LeagueTeamsTable);
+
