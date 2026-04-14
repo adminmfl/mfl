@@ -84,15 +84,15 @@ export function StatsGrid({ id, showRest: initialShowRest, initialData }: StatsG
       <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 px-4 lg:px-6 py-2 border-b md:backdrop-blur-lg">
         <div className="grid grid-cols-2 gap-2">
           <Button asChild size="sm">
-            <Link href={`/leagues/${id}/submit?type=workout`}>
-              <Dumbbell className="mr-2 size-4" />
+            <Link href={`/leagues/${id}/submit?type=workout`} aria-label="Log Today's Activity">
+              <Dumbbell className="mr-2 size-4" aria-hidden="true" />
               Log Today's Activity
             </Link>
           </Button>
           {showRest && (
             <Button asChild size="sm" variant="outline" className="bg-muted/50">
-              <Link href={`/leagues/${id}/submit?type=rest`}>
-                <Moon className="mr-2 size-4" />
+              <Link href={`/leagues/${id}/submit?type=rest`} aria-label="Mark Rest Day">
+                <Moon className="mr-2 size-4" aria-hidden="true" />
                 Mark Rest Day
               </Link>
             </Button>
@@ -121,7 +121,7 @@ export function StatsGrid({ id, showRest: initialShowRest, initialData }: StatsG
             </div>
           </CardHeader>
           <CardContent className="space-y-4 pt-4">
-            <div className="grid grid-cols-2 gap-3">
+            <dl className="grid grid-cols-2 gap-3">
               <StatCell
                 label="Total Points"
                 value={mySummary.points.toLocaleString()}
@@ -153,15 +153,17 @@ export function StatsGrid({ id, showRest: initialShowRest, initialData }: StatsG
               )}
               <div
                 className={`rounded-md border border-border/60 px-3 py-2.5 text-center ${rejectedCount > 0 ? "bg-destructive/10" : "bg-muted/40"}`}
+                role="group"
+                aria-label={`Rejected submissions: ${rejectedCount}`}
               >
-                <div className="text-[11px] text-muted-foreground uppercase tracking-tight font-medium">
+                <div className="text-[11px] text-muted-foreground uppercase tracking-tight font-medium" aria-hidden="true">
                   Rejected
                 </div>
-                <div className="text-sm font-semibold tabular-nums">
+                <div className="text-sm font-semibold tabular-nums" aria-hidden="true">
                   {rejectedCount.toLocaleString()}
                 </div>
               </div>
-            </div>
+            </dl>
 
             {showRR && <RrComparisonChart mySummary={mySummary} />}
           </CardContent>
@@ -194,7 +196,7 @@ export function StatsGrid({ id, showRest: initialShowRest, initialData }: StatsG
             </div>
           </CardHeader>
           <CardContent className="space-y-3 pt-4">
-            <div
+            <dl
               className={`grid ${showRR ? "grid-cols-3" : "grid-cols-2"} gap-3`}
             >
               <StatCell
@@ -212,7 +214,7 @@ export function StatsGrid({ id, showRest: initialShowRest, initialData }: StatsG
                 label="Team Rank"
                 value={mySummary.teamRank ? `#${mySummary.teamRank}` : "—"}
               />
-            </div>
+            </dl>
           </CardContent>
         </Card>
       </div>
@@ -233,12 +235,12 @@ function StatCell({
     <div
       className={`rounded-md border ${highlight ? "border-primary/20 bg-primary/10 dark:bg-primary/20" : "border-border/60 bg-muted/40"} px-3 py-2.5 text-center transition-colors duration-200`}
     >
-      <div className="text-[11px] text-muted-foreground uppercase tracking-tight font-medium">{label}</div>
-      <div
+      <dt className="text-[11px] text-muted-foreground uppercase tracking-tight font-medium">{label}</dt>
+      <dd
         className={`${highlight ? "text-base" : "text-sm"} font-semibold text-foreground tabular-nums`}
       >
         {value}
-      </div>
+      </dd>
     </div>
   );
 }
@@ -264,15 +266,15 @@ function RrComparisonChart({ mySummary }: { mySummary: MySummary }) {
   });
 
   return (
-    <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
+    <div className="rounded-lg border border-border/60 bg-muted/30 p-3" role="img" aria-label={`Run Rate comparison chart: Your average is ${you?.toFixed(2) ?? 'not computed'} and the team average is ${team?.toFixed(2) ?? 'not computed'}. Scale ranges from 1.0 to 2.0.`}>
       <div className="flex flex-row items-center justify-between gap-4">
-        <span className="text-sm font-medium">Avg RR — You vs Team</span>
-        <span className="text-xs text-muted-foreground">
+        <span className="text-sm font-medium" aria-hidden="true">Avg RR — You vs Team</span>
+        <span className="text-xs text-muted-foreground" aria-hidden="true">
           Scale: 1.00 → 2.00
         </span>
       </div>
       <div className="mt-2.5">
-        <div className="relative h-2 rounded-full bg-muted">
+        <div className="relative h-2 rounded-full bg-muted" aria-hidden="true">
           {you !== null && (
             <span className="absolute top-1/2 transition-all duration-700 ease-out" style={markerStyle(pct(you))}>
               <span className="block w-2.5 h-2.5 rounded-full bg-destructive border-2 border-background shadow-sm" />
@@ -284,7 +286,7 @@ function RrComparisonChart({ mySummary }: { mySummary: MySummary }) {
             </span>
           )}
         </div>
-        <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground mt-2.5">
+        <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground mt-2.5" aria-hidden="true">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-destructive inline-block" />
             You:{" "}

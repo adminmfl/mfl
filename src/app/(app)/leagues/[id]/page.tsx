@@ -40,7 +40,7 @@ export default async function LeagueDashboardPage({
         <div className="px-4 lg:px-6">
           <Card className="max-w-lg mx-auto">
             <CardContent className="pt-6 text-center">
-              <div className="size-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+              <div className="size-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4" aria-hidden="true">
                 <Trophy className="size-8 text-muted-foreground" />
               </div>
               <h2 className="text-lg font-semibold mb-2">League Not Found</h2>
@@ -87,8 +87,8 @@ export default async function LeagueDashboardPage({
 
       {/* League Ended Banner */}
       {league.status === "completed" && (
-        <div className="mx-4 lg:mx-6 rounded-lg border border-primary/20 bg-primary/5 p-4 flex items-center gap-3">
-          <MessageSquareHeart className="size-5 text-primary shrink-0" />
+        <div className="mx-4 lg:mx-6 rounded-lg border border-primary/20 bg-primary/5 p-4 flex items-center gap-3" role="status">
+          <MessageSquareHeart className="size-5 text-primary shrink-0" aria-hidden="true" />
           <div className="flex-1">
             <p className="text-sm font-medium">
               This league has ended — we&apos;d love your feedback!
@@ -104,7 +104,7 @@ export default async function LeagueDashboardPage({
               rel="noopener noreferrer"
             >
               Give Feedback
-              <ExternalLink className="ml-1.5 size-3.5" />
+              <ExternalLink className="ml-1.5 size-3.5" aria-hidden="true" />
             </a>
           </Button>
         </div>
@@ -135,7 +135,7 @@ export default async function LeagueDashboardPage({
 
 function StatsSectionSkeleton({ showRest }: { showRest?: boolean }) {
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2" aria-busy="true" aria-live="polite" aria-label="Loading stats summary">
       {/* Sticky Header Placeholder - Matches StatsGrid exactly */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur px-4 lg:px-6 py-2 border-b">
         <div className="grid grid-cols-2 gap-2">
@@ -173,7 +173,7 @@ function StatsSectionSkeleton({ showRest }: { showRest?: boolean }) {
 
 function TimelineSkeleton() {
   return (
-    <div className="px-4 lg:px-6 mt-2">
+    <div className="px-4 lg:px-6 mt-2" aria-busy="true" aria-live="polite" aria-label="Loading activity timeline">
       <Card>
         <CardHeader className="py-3 border-b flex flex-row items-center justify-between">
           <Skeleton className="h-6 w-32 rounded-full" />

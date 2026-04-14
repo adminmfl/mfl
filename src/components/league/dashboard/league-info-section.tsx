@@ -55,14 +55,14 @@ export function LeagueInfoSection({ league }: LeagueInfoSectionProps) {
           <div className="p-4 border-b">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Flame className="size-5 text-primary" />
+                <Flame className="size-5 text-primary" aria-hidden="true" />
                 <span className="font-medium">League Progress</span>
               </div>
               <Badge variant="outline" className="font-mono">
                 {progressPercent}% Complete
               </Badge>
             </div>
-            <Progress value={progressPercent} className="h-3" />
+            <Progress value={progressPercent} className="h-3" aria-label={`League progress: ${progressPercent}% complete`} />
             <div className="flex justify-between mt-3 text-sm">
               <span className="text-muted-foreground">
                 <span className="font-semibold text-foreground">{daysElapsed}</span> days elapsed
@@ -75,56 +75,56 @@ export function LeagueInfoSection({ league }: LeagueInfoSectionProps) {
         )}
 
         {/* Key stats row 1: Start Date, End Date, Days Total */}
-        <div className="grid grid-cols-3 divide-x border-b">
+         <dl className="grid grid-cols-3 divide-x border-b">
           <div className="p-4 flex flex-col items-center text-center">
-            <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
+            <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2" aria-hidden="true">
               <Calendar className="size-5 text-primary" />
             </div>
-            <p className="text-sm font-bold text-primary tabular-nums whitespace-nowrap">{formatDate(league.start_date)}</p>
-            <p className="text-xs text-muted-foreground">Start Date</p>
+            <dd className="text-sm font-bold text-primary tabular-nums whitespace-nowrap">{formatDate(league.start_date)}</dd>
+            <dt className="text-xs text-muted-foreground">Start Date</dt>
           </div>
           <div className="p-4 flex flex-col items-center text-center">
-            <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
+            <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2" aria-hidden="true">
               <Calendar className="size-5 text-primary" />
             </div>
-            <p className="text-sm font-bold text-primary tabular-nums whitespace-nowrap">{formatDate(league.end_date)}</p>
-            <p className="text-xs text-muted-foreground">End Date</p>
+            <dd className="text-sm font-bold text-primary tabular-nums whitespace-nowrap">{formatDate(league.end_date)}</dd>
+            <dt className="text-xs text-muted-foreground">End Date</dt>
           </div>
           <div className="p-4 flex flex-col items-center text-center">
-            <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
+            <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2" aria-hidden="true">
               <Timer className="size-5 text-primary" />
             </div>
-            <p className="text-2xl font-bold tabular-nums">{totalDays}</p>
-            <p className="text-xs text-muted-foreground">Days Total</p>
+            <dd className="text-2xl font-bold tabular-nums">{totalDays}</dd>
+            <dt className="text-xs text-muted-foreground">Days Total</dt>
           </div>
-        </div>
+        </dl>
 
         {/* Key stats row 2: Rest Days (if >0), Players, Teams */}
-        <div className={`grid ${league.rest_days > 0 ? 'grid-cols-3' : 'grid-cols-2'} divide-x border-b`}>
+         <dl className={`grid ${league.rest_days > 0 ? 'grid-cols-3' : 'grid-cols-2'} divide-x border-b`}>
           {league.rest_days > 0 && (
             <div className="p-4 flex flex-col items-center text-center">
-              <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
+              <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2" aria-hidden="true">
                 <Moon className="size-5 text-primary" />
               </div>
-              <p className="text-2xl font-bold tabular-nums">{league.rest_days}</p>
-              <p className="text-xs text-muted-foreground">Rest Days</p>
+              <dd className="text-2xl font-bold tabular-nums">{league.rest_days}</dd>
+              <dt className="text-xs text-muted-foreground">Rest Days</dt>
             </div>
           )}
           <div className="p-4 flex flex-col items-center text-center">
-            <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
+            <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2" aria-hidden="true">
               <Users className="size-5 text-primary" />
             </div>
-            <p className="text-2xl font-bold tabular-nums">{league.member_count ?? 0}</p>
-            <p className="text-xs text-muted-foreground">Players</p>
+            <dd className="text-2xl font-bold tabular-nums">{league.member_count ?? 0}</dd>
+            <dt className="text-xs text-muted-foreground">Players</dt>
           </div>
           <div className="p-4 flex flex-col items-center text-center">
-            <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
+            <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2" aria-hidden="true">
               <Shield className="size-5 text-primary" />
             </div>
-            <p className="text-2xl font-bold tabular-nums">{league.num_teams || 0}</p>
-            <p className="text-xs text-muted-foreground">Teams</p>
+            <dd className="text-2xl font-bold tabular-nums">{league.num_teams || 0}</dd>
+            <dt className="text-xs text-muted-foreground">Teams</dt>
           </div>
-        </div>
+        </dl>
 
         {/* Bottom row: Visibility, Join Type */}
         <div className="border-t p-4">
@@ -133,9 +133,9 @@ export function LeagueInfoSection({ league }: LeagueInfoSectionProps) {
               <span className="text-sm text-muted-foreground">Visibility</span>
               <Badge variant={league.is_public ? 'default' : 'secondary'}>
                 {league.is_public ? (
-                  <><Globe className="size-3 mr-1" />Public</>
+                  <><Globe className="size-3 mr-1" aria-hidden="true" />Public</>
                 ) : (
-                  <><Lock className="size-3 mr-1" />Private</>
+                  <><Lock className="size-3 mr-1" aria-hidden="true" />Private</>
                 )}
               </Badge>
             </div>

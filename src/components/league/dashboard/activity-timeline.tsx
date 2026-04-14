@@ -101,49 +101,49 @@ export function ActivityTimeline({ id, leagueStartDate }: ActivityTimelineProps)
             {headerLabel}
           </Badge>
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" onClick={() => setWeekOffset(w => w + 1)} disabled={loading}>
-              <ChevronLeft className="size-4" />
+            <Button variant="ghost" size="icon" onClick={() => setWeekOffset(w => w + 1)} disabled={loading} aria-label="Previous week">
+              <ChevronLeft className="size-4" aria-hidden="true" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => setWeekOffset(w => Math.max(0, w - 1))} disabled={loading || weekOffset === 0}>
-              <ChevronRight className="size-4" />
+            <Button variant="ghost" size="icon" onClick={() => setWeekOffset(w => Math.max(0, w - 1))} disabled={loading || weekOffset === 0} aria-label="Next week">
+              <ChevronRight className="size-4" aria-hidden="true" />
             </Button>
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="divide-y">
+          <ul className="divide-y" aria-busy={loading} aria-live="polite">
             {loading ? (
               <>
                 {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-                  <div key={i} className="px-4 py-3 flex items-center justify-between gap-3">
+                  <li key={i} className="px-4 py-3 flex items-center justify-between gap-3" aria-hidden="true">
                     <div className="space-y-1">
                       <Skeleton className="h-5 w-24" />
                       <Skeleton className="h-4 w-32" />
                     </div>
                     <Skeleton className="h-6 w-12" />
-                  </div>
+                  </li>
                 ))}
               </>
             ) : data?.recentDays.length === 0 ? (
-              <div className="px-4 py-6 text-sm text-muted-foreground text-center">No recent activity.</div>
+              <li className="px-4 py-6 text-sm text-muted-foreground text-center">No recent activity.</li>
             ) : (
               data?.recentDays.map((row: any) => (
-                <div key={row.date} className="flex items-center justify-between px-4 py-3 gap-3">
+                <li key={row.date} className="flex items-center justify-between px-4 py-3 gap-3">
                   <div className="flex flex-col">
                     <span className="font-medium">{row.label}</span>
                     <span className={`text-sm ${getStatusColor(row.status)}`}>{row.subtitle}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="font-medium tabular-nums text-right">{row.pointsLabel}</div>
+                    <div className="font-medium tabular-nums text-right" aria-label={`Points: ${row.pointsLabel}`}>{row.pointsLabel}</div>
                     {row.submission && (
-                      <Button variant="ghost" size="icon" className="size-8" onClick={() => { setSelectedSubmission(row.submission); setDetailDialogOpen(true); }}>
-                        <Eye className="size-4" />
+                      <Button variant="ghost" size="icon" className="size-8" onClick={() => { setSelectedSubmission(row.submission); setDetailDialogOpen(true); }} aria-label={`View submission details for ${row.label}`}>
+                        <Eye className="size-4" aria-hidden="true" />
                       </Button>
                     )}
                   </div>
-                </div>
+                </li>
               ))
             )}
-          </div>
+          </ul>
         </CardContent>
       </Card>
 

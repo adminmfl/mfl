@@ -188,8 +188,8 @@ export function InviteDialog({
               {buttonLabel}
             </Button>
           ) : (
-            <Button variant="ghost" size="icon" className="h-9 w-9">
-              <Share2 className="size-4" />
+            <Button variant="ghost" size="icon" className="h-9 w-9" aria-label="Invite members">
+              <Share2 className="size-4" aria-hidden="true" />
             </Button>
           ))}
       </DialogTrigger>
@@ -316,6 +316,8 @@ export function InviteDialog({
                 <div
                   ref={qrRef}
                   className="p-4 bg-white rounded-lg border shadow-sm"
+                  role="img"
+                  aria-label={`Invite QR Code for ${leagueName}`}
                 >
                   <QRCodeSVG
                     value={inviteLink}

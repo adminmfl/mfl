@@ -29,7 +29,7 @@ export function DashboardHeader({ user, leagueId, startDate }: DashboardHeaderPr
           </h1>
           {user?.profile_picture_url && (
             <div className="ml-auto">
-              <Link href="/profile">
+              <Link href="/profile" aria-label="View my profile">
                 <Avatar className="size-12 ring-2 ring-primary/20 hover:ring-primary/40 transition-all cursor-pointer">
                   <Image 
                     src={user.profile_picture_url} 
@@ -39,7 +39,7 @@ export function DashboardHeader({ user, leagueId, startDate }: DashboardHeaderPr
                     priority
                     className="aspect-square size-full object-cover rounded-full"
                   />
-                  <AvatarFallback>{firstName[0]}</AvatarFallback>
+                  <AvatarFallback aria-hidden="true">{firstName[0]}</AvatarFallback>
                 </Avatar>
               </Link>
             </div>
