@@ -567,7 +567,9 @@ export function LeagueCreatorChat() {
                           <span className="text-[10px] font-semibold text-primary">Assistant</span>
                         </div>
                       )}
-                      <p className="whitespace-pre-wrap leading-relaxed">{msg.role === 'assistant' ? renderMarkdown(msg.content) : msg.content}</p>
+                      <div className="whitespace-pre-wrap leading-relaxed">
+                        {msg.role === 'assistant' ? renderMarkdown(msg.content) : msg.content}
+                      </div>
                     </div>
                   </div>
                 ))}
