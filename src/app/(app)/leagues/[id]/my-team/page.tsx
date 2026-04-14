@@ -128,7 +128,8 @@ export default function MyTeamPage({
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   const userTeamId = activeLeague?.team_id;
-  const userTeamName = activeLeague?.team_name;
+  const [freshTeamName, setFreshTeamName] = useState<string | null>(null);
+  const userTeamName = freshTeamName || activeLeague?.team_name;
   const teamCapacity = activeLeague?.league_capacity || 20;
 
   // AI inline insights
@@ -203,6 +204,7 @@ export default function MyTeamPage({
                 const pts2 = team2.total_points ?? team2.points ?? 0;
                 setTeamPoints(String(pts2));
                 setTeamAvgRR(String(team2.avg_rr ?? 0));
+                if (team2.team_name) setFreshTeamName(team2.team_name);
               }
             }
           } catch (err) {

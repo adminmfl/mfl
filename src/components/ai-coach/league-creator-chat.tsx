@@ -538,7 +538,7 @@ export function LeagueCreatorChat() {
       {/* FAB */}
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-20 right-4 z-50 flex items-center gap-2 rounded-full bg-linear-to-r from-primary to-purple-600 text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all px-4 py-3 md:bottom-6"
+        className="fixed bottom-20 right-4 z-50 flex items-center gap-2 rounded-full bg-gradient-to-r from-primary to-purple-600 text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all px-4 py-3 md:bottom-6"
       >
         <Bot className="size-5" />
         <span className="text-sm font-medium">AI Assistant</span>
@@ -549,7 +549,7 @@ export function LeagueCreatorChat() {
       <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
         <DialogContent className="sm:max-w-lg p-0 gap-0 overflow-hidden max-h-[85vh] flex flex-col">
           {/* Header */}
-          <DialogHeader className="px-4 py-3 border-b bg-linear-to-r from-primary/5 to-purple-500/5 shrink-0">
+          <DialogHeader className="px-4 py-3 border-b bg-gradient-to-r from-primary/5 to-purple-500/5 shrink-0">
             <DialogTitle className="flex items-center gap-2 text-base">
               <Bot className="size-5 text-primary" />
               League Creation Assistant
@@ -589,7 +589,7 @@ export function LeagueCreatorChat() {
             <>
               <div
                 ref={scrollRef}
-                className="flex-1 overflow-y-auto px-4 py-3 space-y-3 min-h-75 max-h-[50vh]"
+                className="flex-1 overflow-y-auto px-4 py-3 space-y-3 min-h-[300px] max-h-[50vh]"
               >
                 {messages.map((msg) => (
                   <div
@@ -670,7 +670,7 @@ export function LeagueCreatorChat() {
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={handleKeyDown}
                     placeholder={isComplete ? 'Edit details or review summary...' : 'Describe your league...'}
-                    className="min-h-9 max-h-24 resize-none text-sm py-2"
+                    className="min-h-[36px] max-h-24 resize-none text-sm py-2"
                     rows={1}
                     disabled={sending}
                   />
@@ -706,7 +706,7 @@ export function LeagueCreatorChat() {
           {/* ============================================================ */}
           {view === 'summary' && (
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-              <div className="bg-linear-to-br from-primary/5 to-purple-500/5 rounded-xl p-4 space-y-3">
+              <div className="bg-gradient-to-br from-primary/5 to-purple-500/5 rounded-xl p-4 space-y-3">
                 <h3 className="font-semibold text-base">{fields.league_name}</h3>
                 {fields.description && (
                   <p className="text-sm text-muted-foreground">{fields.description}</p>
@@ -822,7 +822,7 @@ export function LeagueCreatorChat() {
                 />
               )}
 
-              <div className="size-20 rounded-full bg-linear-to-br from-green-400 to-emerald-600 flex items-center justify-center animate-bounce mb-4">
+              <div className="size-20 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center animate-bounce mb-4">
                 <PartyPopper className="size-10 text-white" />
               </div>
               <h3 className="text-xl font-bold mb-1">League Created!</h3>
