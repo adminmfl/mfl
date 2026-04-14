@@ -3,7 +3,8 @@ import Link from "next/link";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth/config";
 import { getLeagueById } from "@/lib/services/leagues";
-import { getLeaderboardData } from "@/lib/services/leaderboard-fetcher";
+import { calculateLeaderboard } from "@/lib/services/leaderboard-logic";
+
 
 // Modular Components
 
@@ -32,13 +33,14 @@ export default async function LeagueDashboardPage({
   // Parallel Fetch: session, league, dashboard summary, and leaderboard pre-warm
   const sessionPromise = getServerSession(authOptions as any) as Promise<import('next-auth').Session | null>;
   const leaguePromise = getLeagueById(id);
-  const leaderboardPromise = getLeaderboardData(id); // Pre-fetch for 60s cache
+  const leaderboardPromise = calculateLeaderboard(id); // Direct service call for pre-fetch
 
   const [session, league] = await Promise.all([
     sessionPromise,
     leaguePromise,
     leaderboardPromise,
   ]);
+
 
   const user = session?.user;
 

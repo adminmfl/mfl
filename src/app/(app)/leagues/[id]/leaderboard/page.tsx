@@ -2,8 +2,10 @@ import React, { Suspense } from "react";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth/config";
 import { getUserRolesForLeague } from "@/lib/services/roles";
-import { getLeaderboardData } from "@/lib/services/leaderboard-fetcher";
+import { calculateLeaderboard } from "@/lib/services/leaderboard-logic";
+
 import { LeaderboardClientContainer } from "./leaderboard-client-container";
+
 import { HeaderSkeleton, TableSkeleton, StatsSkeleton } from "@/components/leaderboard/leaderboard-skeletons";
 
 export default async function LeaderboardPage({
@@ -20,8 +22,9 @@ export default async function LeaderboardPage({
     session?.user?.id 
       ? getUserRolesForLeague(session.user.id, leagueId)
       : Promise.resolve([]),
-    getLeaderboardData(leagueId)
+    calculateLeaderboard(leagueId)
   ]);
+
 
   return (
     <div className="@container/main flex flex-1 flex-col gap-3 lg:gap-4">
