@@ -73,9 +73,9 @@ export async function GET(req: NextRequest) {
     // 4. Process Challenge Points
     let challengePoints = 0;
     challengeSubs.forEach(sub => {
-      const चुनौती = challenges.find(c => c.id === sub.league_challenge_id);
-      if (चुनौती) {
-        const pts = sub.awarded_points != null ? Number(sub.awarded_points) : Number(चुनौती.total_points || 0);
+      const challenge = challenges.find(c => c.id === sub.league_challenge_id);
+      if (challenge) {
+        const pts = sub.awarded_points != null ? Number(sub.awarded_points) : Number(challenge.total_points || 0);
         if (!isNaN(pts) && pts > 0) challengePoints += pts;
       }
     });
