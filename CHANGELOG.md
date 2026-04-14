@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Workout link button in chat message input
 - Landing page revamp with corporate imagery, orange accent theme, and wearable integration copy
 - V2.5 P0/P1/P2 feature implementation across the platform
+- Corporate landing page deployed at /corporate with functional CTAs and responsive design (#146)
+- Community landing page deployed at /communities with functional CTAs and responsive design (#147)
+- Vercel routing configuration for clean URLs without .html extensions (#146, #147)
+- Font preconnect links for Google Fonts to prevent FOIT on slow connections (#146, #147)
+- Scroll margin offset for anchor links to account for fixed navigation (#146, #147)
 
 ### Changed
 
@@ -24,6 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Optimize mobile Lighthouse score to 90+ and reduce LCP to <2s via critical path refinement (#perf)
 - Implement parallel API calls and decouple heavy logic from initial page load (#perf)
 - Integrate Supabase image optimization and icon tree-shaking to minimize bundle size (#perf)
+- Activities & Challenges section layout changed from two-column grid to vertical stack for better readability (#147)
+- Increased horizontal padding and card width for improved content presentation (#147)
+- Optimized font sizes and line-height for better mobile readability (#147)
 
 ### Fixed
 
@@ -44,6 +52,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dashboard: `deriveLeagueStatus` wrapped in try-catch to prevent blank screen on corrupt data (#14)
 - Null guards added on `.roles` and `.name` across dashboard, profile, leagues, sidebar, header, and league context (#15)
 - Host landing page, activities fetch fallback, and chat badge count
+- Google Analytics placeholder replaced with proper G-XXXXXXXXXX format with TODO comments (#146, #147)
+- Anchor links now scroll to correct position without content hidden behind fixed nav (#146, #147)
 
 ## [2.0.0] — 2026-04-01
 

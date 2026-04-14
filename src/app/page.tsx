@@ -1,31 +1,7 @@
-import {
-  LandingHeader,
-  HeroSection,
-  WhatIsSection,
-  PillarsSection,
-  HabitSection,
-  HowItWorksSection,
-  StoriesSection,
-  EveryoneSection,
-  CtaSection,
-  LandingFooter,
-} from '@/components/landing';
+import { redirect } from 'next/navigation';
 
 export default function LandingPage() {
-  return (
-    <div className="min-h-screen bg-background">
-      <LandingHeader />
-      <main>
-        <HeroSection />
-        <WhatIsSection />
-        <PillarsSection />
-        <HabitSection />
-        <HowItWorksSection />
-        <StoriesSection />
-        <EveryoneSection />
-        <CtaSection />
-      </main>
-      <LandingFooter />
-    </div>
-  );
+  // Redirect happens on server side
+  redirect('/mfl-landing-wired.html');
+  return null;
 }

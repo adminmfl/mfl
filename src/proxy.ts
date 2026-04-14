@@ -3,8 +3,19 @@ import type { NextRequest } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 
 export async function proxy(req: NextRequest) {
+  const { pathname } = req.nextUrl;
+
+  // Redirect HTML file URLs to clean routes
+  if (pathname === '/mfl-residential-wired.html') {
+    return NextResponse.redirect(new URL('/communities', req.url));
+  }
+
+  if (pathname === '/mfl-landing-wired.html') {
+    return NextResponse.redirect(new URL('/', req.url));
+  }
+
   const res = NextResponse.next()
-  
+
   const isAuthRoute = req.nextUrl.pathname.startsWith('/login') || req.nextUrl.pathname.startsWith('/signup')
   const isCompleteProfile = req.nextUrl.pathname.startsWith('/complete-profile')
   const isProtected = ['/dashboard', '/dashboard', '/team', '/leaderboards', '/rules', '/my-challenges', '/governor', '/profile'].some((p) => req.nextUrl.pathname.startsWith(p))
@@ -13,7 +24,7 @@ export async function proxy(req: NextRequest) {
   if (isProtected || isCompleteProfile) {
     try {
       const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
-      
+
       if (!token) {
         const url = new URL('/login', req.url)
         return NextResponse.redirect(url)
@@ -41,7 +52,9 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next|favicon.ico|api).*)'],
+  matcher: [
+    '/((?!_next|favicon.ico|api|.*\\.html|.*\\.css|.*\\.js|.*\\.png|.*\\.jpg|.*\\.jpeg|.*\\.svg|.*\\.ico).*)',
+  ],
 }
 
 
