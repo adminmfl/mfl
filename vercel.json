@@ -1,4 +1,30 @@
 {
+  "crons": [
+    {
+      "path": "/api/cron/auto-approve",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/auto-rest-day",
+      "schedule": "30 10 * * *"
+    },
+    {
+      "path": "/api/cron/cleanup-abandoned-payments",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/ai-coach",
+      "schedule": "30 2,7,13 * * *"
+    },
+    {
+      "path": "/api/cron/ai-daily-scan",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/ai-nudges",
+      "schedule": "30 4 * * *"
+    }
+  ],
   "rewrites": [
     {
       "source": "/corporate",
