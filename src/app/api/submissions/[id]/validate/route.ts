@@ -18,6 +18,7 @@ const validateSchema = z.object({
   status: z.enum(['approved', 'rejected', 'rejected_resubmit', 'rejected_permanent']),
   rejection_reason: z.string().optional(),
   awarded_points: z.number().optional(),
+  suspicious_proof: z.boolean().optional(),
 });
 
 // ============================================================================
@@ -37,7 +38,7 @@ export async function POST(
     }
 
     const body = await request.json();
-    let { status, rejection_reason, awarded_points } = validateSchema.parse(body);
+    let { status, rejection_reason, awarded_points, suspicious_proof } = validateSchema.parse(body);
 
     // Map legacy 'rejected' to 'rejected_resubmit'
     if (status === 'rejected') {
@@ -60,7 +61,8 @@ export async function POST(
         leaguemembers!inner(
           league_id,
           team_id,
-          user_id
+          user_id,
+          suspicious_proof_strikes
         )
       `)
       .eq('id', submissionId)
@@ -76,6 +78,27 @@ export async function POST(
     const leagueMember = submission.leaguemembers as any;
     const leagueId = leagueMember.league_id;
     const submissionTeamId = leagueMember.team_id;
+    const currentStrikeCount = Number(leagueMember.suspicious_proof_strikes ?? 0);
+
+    let finalStatus = status;
+    let shouldCountSuspiciousProof = false;
+
+    if (suspicious_proof && ['rejected_resubmit', 'rejected_permanent'].includes(status)) {
+      shouldCountSuspiciousProof = true;
+      const { data: leagueRow, error: leagueFetchError } = await supabase
+        .from('leagues')
+        .select('suspicious_proof_rejection_threshold')
+        .eq('league_id', leagueId)
+        .single();
+
+      const escalationThreshold = !leagueFetchError && leagueRow?.suspicious_proof_rejection_threshold
+        ? Number(leagueRow.suspicious_proof_rejection_threshold)
+        : 3;
+
+      if (currentStrikeCount + 1 >= escalationThreshold && status === 'rejected_resubmit') {
+        finalStatus = 'rejected_permanent';
+      }
+    }
 
     // Check user's permissions to validate this submission
     // 1) Host/Governor override
@@ -157,13 +180,13 @@ export async function POST(
 
     // Update the submission status
     const updateData: Record<string, any> = {
-      status,
+      status: finalStatus,
       modified_by: userId,
       modified_date: new Date().toISOString(),
     };
 
     // Store rejection reason if provided
-    if ((status === 'rejected' || status === 'rejected_resubmit' || status === 'rejected_permanent') && rejection_reason) {
+    if ((status === 'rejected_resubmit' || status === 'rejected_permanent') && rejection_reason) {
       updateData.rejection_reason = rejection_reason;
     }
 
@@ -184,6 +207,21 @@ export async function POST(
         { error: 'Failed to update submission' },
         { status: 500 }
       );
+    }
+
+    if (shouldCountSuspiciousProof) {
+      const newStrikeCount = currentStrikeCount + 1;
+      const { error: strikeUpdateError } = await supabase
+        .from('leaguemembers')
+        .update({
+          suspicious_proof_strikes: newStrikeCount,
+          suspicious_proof_last_strike_at: new Date().toISOString(),
+        })
+        .eq('league_member_id', leagueMember.league_member_id);
+
+      if (strikeUpdateError) {
+        console.error('Error updating suspicious proof strikes:', strikeUpdateError);
+      }
     }
 
     return NextResponse.json({
