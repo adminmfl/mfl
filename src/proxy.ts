@@ -10,11 +10,6 @@ export async function proxy(req: NextRequest) {
     return NextResponse.redirect(new URL('/communities', req.url));
   }
 
-  // Remove the problematic redirect that causes a loop with page.tsx
-  // if (pathname === '/mfl-landing-wired.html') {
-  //   return NextResponse.redirect(new URL('/', req.url));
-  // }
-
   const res = NextResponse.next()
 
   const isAuthRoute = req.nextUrl.pathname.startsWith('/login') || req.nextUrl.pathname.startsWith('/signup')
