@@ -44,3 +44,4 @@ next-env.d.ts
 /scripts/
 .claude/
 .e
+test-perf.ts
