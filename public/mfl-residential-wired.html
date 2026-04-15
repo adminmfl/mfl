@@ -1,0 +1,2862 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MyFitnessLeague — For Residential Communities & Apartment Societies</title>
+  <!-- SEO Meta Tags -->
+  <meta name="description"
+    content="MyFitnessLeague — Community fitness leagues for residential societies. Wing vs wing competition, daily activities, and grand finale celebrations. Perfect for RWAs and apartment communities.">
+  <meta property="og:title" content="MyFitnessLeague — Community Fitness Leagues">
+  <meta property="og:description" content="Team fitness leagues for residential communities. First 7 days free.">
+  <meta property="og:image" content="https://myfitnessleague.com/og-image.jpg">
+  <meta property="og:url" content="https://myfitnessleague.com/communities">
+  <link rel="canonical" href="https://myfitnessleague.com/communities">
+  <link rel="icon" href="/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&family=DM+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <!-- Google Analytics -->
+  <!-- TODO: Replace G-XXXXXXXXXX with actual Google Analytics Measurement ID before production -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-XXXXXXXXXX');
+  </script>
+  <style>
+    :root {
+      --mfl-orange: #F26522;
+      --mfl-orange-dark: #C94E0E;
+      --mfl-orange-light: #FDE8DC;
+      --mfl-navy: #1A2B4A;
+      --mfl-navy-light: #EEF1F7;
+      --mfl-gold: #F5A623;
+      --mfl-teal: #0F6E56;
+      --mfl-teal-light: #E1F5EE;
+      --white: #ffffff;
+      --off-white: #FAF9F7;
+      --text-dark: #111827;
+      --text-muted: #6B7280;
+      --border: rgba(26, 43, 74, 0.1);
+      --border-light: rgba(26, 43, 74, 0.06);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      overflow-x: hidden;
+      max-width: 100vw;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--off-white);
+      color: var(--text-dark);
+      overflow-x: hidden;
+      max-width: 100vw;
+      position: relative;
+    }
+
+    /* NAV */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 4rem;
+      background: rgba(250, 249, 247, 0.94);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.6rem;
+      letter-spacing: 2px;
+      color: var(--mfl-navy);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .logo-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--mfl-orange);
+      display: inline-block;
+      margin-bottom: 2px;
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .nav-link-soft {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      border-bottom: 1px dashed rgba(107, 114, 128, 0.5);
+      padding-bottom: 1px;
+      transition: color 0.2s;
+    }
+
+    .nav-link-soft:hover {
+      color: var(--mfl-orange);
+      border-color: var(--mfl-orange);
+    }
+
+    .nav-cta {
+      background: var(--mfl-orange);
+      color: var(--white);
+      border: none;
+      padding: 0.6rem 1.6rem;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 3px;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+
+    .nav-cta:hover {
+      background: var(--mfl-orange-dark);
+    }
+
+    /* COMMUNITY BANNER — distinguishes this from the corporate page */
+    .community-banner {
+      margin-top: 72px;
+      background: var(--mfl-teal);
+      color: var(--white);
+      text-align: center;
+      padding: 0.6rem 4rem;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.68rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .community-banner a {
+      color: rgba(255, 255, 255, 0.65);
+      text-decoration: none;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+      margin-left: 1rem;
+      font-size: 0.65rem;
+    }
+
+    .community-banner a:hover {
+      color: var(--white);
+    }
+
+    /* HERO */
+    .hero {
+      min-height: calc(100vh - 104px);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .hero-left {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 5rem 4rem;
+    }
+
+    .hero-eyebrow {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--mfl-teal);
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .hero-eyebrow::before {
+      content: '';
+      display: inline-block;
+      width: 28px;
+      height: 2px;
+      background: var(--mfl-teal);
+    }
+
+    .hero-headline {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(3.2rem, 5.2vw, 5.5rem);
+      line-height: 0.95;
+      letter-spacing: 1px;
+      margin-bottom: 2rem;
+      color: var(--mfl-navy);
+    }
+
+    .hero-headline .acc-orange {
+      color: var(--mfl-orange);
+    }
+
+    .hero-headline .acc-teal {
+      color: var(--mfl-teal);
+    }
+
+    .hero-sub {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+      line-height: 1.75;
+      max-width: 460px;
+      margin-bottom: 2.5rem;
+      font-weight: 300;
+    }
+
+    .hero-sub strong {
+      color: var(--mfl-navy);
+      font-weight: 600;
+    }
+
+    .cta-group {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      background: var(--mfl-orange);
+      color: var(--white);
+      border: none;
+      padding: 1rem 2.4rem;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 3px;
+      text-decoration: none;
+      display: inline-block;
+      transition: all 0.2s;
+    }
+
+    .btn-primary:hover {
+      background: var(--mfl-orange-dark);
+      transform: translateY(-1px);
+    }
+
+    .btn-ghost {
+      color: var(--mfl-navy);
+      font-size: 0.88rem;
+      font-weight: 500;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      border-bottom: 1.5px solid var(--mfl-navy);
+      padding-bottom: 2px;
+      transition: all 0.2s;
+    }
+
+    .btn-ghost:hover {
+      color: var(--mfl-orange);
+      border-color: var(--mfl-orange);
+    }
+
+    .hero-trust {
+      margin-top: 3rem;
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+    }
+
+    .trust-num {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2rem;
+      color: var(--mfl-navy);
+      line-height: 1;
+    }
+
+    .trust-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    .trust-divider {
+      width: 1px;
+      height: 38px;
+      background: var(--border);
+    }
+
+    /* HERO RIGHT — community scoreboard */
+    .hero-right {
+      background: var(--mfl-navy);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4rem 3rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-right::before {
+      content: '';
+      position: absolute;
+      top: -80px;
+      right: -80px;
+      width: 360px;
+      height: 360px;
+      border-radius: 50%;
+      background: var(--mfl-teal);
+      opacity: 0.1;
+    }
+
+    .hero-right::after {
+      content: '';
+      position: absolute;
+      bottom: -60px;
+      left: -60px;
+      width: 260px;
+      height: 260px;
+      border-radius: 50%;
+      background: var(--mfl-orange);
+      opacity: 0.07;
+    }
+
+    .scoreboard {
+      width: 100%;
+      max-width: 380px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .scoreboard-header {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .league-badge {
+      display: inline-block;
+      background: var(--mfl-teal);
+      color: var(--white);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.62rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 2px;
+      margin-bottom: 0.75rem;
+    }
+
+    .scoreboard-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.8rem;
+      color: var(--white);
+      letter-spacing: 1px;
+    }
+
+    .scoreboard-day {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.68rem;
+      color: rgba(255, 255, 255, 0.38);
+      letter-spacing: 1px;
+      margin-top: 4px;
+    }
+
+    .team-row {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 4px;
+      padding: 0.9rem 1.1rem;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+    }
+
+    .team-row.leader {
+      border-color: rgba(245, 166, 35, 0.45);
+      background: rgba(245, 166, 35, 0.07);
+    }
+
+    .team-rank {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.3rem;
+      color: rgba(255, 255, 255, 0.18);
+      width: 22px;
+      text-align: center;
+    }
+
+    .team-row.leader .team-rank {
+      color: var(--mfl-gold);
+    }
+
+    .team-emoji {
+      font-size: 1.3rem;
+    }
+
+    .team-info {
+      flex: 1;
+    }
+
+    .team-name {
+      font-weight: 500;
+      color: var(--white);
+      font-size: 0.88rem;
+      margin-bottom: 2px;
+    }
+
+    .team-sub {
+      font-size: 0.67rem;
+      color: rgba(255, 255, 255, 0.38);
+      font-family: 'DM Mono', monospace;
+    }
+
+    .team-pts {
+      text-align: right;
+    }
+
+    .pts-num {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.5rem;
+      color: var(--white);
+      line-height: 1;
+    }
+
+    .team-row.leader .pts-num {
+      color: var(--mfl-gold);
+    }
+
+    .pts-label {
+      font-size: 0.62rem;
+      color: rgba(255, 255, 255, 0.3);
+      font-family: 'DM Mono', monospace;
+      letter-spacing: 1px;
+    }
+
+    .progress-bar {
+      height: 2px;
+      background: rgba(255, 255, 255, 0.07);
+      border-radius: 1px;
+      margin: 4px 0 8px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: 1px;
+    }
+
+    .scoreboard-footer {
+      margin-top: 1.25rem;
+      padding-top: 1rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.07);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .footer-stat {
+      text-align: center;
+    }
+
+    .footer-num {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.2rem;
+      color: var(--mfl-orange);
+    }
+
+    .footer-lbl {
+      font-size: 0.62rem;
+      color: rgba(255, 255, 255, 0.3);
+      font-family: 'DM Mono', monospace;
+      letter-spacing: 1px;
+    }
+
+    /* AGE GROUPS PILL ROW */
+    .age-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 1.25rem;
+    }
+
+    .age-pill {
+      font-size: 0.68rem;
+      font-family: 'DM Mono', monospace;
+      letter-spacing: 0.5px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.07);
+      color: rgba(255, 255, 255, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .age-pill.active {
+      background: rgba(15, 110, 86, 0.3);
+      color: #5DCAA5;
+      border-color: rgba(15, 110, 86, 0.4);
+    }
+
+    /* SECTIONS */
+    section {
+      padding: 6rem 4rem;
+      scroll-margin-top: 60px;
+    }
+
+    .section-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.68rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--mfl-orange);
+      margin-bottom: 1rem;
+    }
+
+    .section-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(2.4rem, 3.8vw, 3.8rem);
+      line-height: 1;
+      margin-bottom: 1rem;
+      color: var(--mfl-navy);
+    }
+
+    .section-sub {
+      font-size: 1rem;
+      color: var(--text-muted);
+      line-height: 1.75;
+      max-width: 560px;
+      font-weight: 300;
+    }
+
+    /* WHAT MAKES RWA DIFFERENT */
+    .diff-section {
+      background: var(--mfl-navy);
+    }
+
+    .diff-section .section-title {
+      color: var(--white);
+    }
+
+    .diff-section .section-sub {
+      color: rgba(255, 255, 255, 0.45);
+    }
+
+    .diff-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      margin-top: 4rem;
+      background: rgba(255, 255, 255, 0.07);
+    }
+
+    .diff-card {
+      background: var(--mfl-navy);
+      padding: 2.5rem 2rem;
+    }
+
+    .diff-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 4px;
+      border: 1px solid rgba(15, 110, 86, 0.4);
+      background: rgba(15, 110, 86, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .diff-title {
+      font-weight: 600;
+      font-size: 1rem;
+      color: var(--white);
+      margin-bottom: 0.5rem;
+    }
+
+    .diff-desc {
+      font-size: 0.84rem;
+      color: rgba(255, 255, 255, 0.38);
+      line-height: 1.65;
+    }
+
+    /* HOW IT WORKS */
+    .how-section {
+      background: var(--off-white);
+    }
+
+    .steps-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5rem;
+      margin-top: 4rem;
+      align-items: start;
+    }
+
+    .step {
+      display: flex;
+      gap: 1.5rem;
+      padding: 1.75rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .step:first-child {
+      border-top: 1px solid var(--border);
+    }
+
+    .step-num {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.4rem;
+      color: rgba(26, 43, 74, 0.1);
+      line-height: 1;
+      min-width: 44px;
+      transition: color 0.2s;
+    }
+
+    .step:hover .step-num {
+      color: var(--mfl-orange);
+    }
+
+    .step-title {
+      font-weight: 600;
+      font-size: 1rem;
+      margin-bottom: 0.4rem;
+      color: var(--mfl-navy);
+    }
+
+    .step-desc {
+      font-size: 0.84rem;
+      color: var(--text-muted);
+      line-height: 1.65;
+    }
+
+    .step-time {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.63rem;
+      color: var(--mfl-teal);
+      letter-spacing: 1px;
+      margin-top: 0.5rem;
+    }
+
+    .steps-visual {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 2.5rem;
+      position: sticky;
+      top: 100px;
+    }
+
+    .visual-title {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.68rem;
+      letter-spacing: 2px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+    }
+
+    .config-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.72rem 0;
+      border-bottom: 1px solid var(--border-light);
+      font-size: 0.84rem;
+    }
+
+    .config-label {
+      color: var(--text-muted);
+    }
+
+    .config-value {
+      font-weight: 500;
+      color: var(--mfl-navy);
+    }
+
+    .config-badge {
+      background: var(--mfl-teal-light);
+      color: var(--mfl-teal);
+      font-size: 0.68rem;
+      padding: 2px 8px;
+      border-radius: 2px;
+      font-family: 'DM Mono', monospace;
+    }
+
+    .launch-btn {
+      width: 100%;
+      background: var(--mfl-orange);
+      color: var(--white);
+      border: none;
+      padding: 1rem;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 3px;
+      margin-top: 1.5rem;
+      transition: background 0.2s;
+    }
+
+    .launch-btn:hover {
+      background: var(--mfl-orange-dark);
+    }
+
+    /* OUTCOMES */
+    .outcomes-section {
+      background: var(--white);
+    }
+
+    .outcomes-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      margin-top: 4rem;
+      background: var(--border);
+    }
+
+    .outcome-card {
+      background: var(--white);
+      padding: 2.5rem 2rem;
+    }
+
+    .outcome-num {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 3.5rem;
+      color: var(--mfl-orange);
+      line-height: 1;
+      margin-bottom: 0.25rem;
+    }
+
+    .outcome-label {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--mfl-navy);
+    }
+
+    .outcome-desc {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      line-height: 1.65;
+    }
+
+    /* TESTIMONIALS */
+    .testimonials-section {
+      background: var(--mfl-navy);
+      padding: 6rem 4rem;
+    }
+
+    .testimonials-section .section-label {
+      color: var(--mfl-orange);
+    }
+
+    .testimonials-section .section-title {
+      color: var(--white);
+    }
+
+    .testimonials-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      margin-top: 4rem;
+    }
+
+    .tcard {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .tcard.featured {
+      background: rgba(242, 101, 34, 0.08);
+      border-color: rgba(242, 101, 34, 0.35);
+    }
+
+    .tcard-quote-mark {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 3rem;
+      color: var(--mfl-orange);
+      line-height: 0.6;
+      opacity: 0.7;
+    }
+
+    .tcard-quote {
+      font-size: 0.94rem;
+      color: rgba(255, 255, 255, 0.82);
+      line-height: 1.72;
+      font-weight: 300;
+      font-style: italic;
+      flex: 1;
+    }
+
+    .tcard-attr {
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding-top: 1rem;
+    }
+
+    .tcard-name {
+      font-weight: 600;
+      font-size: 0.88rem;
+      color: var(--white);
+    }
+
+    .tcard-role {
+      font-size: 0.72rem;
+      color: rgba(255, 255, 255, 0.38);
+      font-family: 'DM Mono', monospace;
+      margin-top: 3px;
+    }
+
+    /* PRICING */
+    .pricing-section {
+      background: var(--off-white);
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      margin-top: 4rem;
+    }
+
+    .price-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 2.5rem 2rem;
+      position: relative;
+    }
+
+    .price-card.featured {
+      border: 2px solid var(--mfl-orange);
+    }
+
+    .featured-tag {
+      position: absolute;
+      top: -13px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--mfl-orange);
+      color: var(--white);
+      font-size: 0.68rem;
+      font-family: 'DM Mono', monospace;
+      letter-spacing: 1px;
+      padding: 3px 14px;
+      border-radius: 2px;
+      white-space: nowrap;
+    }
+
+    .price-tier {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.68rem;
+      letter-spacing: 2px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+
+    .price-size {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2rem;
+      color: var(--mfl-navy);
+      margin-bottom: 0.25rem;
+    }
+
+    .price-amount {
+      font-size: 0.84rem;
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .price-amount span {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.8rem;
+      color: var(--mfl-navy);
+    }
+
+    .price-features {
+      list-style: none;
+      margin-bottom: 2rem;
+    }
+
+    .price-features li {
+      font-size: 0.84rem;
+      padding: 0.4rem 0;
+      color: var(--text-muted);
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .price-features li::before {
+      content: '✓';
+      color: var(--mfl-orange);
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .price-btn {
+      width: 100%;
+      padding: 0.85rem;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 3px;
+      border: 1.5px solid var(--mfl-navy);
+      background: transparent;
+      color: var(--mfl-navy);
+      transition: all 0.2s;
+    }
+
+    .price-btn:hover {
+      background: var(--mfl-navy);
+      color: var(--white);
+    }
+
+    .price-card.featured .price-btn {
+      background: var(--mfl-orange);
+      color: var(--white);
+      border-color: var(--mfl-orange);
+    }
+
+    .price-card.featured .price-btn:hover {
+      background: var(--mfl-orange-dark);
+      border-color: var(--mfl-orange-dark);
+    }
+
+    /* FAQ */
+    .faq-section {
+      background: var(--white);
+    }
+
+    .faq-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0 4rem;
+      margin-top: 4rem;
+    }
+
+    .faq-item {
+      padding: 1.5rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .faq-q {
+      font-weight: 600;
+      font-size: 0.94rem;
+      color: var(--mfl-navy);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: none;
+      border: none;
+      width: 100%;
+      text-align: left;
+      padding: 0;
+      transition: color 0.2s;
+    }
+
+    .faq-q:hover {
+      color: var(--mfl-teal);
+    }
+
+    .faq-arrow {
+      font-size: 0.8rem;
+      color: var(--mfl-teal);
+      transition: transform 0.2s;
+    }
+
+    .faq-a {
+      font-size: 0.84rem;
+      color: var(--text-muted);
+      line-height: 1.65;
+      margin-top: 0.75rem;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out;
+    }
+
+    .faq-item.open .faq-a {
+      max-height: 500px;
+    }
+
+    /* CORPORATE SOFT STRIP */
+    .corp-strip {
+      background: var(--mfl-navy-light);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 2.5rem 4rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 2rem;
+    }
+
+    .corp-left {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+    }
+
+    .corp-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--white);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      flex-shrink: 0;
+    }
+
+    .corp-heading {
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--mfl-navy);
+      margin-bottom: 4px;
+    }
+
+    .corp-sub {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      max-width: 520px;
+    }
+
+    .corp-link {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--mfl-orange);
+      text-decoration: none;
+      border-bottom: 1.5px solid var(--mfl-orange);
+      padding-bottom: 1px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: color 0.2s;
+    }
+
+    .corp-link:hover {
+      color: var(--mfl-orange-dark);
+      border-color: var(--mfl-orange-dark);
+    }
+
+    /* FINAL CTA */
+    .final-cta {
+      background: var(--mfl-navy);
+      color: var(--white);
+      text-align: center;
+      padding: 8rem 4rem;
+    }
+
+    .final-cta .section-label {
+      color: rgba(242, 101, 34, 0.8);
+    }
+
+    .final-cta .section-title {
+      color: var(--white);
+      font-size: clamp(3rem, 5vw, 5rem);
+    }
+
+    .final-cta .section-sub {
+      color: rgba(255, 255, 255, 0.45);
+      margin: 1.5rem auto 3rem;
+      max-width: 460px;
+    }
+
+    /* FOOTER */
+    footer {
+      background: #0D1728;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 2rem 4rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .footer-logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.4rem;
+      letter-spacing: 2px;
+      color: var(--white);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .footer-right {
+      font-size: 0.76rem;
+      color: rgba(255, 255, 255, 0.22);
+      font-family: 'DM Mono', monospace;
+    }
+
+    /* ANIMATIONS */
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(22px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .hero-eyebrow {
+      animation: fadeUp 0.6s ease both;
+    }
+
+    .hero-headline {
+      animation: fadeUp 0.7s 0.08s ease both;
+    }
+
+    .hero-sub {
+      animation: fadeUp 0.7s 0.18s ease both;
+    }
+
+    .cta-group {
+      animation: fadeUp 0.7s 0.28s ease both;
+    }
+
+    .hero-trust {
+      animation: fadeUp 0.7s 0.38s ease both;
+    }
+
+    .scoreboard {
+      animation: fadeUp 0.9s 0.25s ease both;
+    }
+
+    /* ACTIVITIES & CHALLENGES */
+    .ac-sec {
+      padding: 6rem 2rem;
+      background: var(--white);
+    }
+
+    .ac-split {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+      margin-top: 2.5rem;
+      max-width: 100%;
+    }
+
+    .ac-col {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 2.5rem 3.5rem;
+      background: var(--off-white);
+      width: 100%;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .ac-header {
+      border-radius: 6px;
+      padding: .75rem 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .ac-header.act {
+      background: var(--mfl-orange-light);
+    }
+
+    .ac-header.chal {
+      background: var(--mfl-navy-light);
+    }
+
+    .ac-label {
+      font-weight: 700;
+      font-size: .95rem;
+      color: var(--mfl-navy);
+    }
+
+    .ac-sub {
+      font-size: .68rem;
+      font-family: 'DM Mono', monospace;
+      color: var(--text-muted);
+      letter-spacing: .5px;
+      margin-top: 3px;
+    }
+
+    .ac-desc {
+      font-size: .88rem;
+      color: var(--text-muted);
+      line-height: 1.75;
+      margin-bottom: 1.25rem;
+      max-width: 90%;
+    }
+
+    .ac-ex-head {
+      font-size: .68rem;
+      font-family: 'DM Mono', monospace;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: .6rem;
+    }
+
+    .ac-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 1.25rem;
+      max-width: 95%;
+    }
+
+    .ac-pill {
+      font-size: .78rem;
+      padding: 5px 11px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      color: var(--mfl-navy);
+      font-weight: 500;
+    }
+
+    .chal-pill {
+      background: var(--mfl-navy-light);
+      border-color: rgba(26, 43, 74, .15);
+    }
+
+    .ac-rule {
+      display: flex;
+      gap: .75rem;
+      align-items: flex-start;
+      padding: .875rem;
+      background: var(--white);
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+
+    .ac-rule-icon {
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+
+    .ac-rule div {
+      font-size: .78rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .ac-note {
+      margin-top: 1.5rem;
+      text-align: center;
+      font-size: .84rem;
+      color: var(--text-muted);
+      padding: 1rem;
+      background: var(--mfl-navy-light);
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+
+    /* COACH SECTION */
+    .coach-sec {
+      padding: 6rem 4rem;
+      background: var(--off-white);
+    }
+
+    .coach-layout {
+      display: grid;
+      grid-template-columns: 1fr 1.4fr;
+      gap: 4rem;
+      margin-top: 3rem;
+      align-items: start;
+    }
+
+    .coach-phone {
+      display: flex;
+      justify-content: center;
+    }
+
+    .phone-frame {
+      width: 295px;
+      background: var(--mfl-navy);
+      border-radius: 24px;
+      padding: 1.25rem;
+      border: 6px solid #243760;
+    }
+
+    .phone-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .phone-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--mfl-orange);
+    }
+
+    .phone-title {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      color: rgba(255, 255, 255, 0.55);
+      letter-spacing: 1px;
+    }
+
+    .phone-status {
+      font-size: 0.6rem;
+      color: #5DCAA5;
+    }
+
+    .chat-area {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .chat-msg {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+    }
+
+    .chat-msg.user-msg {
+      flex-direction: row-reverse;
+    }
+
+    .chat-avatar {
+      font-size: 1.1rem;
+      flex-shrink: 0;
+      margin-bottom: 2px;
+    }
+
+    .chat-bubble {
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px 12px 12px 2px;
+      padding: 0.6rem 0.85rem;
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.82);
+      line-height: 1.55;
+      max-width: 195px;
+    }
+
+    .chat-bubble.user {
+      background: rgba(242, 101, 34, 0.2);
+      border-color: rgba(242, 101, 34, 0.3);
+      border-radius: 12px 12px 2px 12px;
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .coach-caps {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .cap-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+      display: flex;
+      gap: 0.875rem;
+      align-items: flex-start;
+    }
+
+    .cap-icon {
+      font-size: 1.3rem;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .cap-title {
+      font-weight: 600;
+      font-size: 0.88rem;
+      color: var(--mfl-navy);
+      margin-bottom: 0.3rem;
+    }
+
+    .cap-desc {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* PRICING ADDONS */
+    .price-addon {
+      margin: 0.875rem 0;
+      padding: 0.65rem 0.75rem;
+      background: var(--mfl-navy-light);
+      border-radius: 4px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .addon-lbl {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      font-family: 'DM Mono', monospace;
+      margin-right: 2px;
+    }
+
+    .addon-item {
+      font-size: 0.7rem;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 2px 7px;
+      color: var(--mfl-navy);
+      font-weight: 500;
+    }
+
+    .free-note {
+      text-align: center;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-family: 'DM Mono', monospace;
+      margin-top: 0.5rem;
+      letter-spacing: 0.3px;
+    }
+
+    .duration-note {
+      margin-top: 2rem;
+      padding: 1.25rem 1.5rem;
+      background: var(--mfl-navy-light);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.84rem;
+      color: var(--text-muted);
+      line-height: 1.65;
+    }
+
+    .dn-label {
+      font-weight: 600;
+      color: var(--mfl-navy);
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    @media(max-width:960px) {
+      * {
+        max-width: 100%;
+      }
+
+      html,
+      body {
+        overflow-x: hidden;
+        width: 100%;
+      }
+
+      .coach-layout {
+        grid-template-columns: 1fr;
+        width: 100%;
+      }
+
+      .coach-phone {
+        margin-bottom: 1rem;
+      }
+
+      .coach-caps {
+        grid-template-columns: 1fr;
+      }
+
+      nav {
+        padding: .85rem 1rem;
+        width: 100%;
+      }
+
+      .nav-logo {
+        font-size: 1rem;
+      }
+
+      .nav-cta {
+        font-size: .7rem;
+        padding: .45rem .85rem;
+        white-space: nowrap;
+      }
+
+      .nav-link-soft {
+        display: none;
+      }
+
+      .community-banner {
+        padding: 0.6rem 1rem;
+        margin-top: 64px;
+        width: 100%;
+      }
+
+      .banner-title {
+        font-size: .72rem;
+      }
+
+      .banner-subtitle {
+        font-size: .58rem;
+      }
+
+      .hero {
+        grid-template-columns: 1fr;
+        width: 100%;
+      }
+
+      .hero-right {
+        min-height: 420px;
+        order: -1;
+        width: 100%;
+      }
+
+      .hero-left {
+        padding: 2.5rem 1rem;
+        width: 100%;
+      }
+
+      .hero-title {
+        font-size: 2rem;
+        line-height: 1.1;
+      }
+
+      .hero-subtitle {
+        font-size: .85rem;
+        max-width: 100%;
+      }
+
+      .btn-primary {
+        width: 100%;
+        text-align: center;
+        padding: .8rem 1.3rem;
+        font-size: .85rem;
+      }
+
+      .cta-group {
+        width: 100%;
+      }
+
+      h2 {
+        font-size: 1.8rem;
+        line-height: 1.1;
+      }
+
+      .section-sub {
+        max-width: 100%;
+      }
+
+      section {
+        padding: 2.5rem 1rem;
+        width: 100%;
+      }
+
+      .diff-grid {
+        display: flex;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        gap: 1rem;
+        padding-bottom: 1rem;
+        width: 100%;
+      }
+
+      .diff-grid .diff-card {
+        flex: 0 0 85%;
+        scroll-snap-align: start;
+      }
+
+      .outcomes-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        width: 100%;
+      }
+
+      .testimonials-grid {
+        display: flex;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        gap: 1rem;
+        padding-bottom: 1rem;
+        width: 100%;
+      }
+
+      .testimonials-grid .tcard {
+        flex: 0 0 85%;
+        scroll-snap-align: start;
+      }
+
+      .steps-layout {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+        width: 100%;
+      }
+
+      .ac-split {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        width: 100%;
+      }
+
+      .ac-split .ac-col {
+        width: 100%;
+      }
+
+      .config-visual {
+        position: static;
+        margin-top: 1.5rem;
+        width: 100%;
+      }
+
+      .config-box {
+        width: 100%;
+      }
+
+      .pricing-grid {
+        grid-template-columns: 1fr;
+        width: 100%;
+      }
+
+      .price-card {
+        width: 100%;
+      }
+
+      .price-btn {
+        font-size: .82rem;
+        padding: .7rem 1.2rem;
+      }
+
+      .faq-grid {
+        grid-template-columns: 1fr;
+        width: 100%;
+      }
+
+      .corp-strip {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 1.5rem 1rem;
+        width: 100%;
+      }
+
+      .final-cta {
+        padding: 3rem 1rem;
+        width: 100%;
+      }
+
+      .leaderboard-row {
+        padding: .5rem;
+      }
+
+      .team-name {
+        font-size: .78rem;
+      }
+
+      .team-points {
+        font-size: 1.1rem;
+      }
+
+      .age-pills {
+        gap: .3rem;
+        margin-top: .65rem;
+        flex-wrap: wrap;
+      }
+
+      .age-pill {
+        font-size: .62rem;
+        padding: 3px 7px;
+      }
+
+      .leaderboard-card {
+        width: 100%;
+      }
+
+      .contact-modal-content {
+        width: 95%;
+        max-width: 95%;
+        margin: .5rem;
+      }
+    }
+
+    footer {
+      flex-direction: column;
+      gap: 1rem;
+      padding: 2rem 1.5rem;
+      text-align: center;
+    }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a href="#" class="nav-logo"><span class="logo-dot"></span>MYFITNESSLEAGUE</a>
+    <div class="nav-right">
+      <a href="/" class="nav-link-soft">For Corporates →</a>
+      <a href="/signup" class="nav-cta"
+        onclick="gtag('event', 'click', {'event_category': 'CTA', 'event_label': 'nav_cta'});">Start Your League →</a>
+    </div>
+  </nav>
+
+  <!-- COMMUNITY BANNER -->
+  <div class="community-banner">
+    🏘️ &nbsp; MFL for Residential Communities &amp; Apartment Societies
+    <a href="/">Looking for the corporate version? →</a>
+  </div>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-left">
+      <div class="hero-eyebrow">Residential Community Leagues</div>
+      <h1 class="hero-headline">
+        Your Society.<br>
+        <span class="acc-orange">One League.</span><br>
+        <span class="acc-teal">Every Generation.</span>
+      </h1>
+      <p class="hero-sub">
+        MFL brings your apartment community together — grandparents, parents, teenagers, toddler-chasing moms — all
+        competing as <strong>one league, across buildings and wings.</strong> Neighbours who nodded in the lift are
+        suddenly on the same team.
+      </p>
+      <div class="cta-group">
+        <a href="/signup" class="btn-primary"
+          onclick="gtag('event', 'click', {'event_category': 'CTA', 'event_label': 'hero_cta'});">Set Up Your Society
+          League →</a>
+        <a href="#how" class="btn-ghost">See how it works ↓</a>
+      </div>
+      <div class="hero-trust">
+        <div>
+          <div class="trust-num">92%</div>
+          <div class="trust-label">Rated 4–5 stars</div>
+        </div>
+        <div class="trust-divider"></div>
+        <div>
+          <div class="trust-num">100%</div>
+          <div class="trust-label">Fitness improvement</div>
+        </div>
+        <div class="trust-divider"></div>
+        <div>
+          <div class="trust-num">76%</div>
+          <div class="trust-label">Want to play again</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-right">
+      <div class="scoreboard">
+        <div class="scoreboard-header">
+          <div class="league-badge">Live Leaderboard</div>
+          <div class="scoreboard-title">Prestige Palms League</div>
+          <div class="scoreboard-day">Day 22 of 40 · 5 Wings Competing</div>
+        </div>
+
+        <div class="team-row leader">
+          <div class="team-rank">1</div>
+          <div class="team-emoji">🌟</div>
+          <div class="team-info">
+            <div class="team-name">Wing A — Sunrisers</div>
+            <div class="team-sub">Capt: Meera Iyer · 12 families</div>
+          </div>
+          <div class="team-pts">
+            <div class="pts-num">3,140</div>
+            <div class="pts-label">pts</div>
+          </div>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width:96%;background:var(--mfl-gold);"></div>
+        </div>
+
+        <div class="team-row">
+          <div class="team-rank">2</div>
+          <div class="team-emoji">🔥</div>
+          <div class="team-info">
+            <div class="team-name">Wing C — Challengers</div>
+            <div class="team-sub">Capt: Rajesh Nair · 11 families</div>
+          </div>
+          <div class="team-pts">
+            <div class="pts-num">2,980</div>
+            <div class="pts-label">pts</div>
+          </div>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width:90%;background:var(--mfl-orange);"></div>
+        </div>
+
+        <div class="team-row">
+          <div class="team-rank">3</div>
+          <div class="team-emoji">💪</div>
+          <div class="team-info">
+            <div class="team-name">Wing B — Warriors</div>
+            <div class="team-sub">Capt: Priya Sharma · 10 families</div>
+          </div>
+          <div class="team-pts">
+            <div class="pts-num">2,710</div>
+            <div class="pts-label">pts</div>
+          </div>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width:82%;background:var(--mfl-orange);opacity:0.7;"></div>
+        </div>
+
+        <div class="team-row">
+          <div class="team-rank">4</div>
+          <div class="team-emoji">🏃</div>
+          <div class="team-info">
+            <div class="team-name">Wing D — Strikers</div>
+            <div class="team-sub">Capt: Anand Kumar · 11 families</div>
+          </div>
+          <div class="team-pts">
+            <div class="pts-num">2,430</div>
+            <div class="pts-label">pts</div>
+          </div>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width:73%;background:var(--mfl-orange);opacity:0.5;"></div>
+        </div>
+
+        <div class="age-pills">
+          <div class="age-pill active">Kids 8–14 ✓</div>
+          <div class="age-pill active">Teens 15–24 ✓</div>
+          <div class="age-pill active">Adults 25–55 ✓</div>
+          <div class="age-pill active">Seniors 55+ ✓</div>
+        </div>
+
+        <div class="scoreboard-footer">
+          <div class="footer-stat">
+            <div class="footer-num">186</div>
+            <div class="footer-lbl">Residents</div>
+          </div>
+          <div class="footer-stat">
+            <div class="footer-num">4</div>
+            <div class="footer-lbl">Age groups</div>
+          </div>
+          <div class="footer-stat">
+            <div class="footer-num">18</div>
+            <div class="footer-lbl">Days left</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHAT'S DIFFERENT FOR RWA — with photos -->
+  <section class="diff-section">
+    <div class="section-label">Built for communities, not just offices</div>
+    <h2 class="section-title" style="color:var(--white);">Designed for the<br>full spectrum of life.</h2>
+    <p class="section-sub">Corporate leagues have one age group. Your society has eight-year-olds and eighty-year-olds.
+      MFL for communities is built for that beautiful complexity.</p>
+    <div class="diff-grid">
+      <div class="diff-card">
+        <div class="diff-icon">👨‍👩‍👧‍👦</div>
+        <div class="diff-title">Multi-generational teams</div>
+        <div class="diff-desc">Teams are balanced across age groups — grandparents, parents, and teenagers on the same
+          side. A 70-year-old's morning walk earns as many points as a 25-year-old's gym session.</div>
+      </div>
+      <div class="diff-card">
+        <div class="diff-icon">🏢</div>
+        <div class="diff-title">Wing vs wing drama</div>
+        <div class="diff-desc">Teams organised by wing, tower, villa cluster or block. The natural rivalry already
+          exists — MFL gives it a leaderboard, a rulebook, and a trophy.</div>
+      </div>
+      <div class="diff-card">
+        <div class="diff-icon">🤝</div>
+        <div class="diff-title">Neighbours become friends</div>
+        <div class="diff-desc">The family you've seen in the lift for three years but never spoken to is now on your
+          team. By Week 2, you're planning morning walks together. That's the MFL effect.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMMUNITY PHOTO FEATURE ROW -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;">
+    <div style="position:relative;overflow:hidden;">
+      <img src="/images/aleksandrs-karevs-WadTdbyDE94-unsplash.jpg" alt="Senior residents morning walk community"
+        style="width:100%;height:280px;object-fit:cover;display:block;filter:brightness(.65);">
+      <div
+        style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:1.25rem;">
+        <div
+          style="font-family:'DM Mono',monospace;font-size:.6rem;letter-spacing:2px;color:rgba(255,255,255,.6);text-transform:uppercase;margin-bottom:.3rem;">
+          For seniors</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:#fff;line-height:1.05;">Morning
+          walks<br>earn full points.</div>
+      </div>
+    </div>
+    <div style="position:relative;overflow:hidden;">
+      <img src="/images/dillon-wanner-ciqbTWuGgBI-unsplash.jpg" alt="Family yoga together community fitness"
+        style="width:100%;height:280px;object-fit:cover;display:block;filter:brightness(.65);">
+      <div
+        style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:1.25rem;">
+        <div
+          style="font-family:'DM Mono',monospace;font-size:.6rem;letter-spacing:2px;color:rgba(255,255,255,.6);text-transform:uppercase;margin-bottom:.3rem;">
+          For families</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:#fff;line-height:1.05;">Parents and
+          kids<br>on the same team.</div>
+      </div>
+    </div>
+    <div style="position:relative;overflow:hidden;">
+      <img src="/images/anna-stampfli-q0PZ3BoFmCE-unsplash.jpg" alt="Community celebration event residents"
+        style="width:100%;height:280px;object-fit:cover;display:block;filter:brightness(.65);">
+      <div
+        style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:1.25rem;">
+        <div
+          style="font-family:'DM Mono',monospace;font-size:.6rem;letter-spacing:2px;color:rgba(255,255,255,.6);text-transform:uppercase;margin-bottom:.3rem;">
+          For everyone</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:#fff;line-height:1.05;">Grand Finale
+          at<br>the clubhouse.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <section class="how-section" id="how">
+    <div class="section-label">How it works</div>
+    <h2 class="section-title">From idea to<br>league live in a day.</h2>
+    <p class="section-sub">No technical setup. Works on every phone. The RWA committee runs it — no external coordinator
+      needed.</p>
+    <div class="steps-layout">
+      <div>
+        <div class="step">
+          <div class="step-num">01</div>
+          <div>
+            <div class="step-title">Configure your community league</div>
+            <div class="step-desc">Tell the AI League Manager your society name, number of families, how you want to
+              form teams — by wing, tower, or random — and how long the league runs. It builds everything in under 3
+              minutes.</div>
+            <div class="step-time">~3 minutes</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">02</div>
+          <div>
+            <div class="step-title">Share the link on your society group</div>
+            <div class="step-desc">Drop the registration link on WhatsApp. Residents sign up individually. No app
+              download — it works in the browser. The platform handles team formation automatically.</div>
+            <div class="step-time">1–2 days</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">03</div>
+          <div>
+            <div class="step-title">Host an Opening Day at the clubhouse</div>
+            <div class="step-desc">Team reveal, captain selection, jersey colours, war cry — all residents gathered.
+              Families arrive not knowing their team. The reveal moment is electric.</div>
+            <div style="margin-top:.75rem;border-radius:6px;overflow:hidden;">
+              <img src="/images/marvin-cors-qWWawTh_IY0-unsplash.jpg" alt="Colourful team jerseys community league"
+                style="width:100%;height:110px;object-fit:cover;display:block;border-radius:6px;">
+            </div>
+            <div class="step-time">Week 1 · 45 min event</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">04</div>
+          <div>
+            <div class="step-title">League runs itself for 40 days</div>
+            <div class="step-desc">Residents log steps, workouts, yoga, cycling — whatever suits their age and ability.
+              The AI handles reminders, points, and bonus challenges. The leaderboard goes up in the lobby. Competition
+              is real.</div>
+            <div class="step-time">40 days</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">05</div>
+          <div>
+            <div class="step-title">Clubhouse Grand Finale — trophies, glory</div>
+            <div class="step-desc">A live awards ceremony — trophies for all teams, individual awards, and a League
+              Finisher Certificate for every participant. Print it, post it on WhatsApp, or share on LinkedIn. The
+              society talks about it for months.</div>
+            <div class="step-time">Finale day</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="steps-visual">
+        <div class="visual-title">Sample Society Config</div>
+        <div class="config-item"><span class="config-label">Society</span><span class="config-value">Prestige Palms ·
+            240 flats</span></div>
+        <div class="config-item"><span class="config-label">Teams by</span><span class="config-badge">Wing /
+            Tower</span></div>
+        <div class="config-item"><span class="config-label">Duration</span><span class="config-value">40 days</span>
+        </div>
+        <div class="config-item"><span class="config-label">Age groups</span><span class="config-value">Kids · Teens ·
+            Adults · Seniors</span></div>
+        <div class="config-item"><span class="config-label">Daily activities</span><span class="config-value">Steps,
+            Yoga, Cycling, Walk</span></div>
+        <div class="config-item"><span class="config-label">Bonus challenges</span><span class="config-value">6 —
+            including family challenges</span></div>
+        <div class="config-item"><span class="config-label">Opening Day</span><span class="config-badge">Clubhouse
+            playbook</span></div>
+        <div class="config-item"><span class="config-label">Communication</span><span class="config-badge">AI
+            automated</span></div>
+        <button class="launch-btn"
+          onclick="window.location.href='/signup'; gtag('event', 'click', {'event_category': 'CTA', 'event_label': 'config_box_cta'});">Launch
+          This League →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- OPENING DAY + FINALE PHOTOS -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
+    <div style="position:relative;overflow:hidden;">
+      <img src="/images/anna-stampfli-q0PZ3BoFmCE-unsplash.jpg" alt="Community residents Opening Day event clubhouse"
+        style="width:100%;height:400px;object-fit:cover;display:block;filter:brightness(.6);">
+      <div
+        style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:2rem;background:linear-gradient(transparent,rgba(26,43,74,.88) 55%);">
+        <div
+          style="display:inline-block;background:var(--mfl-orange);color:#fff;font-family:'DM Mono',monospace;font-size:.6rem;letter-spacing:2px;padding:3px 10px;border-radius:2px;margin-bottom:.5rem;width:fit-content;">
+          Opening Day · Clubhouse</div>
+        <div
+          style="font-family:'Bebas Neue',sans-serif;font-size:1.8rem;color:#fff;line-height:1.05;letter-spacing:.5px;">
+          Team reveal. War cry.<br>Neighbours become rivals.</div>
+        <div style="font-size:.78rem;color:rgba(255,255,255,.6);margin-top:.4rem;line-height:1.5;">All residents
+          gathered. Teams announced. The league begins before anyone has taken a step.</div>
+      </div>
+    </div>
+    <div style="position:relative;overflow:hidden;">
+      <img src="/images/gabin-vallet-J154nEkpzlQ-unsplash.jpg" alt="Community Grand Finale trophy ceremony celebration"
+        style="width:100%;height:400px;object-fit:cover;display:block;filter:brightness(.6);">
+      <div
+        style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:2rem;background:linear-gradient(transparent,rgba(10,10,10,.88) 55%);">
+        <div
+          style="display:inline-block;background:var(--mfl-gold);color:#1A2B4A;font-family:'DM Mono',monospace;font-size:.6rem;letter-spacing:2px;padding:3px 10px;border-radius:2px;margin-bottom:.5rem;width:fit-content;font-weight:700;">
+          Grand Finale · Trophy Day</div>
+        <div
+          style="font-family:'Bebas Neue',sans-serif;font-size:1.8rem;color:#fff;line-height:1.05;letter-spacing:.5px;">
+          Trophies. Certificates.<br>League Finisher for all.</div>
+        <div style="font-size:.78rem;color:rgba(255,255,255,.6);margin-top:.4rem;line-height:1.5;">Every team honoured.
+          Every resident gets a League Finisher Certificate — print it, share it on WhatsApp, or post it on LinkedIn.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OUTCOMES -->
+  <section class="outcomes-section">
+    <div class="section-label">What communities have told us</div>
+    <h2 class="section-title">The numbers from<br>our pilot leagues.</h2>
+    <div class="outcomes-grid">
+      <div class="outcome-card">
+        <div class="outcome-num">92%</div>
+        <div class="outcome-label">Rated 4–5 stars overall</div>
+        <div class="outcome-desc">Across pilot leagues spanning corporate, Rotary, and residential communities.
+          Consistent satisfaction regardless of fitness level or age group.</div>
+      </div>
+      <div class="outcome-card">
+        <div class="outcome-num">100%</div>
+        <div class="outcome-label">Reported some fitness improvement</div>
+        <div class="outcome-desc">Every participant moved more — including seniors and children. The team format means
+          even low scorers show up because they don't want to let their wing down.</div>
+      </div>
+      <div class="outcome-card">
+        <div class="outcome-num">76%</div>
+        <div class="outcome-label">Wanted to play again immediately</div>
+        <div class="outcome-desc">Three quarters asked for a Season 2 before Season 1 ended. Residential communities
+          told us it was the most fun they'd had as a society in years.</div>
+      </div>
+      <div class="outcome-card">
+        <div class="outcome-num">#1</div>
+        <div class="outcome-label">Outcome: Friendships across families</div>
+        <div class="outcome-desc">Not fitness. Not weight loss. Families that had shared a compound for years and never
+          spoken were planning weekend walks together by Week 3.</div>
+      </div>
+      <div class="outcome-card">
+        <div class="outcome-num">4</div>
+        <div class="outcome-label">Age groups active simultaneously</div>
+        <div class="outcome-desc">Kids, teens, adults, and seniors all participating in the same league under one roof —
+          each contributing points appropriate to their age and ability.</div>
+      </div>
+      <div class="outcome-card">
+        <div class="outcome-num">20min</div>
+        <div class="outcome-label">Full league setup by RWA committee</div>
+        <div class="outcome-desc">Any committee member can configure and launch the league without technical help. No
+          vendor. No coordinator. No proposal to approve.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TESTIMONIALS -->
+  <section class="testimonials-section">
+    <div class="section-label">Heard from our communities</div>
+    <h2 class="section-title">Real societies.<br>Real stories.</h2>
+    <div class="testimonials-grid">
+
+      <div class="tcard featured">
+        <div class="tcard-quote-mark">"</div>
+        <div class="tcard-quote">The 70-year-old uncle from Block C who barely left his flat was logging 8,000 steps
+          every morning. His grandchildren were tracking his score from college in another city. I had no idea a fitness
+          league could do this for a society.</div>
+        <div class="tcard-attr">
+          <div class="tcard-name">Meera Iyer</div>
+          <div class="tcard-role">RWA President · Prestige Palms, Hyderabad · 186 residents · 40 days</div>
+        </div>
+      </div>
+
+      <div class="tcard">
+        <div class="tcard-quote-mark">"</div>
+        <div class="tcard-quote">We had families from Wing A and Wing B who had a decade-old parking dispute. By Week 3
+          they were walking together at 6am as part of the same challenge. The league created neutral ground that
+          nothing else had managed to.</div>
+        <div class="tcard-attr">
+          <div class="tcard-name">Rajesh Nair</div>
+          <div class="tcard-role">Team Captain · Wing C · Residential Pilot League · 40 days</div>
+        </div>
+      </div>
+
+      <div class="tcard">
+        <div class="tcard-quote-mark">"</div>
+        <div class="tcard-quote">My daughter is 12 and my mother-in-law is 68. They were both logging activities, both
+          on the same leaderboard, both contributing to our wing's score. I don't think anything has ever made them feel
+          equal before. That alone made it worth every rupee.</div>
+        <div class="tcard-attr">
+          <div class="tcard-name">Priya Sharma</div>
+          <div class="tcard-role">Resident & Team Captain · Community Fitness League · Hyderabad</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- AI COACH SECTION -->
+  <section class="coach-sec">
+    <div class="section-label">Meet your AI Personal Coach</div>
+    <h2 class="section-title">Every resident gets a<br><span style="color:var(--mfl-orange);">coach in their
+        pocket.</span></h2>
+    <p class="section-sub" style="margin-bottom:3rem;">Not a generic app. A coach that learns your pace, your schedule,
+      your preferences — and guides you every day of the league whether you're 14 or 74.</p>
+
+    <div class="coach-layout">
+      <div class="coach-phone">
+        <div class="phone-frame">
+          <div class="phone-bar">
+            <div class="phone-dot"></div>
+            <span class="phone-title">MFL Coach</span>
+            <div class="phone-status">●</div>
+          </div>
+          <div class="chat-area">
+            <div class="chat-msg coach-msg">
+              <div class="chat-avatar">🤖</div>
+              <div class="chat-bubble">Good morning Meera! Wing A is just 90 pts ahead of Wing C. A 30-min morning walk
+                today keeps your lead. Want a reminder at 6:30am?</div>
+            </div>
+            <div class="chat-msg user-msg">
+              <div class="chat-bubble user">Yes! Also my knees have been sore.</div>
+              <div class="chat-avatar">👤</div>
+            </div>
+            <div class="chat-msg coach-msg">
+              <div class="chat-avatar">🤖</div>
+              <div class="chat-bubble">Got it — skipping the step challenge today. Instead: 15-min gentle yoga earns 8
+                pts and is easier on your knees. I'll send you a quick routine 🧘</div>
+            </div>
+            <div class="chat-msg coach-msg">
+              <div class="chat-avatar">🤖</div>
+              <div class="chat-bubble">Also — your son Ravi hasn't logged today. A nudge from you might be all he needs
+                😄</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="coach-caps">
+        <div class="cap-card">
+          <div class="cap-icon">🎯</div>
+          <div class="cap-body">
+            <div class="cap-title">Adapts to your age, pace and preferences</div>
+            <div class="cap-desc">Sets up with your preferred activities, intensity, timing, and any physical
+              limitations. A 68-year-old and a 16-year-old get very different guidance — from the same coach.</div>
+          </div>
+        </div>
+        <div class="cap-card">
+          <div class="cap-icon">📅</div>
+          <div class="cap-body">
+            <div class="cap-title">Plans your week to maximise team points</div>
+            <div class="cap-desc">Recommends which activities earn the most points this week, when to push harder, and
+              when your rest day is safest — always with your team's leaderboard position in mind.</div>
+          </div>
+        </div>
+        <div class="cap-card">
+          <div class="cap-icon">🏆</div>
+          <div class="cap-body">
+            <div class="cap-title">Tells you exactly how to climb the board</div>
+            <div class="cap-desc">Shows the gap to the wing above, which bonus challenges to target, and what your
+              specific contribution needs to be this week to close it. Real strategy, not vague encouragement.</div>
+          </div>
+        </div>
+        <div class="cap-card">
+          <div class="cap-icon">🔔</div>
+          <div class="cap-body">
+            <div class="cap-title">Nudges before you forget — not after</div>
+            <div class="cap-desc">Reminds you before a challenge closes, alerts you when your wing is slipping, and
+              cheers when you've moved the needle for the team. Timely, friendly, never spammy.</div>
+          </div>
+        </div>
+        <div class="cap-card">
+          <div class="cap-icon">👨‍👩‍👧</div>
+          <div class="cap-body">
+            <div class="cap-title">Connects your family as a unit</div>
+            <div class="cap-desc">Tells you when a family member hasn't logged, suggests family activities that earn
+              points together, and celebrates when multiple generations from the same household contribute on the same
+              day.</div>
+          </div>
+        </div>
+        <div class="cap-card">
+          <div class="cap-icon">📈</div>
+          <div class="cap-body">
+            <div class="cap-title">Tracks your personal journey end to end</div>
+            <div class="cap-desc">Your streaks, personal bests, and week-by-week contribution to the team — all visible.
+              Every resident leaves with a clear picture of what 40 days of moving together actually looks like.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ACTIVITIES & CHALLENGES -->
+  <section class="ac-sec">
+    <div class="section-label">Activities &amp; Challenges</div>
+    <h2 class="section-title">Two simple tools.<br>One lively community.</h2>
+    <p class="section-sub">Every MFL league runs on just two ingredients — Activities that everyone does daily and
+      Challenges that fire up the competition. Your RWA host picks the mix at setup; MFL handles everything else.</p>
+
+    <div class="ac-split">
+      <div class="ac-col">
+        <div class="ac-header act">
+          <div class="ac-label">Daily Activities</div>
+          <div class="ac-sub">Run the full league · Individual · Habit-forming</div>
+        </div>
+        <p class="ac-desc">Activities are the backbone of the league — running every day from Day 1 to Day 40. Each
+          resident logs their own activity and earns points for their wing or team. Age-appropriate targets mean
+          everyone can contribute meaningfully.</p>
+        <div class="ac-examples">
+          <div class="ac-ex-head">Popular community activities</div>
+          <div class="ac-pills">
+            <div class="ac-pill">🚶 Daily Steps</div>
+            <div class="ac-pill">🧘 Morning Yoga</div>
+            <div class="ac-pill">🏃 Society Walk / Jog</div>
+            <div class="ac-pill">🚴 Cycling</div>
+            <div class="ac-pill">🏊 Swimming</div>
+            <div class="ac-pill">🏋️ Gym Workout</div>
+            <div class="ac-pill">🏸 Badminton</div>
+          </div>
+        </div>
+        <div class="ac-rule">
+          <div class="ac-rule-icon">💡</div>
+          <div>RWA host picks 1–3 activities at setup. Each has an age-adjusted minimum — grandparent and grandchild
+            both earn full points for completing their level. The leaderboard updates live every day.</div>
+        </div>
+      </div>
+
+      <div class="ac-col">
+        <div class="ac-header chal">
+          <div class="ac-label">Bonus Challenges</div>
+          <div class="ac-sub">Time-limited · Team-based · Energy boosters</div>
+        </div>
+        <p class="ac-desc">Challenges are short, team-based events that the host deploys during the league to keep
+          things exciting, spark new conversations between neighbours, and reward collective effort. They run for 2–5
+          days and award bonus points to the team.</p>
+        <div class="ac-examples">
+          <div class="ac-ex-head">Real challenges from community leagues</div>
+          <div class="ac-pills">
+            <div class="ac-pill chal-pill">🏓 Table Tennis Tournament</div>
+            <div class="ac-pill chal-pill">🏋️ Plank Relay Challenge</div>
+            <div class="ac-pill chal-pill">👟 Steps Matchup — wing vs wing</div>
+            <div class="ac-pill chal-pill">🚫 No Sugar / No Junk Day</div>
+            <div class="ac-pill chal-pill">🏏 Cricket Match</div>
+            <div class="ac-pill chal-pill">🧘 Community Yoga Session</div>
+            <div class="ac-pill chal-pill">🎲 Board Games Tournament</div>
+            <div class="ac-pill chal-pill">💃 Dance Competition</div>
+          </div>
+        </div>
+        <div class="ac-rule">
+          <div class="ac-rule-icon">💡</div>
+          <div>Starter plans include 4 challenges, Society and Large Society include 6. Extend the league to 60 or 90
+            days and unlock 2–4 more. The AI League Manager recommends the next challenge and deploys it upon host
+            confirmation.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ac-note">
+      Setting up is simple: pick your daily activities → choose your challenge schedule → launch. The AI League Manager
+      walks your RWA committee through every step in under 5 minutes.
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section class="pricing-section" id="pricing">
+    <div class="section-label">Pricing · Launch Offer</div>
+    <h2 class="section-title">Simple pricing.<br>Everything included.</h2>
+    <p class="section-sub">Per resident, per league. AI Personal Coach + AI League Manager included in every plan. Kids,
+      seniors, everyone — one price for all ages.</p>
+
+    <div class="pricing-grid">
+      <div class="price-card">
+        <div class="price-tier">Starter</div>
+        <div class="price-size">Up to 40 Residents</div>
+        <div
+          style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--text-muted);letter-spacing:0.5px;margin-bottom:1rem;">
+          Up to 4 teams · 12 residents each</div>
+        <div class="price-amount">
+          <span>₹199</span> <span
+            style="font-size:0.72rem;font-family:'DM Mono',monospace;color:var(--mfl-orange);font-weight:500;">Launch
+            Offer</span>
+          <br><span style="font-size:0.78rem;color:var(--text-muted);">per resident · 40 day league</span>
+        </div>
+        <div class="price-addon">
+          <span class="addon-lbl">Extend:</span>
+          <span class="addon-item">60 days +₹50</span>
+          <span class="addon-item">90 days +₹90</span>
+        </div>
+        <ul class="price-features">
+          <li>AI Personal Coach — every resident</li>
+          <li>AI League Manager — RWA host</li>
+          <li>Leaderboard + resident app</li>
+          <li>4 challenges (40 days)</li>
+          <li>+2 challenges for 60 days</li>
+          <li>+4 challenges for 90 days</li>
+          <li>Multi-generational activity mix</li>
+          <li>Opening Day clubhouse playbook</li>
+          <li>Grand Finale ceremony kit</li>
+          <li>League Finisher Certificate — every player</li>
+          <li>WhatsApp support</li>
+        </ul>
+        <button class="price-btn"
+          onclick="window.location.href='/signup'; gtag('event', 'click', {'event_category': 'CTA', 'event_label': 'starter_cta'});">Launch
+          Free — 7 Days →</button>
+        <div class="free-note">First 7 days live, free. No card required.</div>
+      </div>
+
+      <div class="price-card featured">
+        <div class="featured-tag">Most Popular</div>
+        <div class="price-tier">Society</div>
+        <div class="price-size">40–150 Residents</div>
+        <div
+          style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--text-muted);letter-spacing:0.5px;margin-bottom:1rem;">
+          4 to 12 teams · 12 residents each</div>
+        <div class="price-amount">
+          <span>₹149</span> <span
+            style="font-size:0.72rem;font-family:'DM Mono',monospace;color:var(--mfl-orange);font-weight:500;">Launch
+            Offer</span>
+          <br><span style="font-size:0.78rem;color:var(--text-muted);">per resident · 40 day league</span>
+        </div>
+        <div class="price-addon">
+          <span class="addon-lbl">Extend:</span>
+          <span class="addon-item">60 days +₹50</span>
+          <span class="addon-item">90 days +₹90</span>
+        </div>
+        <ul class="price-features">
+          <li>AI Personal Coach — every resident</li>
+          <li>AI League Manager — RWA host</li>
+          <li>RWA committee dashboard</li>
+          <li>Custom society branding</li>
+          <li>6 challenges (40 days)</li>
+          <li>+2 challenges for 60 days</li>
+          <li>+4 challenges for 90 days</li>
+          <li>Age-group balanced team formation</li>
+          <li>Grand Finale ceremony kit</li>
+          <li>League Finisher Certificate — every resident</li>
+          <li>Priority support</li>
+        </ul>
+        <button class="price-btn"
+          onclick="window.location.href='/signup'; gtag('event', 'click', {'event_category': 'CTA', 'event_label': 'society_cta'});">Launch
+          Free — 7 Days →</button>
+        <div class="free-note">First 7 days live, free. No card required.</div>
+      </div>
+
+      <div class="price-card">
+        <div class="price-tier">Large Society</div>
+        <div class="price-size">150+ Residents</div>
+        <div
+          style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--text-muted);letter-spacing:0.5px;margin-bottom:1rem;">
+          12+ teams · unlimited scale</div>
+        <div class="price-amount">
+          <span>₹99</span> <span
+            style="font-size:0.72rem;font-family:'DM Mono',monospace;color:var(--mfl-orange);font-weight:500;">Launch
+            Offer</span>
+          <br><span style="font-size:0.78rem;color:var(--text-muted);">per resident · 40 day league</span>
+        </div>
+        <div class="price-addon">
+          <span class="addon-lbl">Extend:</span>
+          <span class="addon-item">60 days +₹50</span>
+          <span class="addon-item">90 days +₹90</span>
+        </div>
+        <ul class="price-features">
+          <li>AI Personal Coach — every resident</li>
+          <li>AI League Manager — RWA host</li>
+          <li>Society-branded app experience</li>
+          <li>6 challenges (40 days)</li>
+          <li>+2 challenges for 60 days</li>
+          <li>+4 challenges for 90 days</li>
+          <li>Sub-leagues by tower if needed</li>
+          <li>Wearable auto-sync</li>
+          <li>Dedicated onboarding support</li>
+        </ul>
+        <button class="price-btn"
+          onclick="openContactForm('Enterprise', 'Communities'); gtag('event', 'click', {'event_category': 'Contact', 'event_label': 'enterprise_contact_form'});">Talk
+          to Us →</button>
+      </div>
+    </div>
+
+    <div class="duration-note">
+      <span class="dn-label">How it works:</span>
+      Base league is 40 days — Starter gets 4 challenges, Society and Large Society get 6. Extend to 60 days
+      (+₹50/resident) for 2 more challenges, or 90 days (+₹90/resident) for 4 more. The first 7 days of your live league
+      are free — no card needed upfront. Pay only if your community loves it.
+    </div>
+
+  </section>
+
+  <!-- FAQ -->
+  <section class="faq-section">
+    <div class="section-label">Questions</div>
+    <h2 class="section-title">What societies<br>always ask us.</h2>
+    <div class="faq-grid">
+      <div class="faq-item">
+        <div class="faq-q">What's the difference between Activities and Challenges?</div>
+        <div class="faq-a">Activities run every day — individual habits like morning walks or yoga that each resident
+          logs to earn points for their wing. Challenges are short team events (2–5 days) that the host deploys for
+          excitement — a Table Tennis Tournament, Plank Relay, or Steps Matchup between wings. Activities build the
+          habit; Challenges build the drama.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">How do we choose activities for our society?</div>
+        <div class="faq-a">At setup the RWA host picks 1–3 daily activities — steps, yoga, walking, cycling, swimming,
+          and more. Each activity has age-adjusted targets so an 8-year-old and a 70-year-old both earn meaningful
+          points. The AI League Manager recommends the right mix based on your community profile.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Can children participate?</div>
+        <div class="faq-a">Yes — children from age 8 upwards participate under a parent's account. Activities have
+          age-appropriate targets so a child's 3,000 steps earns the same points as an adult's 8,000. Everyone
+          contributes to the team meaningfully regardless of age.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">What about elderly residents who aren't tech-savvy?</div>
+        <div class="faq-a">Family members can log activities on behalf of elderly participants. The app is intentionally
+          simple — one tap to log. Many seniors in our pilots became the most active participants once their
+          grandchildren showed them the leaderboard.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">How are teams formed — by wing, tower, or random?</div>
+        <div class="faq-a">You choose at setup. Wing vs wing uses the natural geography of your society and works
+          brilliantly for larger communities. Cross-wing random teams mix neighbours and work better for smaller
+          societies where meeting new people is the primary goal.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Does the RWA committee need to manage it daily?</div>
+        <div class="faq-a">No. The AI League Manager handles daily reminders, points updates, challenge deployments, and
+          leaderboard communications automatically. Under 30 minutes a week from the committee is typical — mostly
+          enjoying watching the society come alive.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Do residents need to download an app?</div>
+        <div class="faq-a">No App Store needed. MFL installs as a Progressive Web App from the browser in one tap. Works
+          on all Android and iOS devices regardless of phone model or storage space.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">How does the free trial work?</div>
+        <div class="faq-a">Your league goes live and runs free for the first 7 days — teams are active, the leaderboard
+          is live, residents are logging. No card required upfront. If the society loves it (they will), you pay to
+          unlock the rest of the season. If not, you walk away owing nothing.</div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    function toggleFaq(btn) {
+      const item = btn.parentElement;
+      const isOpen = item.classList.contains('open');
+      document.querySelectorAll('.faq-item.open').forEach(el => {
+        el.classList.remove('open');
+        el.querySelector('.faq-arrow').textContent = '▼';
+      });
+      if (!isOpen) {
+        item.classList.add('open');
+        btn.querySelector('.faq-arrow').textContent = '▲';
+      }
+    }
+  </script>
+
+  <!-- CORPORATE SOFT STRIP -->
+  <div class="corp-strip">
+    <div class="corp-left">
+      <div class="corp-icon">🏢</div>
+      <div>
+        <div class="corp-heading">Running an HR team, company, or professional organisation?</div>
+        <div class="corp-sub">MFL's corporate version is built for offices, law firms, tech companies, and professional
+          clubs like Rotary — with team bonding, productivity culture, and HR dashboards built in.</div>
+      </div>
+    </div>
+    <a href="/" class="corp-link">See MFL for Corporates →</a>
+  </div>
+
+  <!-- FINAL CTA -->
+  <section class="final-cta">
+    <div class="section-label">Ready to bring your society together</div>
+    <h2 class="section-title">Your neighbours<br>are waiting.</h2>
+    <p class="section-sub">Set up your society league in 20 minutes. No vendor. No coordinator. Just your community —
+      competing, bonding, and moving together.</p>
+    <a href="/signup" class="btn-primary" style="font-size:1rem;padding:1.1rem 3rem;"
+      onclick="gtag('event', 'click', {'event_category': 'CTA', 'event_label': 'bottom_cta'});">Launch Free — 7 Days
+      →</a>
+    <p
+      style="margin-top:1rem;font-size:0.78rem;color:rgba(255,255,255,0.35);font-family:'DM Mono',monospace;letter-spacing:0.5px;">
+      First 7 days live and free. No card required.</p>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <a href="#" class="footer-logo"><span class="logo-dot"></span>MYFITNESSLEAGUE</a>
+    <div class="footer-right">© 2026 MyFitnessLeague · myfitnessleague.com · Hyderabad, India</div>
+  </footer>
+
+  <!-- Contact Form Modal -->
+  <div id="contactModal" class="contact-modal" style="display: none;">
+    <div class="contact-modal-overlay" onclick="closeContactForm()"></div>
+    <div class="contact-modal-content">
+      <div class="contact-modal-header">
+        <h3>Contact MFL Support</h3>
+        <button onclick="closeContactForm()" class="contact-close-btn">&times;</button>
+      </div>
+      <div class="contact-modal-body">
+        <p class="contact-description">Interested in our Enterprise plan? Let's discuss your needs.</p>
+        <form id="contactForm" onsubmit="submitContactForm(event)">
+          <div class="contact-form-group">
+            <label for="contactName">Full Name *</label>
+            <input type="text" id="contactName" name="name" required>
+          </div>
+          <div class="contact-form-group">
+            <label for="contactEmail">Email Address *</label>
+            <input type="email" id="contactEmail" name="email" required>
+          </div>
+          <div class="contact-form-group">
+            <label for="contactCompany">Community/Society Name</label>
+            <input type="text" id="contactCompany" name="company" placeholder="Your community/society name">
+          </div>
+          <div class="contact-form-group">
+            <label for="contactPhone">Phone Number</label>
+            <input type="tel" id="contactPhone" name="phone" placeholder="+91 98765 43210">
+          </div>
+          <div class="contact-form-group">
+            <label for="contactPlan">Plan Interest</label>
+            <select id="contactPlan" name="planInterest">
+              <option value="General">General Inquiry</option>
+              <option value="Starter">Starter Plan (Up to 40 people)</option>
+              <option value="Growth">Growth Plan (40-150 people)</option>
+              <option value="Enterprise">Enterprise Plan (150+ people)</option>
+            </select>
+          </div>
+          <div class="contact-form-group">
+            <label for="contactMessage">Message *</label>
+            <textarea id="contactMessage" name="message" rows="4" required
+              placeholder="Tell us about your community size, goals, and any specific requirements..."></textarea>
+          </div>
+          <div class="contact-form-actions">
+            <button type="button" onclick="closeContactForm()" class="contact-btn-secondary">Cancel</button>
+            <button type="submit" class="contact-btn-primary">Send Message</button>
+          </div>
+        </form>
+        <div class="contact-direct-email">
+          <p>Or email us directly at <a href="mailto:mflsupport@mpowero.com">mflsupport@mpowero.com</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .contact-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    .contact-modal-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+    }
+
+    .contact-modal-content {
+      position: relative;
+      background: white;
+      border-radius: 8px;
+      width: 100%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+
+    .contact-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.5rem;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .contact-modal-header h3 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--mfl-navy);
+    }
+
+    .contact-close-btn {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #6b7280;
+      padding: 0.25rem;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+    }
+
+    .contact-close-btn:hover {
+      background: #f3f4f6;
+    }
+
+    .contact-modal-body {
+      padding: 1.5rem;
+    }
+
+    .contact-description {
+      margin-bottom: 1.5rem;
+      color: #6b7280;
+      font-size: 0.875rem;
+    }
+
+    .contact-form-group {
+      margin-bottom: 1rem;
+    }
+
+    .contact-form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: var(--mfl-navy);
+      font-size: 0.875rem;
+    }
+
+    .contact-form-group input,
+    .contact-form-group select,
+    .contact-form-group textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      font-size: 0.875rem;
+      transition: border-color 0.2s;
+      font-family: 'DM Sans', sans-serif;
+    }
+
+    .contact-form-group input:focus,
+    .contact-form-group select:focus,
+    .contact-form-group textarea:focus {
+      outline: none;
+      border-color: var(--mfl-teal);
+      box-shadow: 0 0 0 1px var(--mfl-teal);
+    }
+
+    .contact-form-group textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    .contact-form-actions {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+    }
+
+    .contact-btn-secondary,
+    .contact-btn-primary {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'DM Sans', sans-serif;
+    }
+
+    .contact-btn-secondary {
+      background: white;
+      border: 1px solid #d1d5db;
+      color: #374151;
+    }
+
+    .contact-btn-secondary:hover {
+      background: #f9fafb;
+    }
+
+    .contact-btn-primary {
+      background: var(--mfl-teal);
+      border: 1px solid var(--mfl-teal);
+      color: white;
+    }
+
+    .contact-btn-primary:hover {
+      background: #0d5a47;
+      border-color: #0d5a47;
+    }
+
+    .contact-btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .contact-direct-email {
+      margin-top: 1.5rem;
+      padding-top: 1rem;
+      border-top: 1px solid #e5e7eb;
+      text-align: center;
+    }
+
+    .contact-direct-email p {
+      margin: 0;
+      font-size: 0.875rem;
+      color: #6b7280;
+    }
+
+    .contact-direct-email a {
+      color: var(--mfl-teal);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .contact-direct-email a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 640px) {
+      .contact-modal-content {
+        margin: 1rem;
+        max-height: calc(100vh - 2rem);
+      }
+
+      .contact-form-actions {
+        flex-direction: column;
+      }
+    }
+  </style>
+
+  <script>
+    let currentPlanType = 'General';
+    let currentPageType = 'Communities';
+
+    function openContactForm(planType = 'General', pageType = 'Communities') {
+      currentPlanType = planType;
+      currentPageType = pageType;
+
+      // Update form defaults
+      document.getElementById('contactPlan').value = planType;
+
+      // Update description based on plan type
+      const description = document.querySelector('.contact-description');
+      if (planType === 'Enterprise') {
+        description.textContent = `Interested in our Enterprise plan for ${pageType.toLowerCase()}? Let's discuss your needs.`;
+      } else {
+        description.textContent = 'Get in touch with our team. We\'ll respond within 24 hours.';
+      }
+
+      document.getElementById('contactModal').style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeContactForm() {
+      document.getElementById('contactModal').style.display = 'none';
+      document.body.style.overflow = 'auto';
+
+      // Reset form
+      document.getElementById('contactForm').reset();
+    }
+
+    async function submitContactForm(event) {
+      event.preventDefault();
+
+      const submitBtn = event.target.querySelector('button[type="submit"]');
+      const originalText = submitBtn.textContent;
+      submitBtn.textContent = 'Sending...';
+      submitBtn.disabled = true;
+
+      try {
+        const formData = new FormData(event.target);
+        const data = Object.fromEntries(formData.entries());
+        data.pageType = currentPageType;
+
+        // Simulate form submission - replace with actual API call
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Track analytics event
+        if (typeof gtag !== 'undefined') {
+          gtag('event', 'form_submit', {
+            'event_category': 'Contact',
+            'event_label': `${currentPlanType}_${currentPageType}`,
+            'value': 1
+          });
+        }
+
+        alert('Message sent successfully! We\'ll get back to you within 24 hours.');
+        closeContactForm();
+
+      } catch (error) {
+        alert('Failed to send message. Please try again or email us directly at mflsupport@mpowero.com');
+      } finally {
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+      }
+    }
+
+    // Close modal when clicking outside
+    document.addEventListener('click', function (event) {
+      const modal = document.getElementById('contactModal');
+      if (event.target === modal) {
+        closeContactForm();
+      }
+    });
+
+    // Close modal with Escape key
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') {
+        closeContactForm();
+      }
+    });
+  </script>
+
+</body>
+
+</html>
