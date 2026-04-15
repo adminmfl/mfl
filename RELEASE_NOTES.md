@@ -14,6 +14,8 @@
 
 **Landing Page Revamp** — Fresh corporate design with orange accents, updated hero imagery, and wearable integration messaging.
 
+**Performance & Speed** — We've re-engineered the app for faster loading and a smoother mobile experience. The league dashboard now updates almost instantly, ensuring a more responsive feel when checking leaderboards and logging activities.
+
 ### What's Fixed
 - 15 bugs reported by QA testers have been resolved, including captain permissions, chat UX issues, data validation, AI rendering, and null safety across the app.
 
