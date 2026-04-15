@@ -5,7 +5,7 @@ All notable changes to My Fitness League (MFL) will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — v2.5.0
+## [Unreleased] - v2.6.0
 
 ### Added
 
@@ -15,47 +15,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Workout link button in chat message input
 - Landing page revamp with corporate imagery, orange accent theme, and wearable integration copy
 - V2.5 P0/P1/P2 feature implementation across the platform
-- Corporate landing page deployed at /corporate with functional CTAs and responsive design (#146)
-- Community landing page deployed at /communities with functional CTAs and responsive design (#147)
-- Vercel routing configuration for clean URLs without .html extensions (#146, #147)
-- Font preconnect links for Google Fonts to prevent FOIT on slow connections (#146, #147)
-- Scroll margin offset for anchor links to account for fixed navigation (#146, #147)
+- Corporate landing page deployed at `/corporate` with functional CTAs and responsive design
+- Community landing page deployed at `/communities` with functional CTAs and responsive design
+- Clean landing-page routing without `.html` URLs
+- Font preconnect links for Google Fonts to reduce FOIT on slower connections
+- Scroll margin offset for anchor links to account for fixed navigation
 
 ### Changed
 
 - Client feedback: filter dropdown, instant messaging UX, left-aligned dropdowns, mobile nav, league info title, and tour flow improvements
 - AI Coach v2.5: inline intelligence replaces standalone AI components
-- Migrate client components to Server-First RSC model with Suspense streaming for TBT reduction (#perf)
-- Optimize mobile Lighthouse score to 90+ and reduce LCP to <2s via critical path refinement (#perf)
-- Implement parallel API calls and decouple heavy logic from initial page load (#perf)
-- Integrate Supabase image optimization and icon tree-shaking to minimize bundle size (#perf)
-- Activities & Challenges section layout changed from two-column grid to vertical stack for better readability (#147)
-- Increased horizontal padding and card width for improved content presentation (#147)
-- Optimized font sizes and line-height for better mobile readability (#147)
+- Migrate heavy dashboard and leaderboard paths toward a server-first, streamed loading model for better perceived performance
+- Optimize mobile Lighthouse metrics and reduce time-to-interactive via critical path refinement
+- Implement parallel API calls and decouple heavy data work from initial page load
+- Integrate image optimization and bundle-size reduction work across key user flows
+- Activities and Challenges section layout changed from two-column grid to vertical stack for better readability
+- Increased horizontal padding and card width for improved landing-page content presentation
+- Optimized font sizes and line-height for better mobile readability
 
 ### Fixed
 
-- Captain restricted to own team only; removed ability to switch between teams (#1)
-- Add-member API returns proper response for captain on own team instead of 403 (#2)
-- Chat attach workout: replaced auto-action with explicit popover menu (#3)
-- Challenges page returns friendly empty state instead of 500 error (#4)
-- Duration/distance/steps validation enforced on client and server with shared limits (#5)
-- Chat deep links display human-readable labels instead of raw UUID paths (#6)
-- AI Coach chat renders markdown properly (bold, italic, code blocks) (#7)
-- AI nudges address teams collectively; individual player names are never exposed (#8)
+- Captain restricted to own team only; removed ability to switch between teams
+- Add-member API returns proper response for captain on own team instead of 403
+- Chat attach workout: replaced auto-action with explicit popover menu
+- Challenges page returns friendly empty state instead of 500 error
+- Duration, distance, and steps validation enforced on client and server with shared limits
+- Chat deep links display human-readable labels instead of raw UUID paths
+- AI Coach chat renders markdown properly (bold, italic, code blocks)
+- AI nudges address teams collectively; individual player names are never exposed
 - Chat workout attachment flow with explicit picker and challenges/leaderboard/activities links (#131)
-- AI league creator progress bar no longer resets when fields contain null values (#9)
-- Round-robin chart shows empty state message when no data is available (#10)
-- Leaderboard stats section labeled "Your Activity Submissions" for clarity (#11)
-- Help page: renamed duplicate "Getting Started" section to "Guided Tour" (#12)
-- Sidebar text overflow fixed with proper truncation and min-width constraints (#13)
-- Dashboard: `deriveLeagueStatus` wrapped in try-catch to prevent blank screen on corrupt data (#14)
-- Null guards added on `.roles` and `.name` across dashboard, profile, leagues, sidebar, header, and league context (#15)
+- AI league creator progress bar no longer resets when fields contain null values
+- Round-robin chart shows empty state message when no data is available
+- Leaderboard stats section labeled "Your Activity Submissions" for clarity
+- Help page: renamed duplicate "Getting Started" section to "Guided Tour"
+- Sidebar text overflow fixed with proper truncation and min-width constraints
+- Dashboard: `deriveLeagueStatus` wrapped in try-catch to prevent blank screen on corrupt data
+- Null guards added on `.roles` and `.name` across dashboard, profile, leagues, sidebar, header, and league context
 - Host landing page, activities fetch fallback, and chat badge count
-- Google Analytics placeholder replaced with proper G-XXXXXXXXXX format with TODO comments (#146, #147)
-- Anchor links now scroll to correct position without content hidden behind fixed nav (#146, #147)
+- Google Analytics placeholder replaced with proper `G-XXXXXXXXXX` format with TODO comments
+- Anchor links now scroll to correct position without content hidden behind fixed nav
 
-## [2.0.0] — 2026-04-01
+## [2.0.0] - 2026-04-01
 
 ### Added
 
@@ -94,7 +94,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Challenge leaderboard not showing challenges and scores (#109)
 - Admin impersonation crash, submit page crash, rest day counting, UI restructure (#91)
 
-## [1.0.0] — 2026-02-11
+## [1.0.0] - 2026-02-11
 
 ### Added
 
@@ -108,7 +108,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Leaderboard**: Real-time scoreboard with team/individual/challenge tabs, date filtering, challenge bonus points, average rank
 - **Sub-team management**: Sub-team creation for challenges with dedicated leaderboard
 - **Team management**: Member management with move/delete, team logo upload
-- **Rest day system**: Rest day donation with two-stage approval (Captain → Governor), auto-assign rest days cron job
+- **Rest day system**: Rest day donation with two-stage approval (Captain -> Governor), auto-assign rest days cron job
 - **League reports & certificates**: PDF report generation and certificate download on league completion
 - **Admin dashboard**: Statistics, revenue charts, recent activity tracking
 - **League analytics**: Performance insights with export functionality
