@@ -26,7 +26,7 @@ import {
   Info,
   ShieldAlert,
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 
 import { useLeague } from '@/contexts/league-context';
 import { useRole } from '@/contexts/role-context';
@@ -1397,10 +1397,10 @@ export default function SubmitActivityPage({
                   Activity
                 </TabsTrigger>
                 {showRestDays && (
-                <TabsTrigger value="rest" className="flex items-center gap-2">
-                  <Moon className="size-4" />
-                  Rest Day
-                </TabsTrigger>
+                  <TabsTrigger value="rest" className="flex items-center gap-2">
+                    <Moon className="size-4" />
+                    Rest Day
+                  </TabsTrigger>
                 )}
               </TabsList>
 
@@ -1430,11 +1430,10 @@ export default function SubmitActivityPage({
                   </div>
                 )}
                 {isDailyMultiFrequency && (
-                  <div className={`text-xs p-2 rounded flex items-center gap-2 ${
-                    canSubmitDailyMulti
+                  <div className={`text-xs p-2 rounded flex items-center gap-2 ${canSubmitDailyMulti
                       ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400'
                       : 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400'
-                  }`}>
+                    }`}>
                     <Info className="size-3.5 shrink-0" />
                     {canSubmitDailyMulti
                       ? `${dailyEntryCount} of ${dailyFrequencyLimit} logged today — ${dailyFrequencyLimit - dailyEntryCount} remaining`
@@ -1575,159 +1574,159 @@ export default function SubmitActivityPage({
 
               {/* Photo Upload — hidden when proof_requirement is 'not_required' */}
               {(selectedActivity?.proof_requirement ?? 'mandatory') !== 'not_required' && (
-              <div className="space-y-2">
-                <Label htmlFor="proof-file">
-                  Upload Proof{(selectedActivity?.proof_requirement ?? 'mandatory') === 'mandatory' ? ' *' : ' (Optional)'}
-                </Label>
-                <input
-                  id="proof-file"
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  aria-label="Upload proof screenshot"
-                />
-                {imagePreview ? (
-                  <div className="relative">
-                    <img
-                      src={imagePreview}
-                      alt="Selected workout"
-                      className="w-full h-20 object-contain rounded-lg border bg-muted"
-                    />
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="icon"
-                      className="absolute top-2 right-2"
-                      onClick={removeImage}
+                <div className="space-y-2">
+                  <Label htmlFor="proof-file">
+                    Upload Proof{(selectedActivity?.proof_requirement ?? 'mandatory') === 'mandatory' ? ' *' : ' (Optional)'}
+                  </Label>
+                  <input
+                    id="proof-file"
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    aria-label="Upload proof screenshot"
+                  />
+                  {imagePreview ? (
+                    <div className="relative">
+                      <img
+                        src={imagePreview}
+                        alt="Selected workout"
+                        className="w-full h-20 object-contain rounded-lg border bg-muted"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2"
+                        onClick={removeImage}
+                      >
+                        <X className="size-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={handleUploadClick}
+                      className="border-2 border-dashed rounded-lg p-2 text-center hover:border-primary/50 transition-colors cursor-pointer"
                     >
-                      <X className="size-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <div
-                    onClick={handleUploadClick}
-                    className="border-2 border-dashed rounded-lg p-2 text-center hover:border-primary/50 transition-colors cursor-pointer"
-                  >
-                    {uploadingImage || ocrProcessing ? (
-                      <Loader2 className="size-5 mx-auto text-primary animate-spin" />
-                    ) : (
-                      <>
-                        <ImageIcon className="size-4 mx-auto text-muted-foreground mb-1" />
-                        <p className="text-[11px] text-muted-foreground">Click to upload image (JPG, PNG, GIF, WebP)</p>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
+                      {uploadingImage || ocrProcessing ? (
+                        <Loader2 className="size-5 mx-auto text-primary animate-spin" />
+                      ) : (
+                        <>
+                          <ImageIcon className="size-4 mx-auto text-muted-foreground mb-1" />
+                          <p className="text-[11px] text-muted-foreground">Click to upload image (JPG, PNG, GIF, WebP)</p>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
 
               {/* Second Photo Upload — shown when max_images >= 2 */}
               {(selectedActivity?.max_images ?? 1) >= 2 && (selectedActivity?.proof_requirement ?? 'mandatory') !== 'not_required' && (
-              <div className="space-y-2">
-                <Label>Upload Second Image (Optional)</Label>
-                <input
-                  ref={fileInputRef2}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileUpload2}
-                  className="hidden"
-                />
-                {imagePreview2 ? (
-                  <div className="relative">
-                    <img
-                      src={imagePreview2}
-                      alt="Second proof"
-                      className="w-full h-20 object-contain rounded-lg border bg-muted"
-                    />
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="icon"
-                      className="absolute top-2 right-2"
-                      onClick={removeImage2}
+                <div className="space-y-2">
+                  <Label>Upload Second Image (Optional)</Label>
+                  <input
+                    ref={fileInputRef2}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileUpload2}
+                    className="hidden"
+                  />
+                  {imagePreview2 ? (
+                    <div className="relative">
+                      <img
+                        src={imagePreview2}
+                        alt="Second proof"
+                        className="w-full h-20 object-contain rounded-lg border bg-muted"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2"
+                        onClick={removeImage2}
+                      >
+                        <X className="size-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => fileInputRef2.current?.click()}
+                      className="border-2 border-dashed rounded-lg p-2 text-center hover:border-primary/50 transition-colors cursor-pointer"
                     >
-                      <X className="size-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <div
-                    onClick={() => fileInputRef2.current?.click()}
-                    className="border-2 border-dashed rounded-lg p-2 text-center hover:border-primary/50 transition-colors cursor-pointer"
-                  >
-                    <ImageIcon className="size-4 mx-auto text-muted-foreground mb-1" />
-                    <p className="text-[11px] text-muted-foreground">Click to upload second image (JPG, PNG, GIF, WebP)</p>
-                  </div>
-                )}
-              </div>
+                      <ImageIcon className="size-4 mx-auto text-muted-foreground mb-1" />
+                      <p className="text-[11px] text-muted-foreground">Click to upload second image (JPG, PNG, GIF, WebP)</p>
+                    </div>
+                  )}
+                </div>
               )}
 
               {/* Outcome picker — shown when activity has outcome_config */}
               {selectedActivity?.outcome_config && selectedActivity.outcome_config.length > 0 && (
-              <div className="space-y-2">
-                <Label>Outcome *</Label>
-                <Select
-                  value={formData.outcome || ''}
-                  onValueChange={(v) => setFormData((prev) => ({ ...prev, outcome: v }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select outcome" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {selectedActivity.outcome_config.map((o) => (
-                      <SelectItem key={o.label} value={o.label}>
-                        {o.label} ({o.points} pt{o.points !== 1 ? 's' : ''})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                <div className="space-y-2">
+                  <Label>Outcome *</Label>
+                  <Select
+                    value={formData.outcome || ''}
+                    onValueChange={(v) => setFormData((prev) => ({ ...prev, outcome: v }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select outcome" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {selectedActivity.outcome_config.map((o) => (
+                        <SelectItem key={o.label} value={o.label}>
+                          {o.label} ({o.points} pt{o.points !== 1 ? 's' : ''})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               )}
 
               {/* Notes — hidden when notes_requirement is 'not_required' */}
               {(selectedActivity?.notes_requirement ?? 'optional') !== 'not_required' && (
-              <div className="space-y-2">
-                <Label htmlFor="notes">
-                  Notes{(selectedActivity?.notes_requirement) === 'mandatory' ? ' *' : ' (Optional)'}
-                </Label>
-                <Textarea
-                  id="notes"
-                  placeholder={selectedActivity?.notes_requirement === 'mandatory' ? 'Notes are required for this activity' : 'Share a quick note (optional)'}
-                  rows={2}
-                  value={formData.notes}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, notes: e.target.value }))
-                  }
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="notes">
+                    Notes{(selectedActivity?.notes_requirement) === 'mandatory' ? ' *' : ' (Optional)'}
+                  </Label>
+                  <Textarea
+                    id="notes"
+                    placeholder={selectedActivity?.notes_requirement === 'mandatory' ? 'Notes are required for this activity' : 'Share a quick note (optional)'}
+                    rows={2}
+                    value={formData.notes}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, notes: e.target.value }))
+                    }
+                  />
+                </div>
               )}
 
               {/* Custom field — shown when activity has custom_field_label */}
               {selectedActivity?.custom_field_label && (
-              <div className="space-y-2">
-                <Label htmlFor="custom-field">
-                  {selectedActivity.custom_field_label} *
-                </Label>
-                <Textarea
-                  id="custom-field"
-                  placeholder={selectedActivity.custom_field_label}
-                  rows={2}
-                  value={customFieldValue}
-                  onChange={(e) => setCustomFieldValue(e.target.value)}
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="custom-field">
+                    {selectedActivity.custom_field_label} *
+                  </Label>
+                  <Textarea
+                    id="custom-field"
+                    placeholder={selectedActivity.custom_field_label}
+                    rows={2}
+                    value={customFieldValue}
+                    onChange={(e) => setCustomFieldValue(e.target.value)}
+                  />
+                </div>
               )}
 
               {/* Summary and Submit */}
               <div className="pt-4 border-t space-y-4">
                 {((activeLeague as any)?.rr_config?.formula || 'standard') === 'standard' && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">RR Value</span>
-                  <span className="text-lg font-bold text-primary">
-                    {estimatedRR.toFixed(2)}
-                  </span>
-                </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">RR Value</span>
+                    <span className="text-lg font-bold text-primary">
+                      {estimatedRR.toFixed(2)}
+                    </span>
+                  </div>
                 )}
                 <div className="flex gap-2">
                   <Button
@@ -1775,10 +1774,10 @@ export default function SubmitActivityPage({
                   Activity
                 </TabsTrigger>
                 {showRestDays && (
-                <TabsTrigger value="rest" className="flex items-center gap-2">
-                  <Moon className="size-4" />
-                  Rest Day
-                </TabsTrigger>
+                  <TabsTrigger value="rest" className="flex items-center gap-2">
+                    <Moon className="size-4" />
+                    Rest Day
+                  </TabsTrigger>
                 )}
               </TabsList>
 
@@ -1996,10 +1995,10 @@ export default function SubmitActivityPage({
                 )}
 
                 {((activeLeague as any)?.rr_config?.formula || 'standard') === 'standard' && (
-                <div>
-                  <span className="text-muted-foreground block text-xs">Estimated RR</span>
-                  <span className="font-medium">{estimatedRR.toFixed(2)}</span>
-                </div>
+                  <div>
+                    <span className="text-muted-foreground block text-xs">Estimated RR</span>
+                    <span className="font-medium">{estimatedRR.toFixed(2)}</span>
+                  </div>
                 )}
               </div>
             ) : (

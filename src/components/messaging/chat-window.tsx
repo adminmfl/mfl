@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { Loader2, MessageCircle, Filter, ChevronDown } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { getSupabase } from '@/lib/supabase/client';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -107,7 +107,7 @@ export function ChatWindow({ leagueId, teamId, teamName, adminView }: ChatWindow
               // Notify badge to refetch immediately
               window.dispatchEvent(new Event('mfl:messages-read'));
             })
-            .catch(() => {});
+            .catch(() => { });
         }
       } catch {
         if (fetchId === latestFetchRef.current) {

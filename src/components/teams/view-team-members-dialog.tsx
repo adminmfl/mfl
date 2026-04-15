@@ -33,7 +33,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import type { TeamMember } from "@/hooks/use-league-teams";
 
 interface ViewTeamMembersDialogProps {
@@ -246,8 +246,8 @@ export function ViewTeamMembersDialog({
                   <div
                     key={member.league_member_id}
                     className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${member.is_captain
-                        ? "bg-amber-50/50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800"
-                        : "bg-card hover:bg-muted/50"
+                      ? "bg-amber-50/50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800"
+                      : "bg-card hover:bg-muted/50"
                       }`}
                   >
                     <div className="relative">

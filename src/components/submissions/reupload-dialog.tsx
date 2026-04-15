@@ -7,7 +7,7 @@
 import * as React from 'react';
 import { Upload, Loader2, ImageIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 
 import {
   Dialog,
@@ -111,7 +111,7 @@ export function ReuploadDialog({
 
       toast.success(data.message || 'Submission reuploaded successfully!');
       onOpenChange(false);
-      
+
       if (onSuccess) {
         onSuccess();
       } else {

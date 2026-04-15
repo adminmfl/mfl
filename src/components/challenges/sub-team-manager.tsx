@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { Users, Plus, Trash2, Edit, AlertCircle } from 'lucide-react';
 
 interface SubTeam {
