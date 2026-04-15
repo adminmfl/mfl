@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Chat deep links display human-readable labels instead of raw UUID paths (#6)
 - AI Coach chat renders markdown properly (bold, italic, code blocks) (#7)
 - AI nudges address teams collectively; individual player names are never exposed (#8)
+- Chat workout attachment flow with explicit picker and challenges/leaderboard/activities links (#131)
 - AI league creator progress bar no longer resets when fields contain null values (#9)
 - Round-robin chart shows empty state message when no data is available (#10)
 - Leaderboard stats section labeled "Your Activity Submissions" for clarity (#11)
