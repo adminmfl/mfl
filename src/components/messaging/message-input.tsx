@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import {
   Send,
@@ -16,6 +16,7 @@ import {
   Loader2,
   Link2,
 } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { useLeague } from '@/contexts/league-context';
 import { Button } from '@/components/ui/button';
@@ -33,8 +34,16 @@ import {
 } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { CannedMessagePicker } from './canned-message-picker';
+import { RecentWorkoutPicker } from './recent-workout-picker';
 import { MentionDropdown, type MentionMember } from './mention-dropdown';
 import type { Message } from './message-bubble';
+
+interface RecentWorkout {
+  id: string;
+  date: string;
+  workout_type: string | null;
+  custom_activity_name?: string | null;
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -72,6 +81,7 @@ export function MessageInput({
   const [deepLink, setDeepLink] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [motivating, setMotivating] = useState(false);
+  const [attachMenuOpen, setAttachMenuOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Mention state
@@ -86,6 +96,21 @@ export function MessageInput({
   const canMarkImportant = isHostOrGovernor;
   const canAnnounce = isHostOrGovernor;
   const isCaptain = currentRole === 'captain';
+
+  // Memoized label for selected workout deep link
+  const deepLinkLabel = useMemo(() => {
+    if (!deepLink) return null;
+
+    // For workout links, prefer the explicit label passed from picker.
+    if (deepLink.includes('/submit')) {
+      const query = deepLink.split('?')[1] || '';
+      const params = new URLSearchParams(query);
+      const selectedLabel = params.get('label');
+      return selectedLabel || 'Workout';
+    }
+
+    return 'Link';
+  }, [deepLink]);
 
   // Motivate Team — AI-generated message for captains
   const handleMotivateTeam = useCallback(async () => {
@@ -197,12 +222,11 @@ export function MessageInput({
         is_read: true,
         deep_link: deepLink || null,
         parent_message_id: replyTo?.message_id || null,
-        parent_message: replyTo ? { sender_name: replyTo.sender_name || replyTo.sender_username || '', content: replyTo.content } : null,
+        parent_message: replyTo ? { sender_username: replyTo.sender_username || replyTo.sender_name || '', content: replyTo.content } : null,
         created_at: new Date().toISOString(),
         edited_at: null,
-        deleted_at: null,
+        sender_role: currentRole || 'player',
         reactions: [],
-        role: currentRole || 'player',
       };
       onOptimisticMessage(optimistic);
     }
@@ -263,6 +287,23 @@ export function MessageInput({
     textareaRef.current?.focus();
   };
 
+  const handleWorkoutSelect = (workout: RecentWorkout) => {
+    const workoutLabel = workout.custom_activity_name || (workout.workout_type
+      ? workout.workout_type
+        .split('_')
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ')
+      : 'Workout');
+    const label = `${workoutLabel} • ${format(parseISO(workout.date), 'MMM d')}`;
+    const params = new URLSearchParams({
+      submissionId: workout.id,
+      label,
+    });
+
+    setDeepLink(`/leagues/${leagueId}/submit?${params.toString()}`);
+    setAttachMenuOpen(false);
+  };
+
   return (
     <div className="border-t bg-background px-3 py-2 sm:px-4 sm:py-3">
       {/* Reply preview */}
@@ -293,7 +334,7 @@ export function MessageInput({
         <div className="flex items-center gap-2 mb-2 px-2 py-1.5 rounded-lg bg-muted/50 border-l-2 border-green-400">
           <Dumbbell className="size-3.5 text-green-500 shrink-0" />
           <span className="text-[11px] text-muted-foreground flex-1 truncate">
-            Workout link attached
+            {deepLinkLabel ? `${deepLinkLabel} link attached` : 'Link attached'}
           </span>
           <button
             type="button"
@@ -341,7 +382,7 @@ export function MessageInput({
                 className={cn(
                   'h-8 shrink-0 gap-1 text-xs',
                   (isAnnouncement || isImportant || visibility === 'captains_only') &&
-                    'border-amber-400 text-amber-600 dark:text-amber-400'
+                  'border-amber-400 text-amber-600 dark:text-amber-400'
                 )}
               >
                 {isAnnouncement ? (
@@ -416,21 +457,21 @@ export function MessageInput({
           </Button>
         )}
 
-        {/* Attach link — popover with selectable options */}
-        <Popover>
+        {/* Attach workout — explicit selection via picker */}
+        <Popover open={attachMenuOpen} onOpenChange={setAttachMenuOpen}>
           <PopoverTrigger asChild>
             <Button
               type="button"
               variant="ghost"
               size="icon"
               className={cn('size-8 shrink-0', deepLink && 'text-green-600 dark:text-green-400')}
-              title="Attach a link"
+              title="Attach a workout"
             >
               <Dumbbell className="size-4" />
             </Button>
           </PopoverTrigger>
           <PopoverContent align="start" side="top" className="w-56 p-1">
-            <p className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Attach a link</p>
+            <p className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Attach a workout</p>
             {deepLink && (
               <button
                 type="button"
@@ -441,24 +482,14 @@ export function MessageInput({
                 Remove attached link
               </button>
             )}
-            <button
-              type="button"
-              className={cn(
-                'w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent',
-                deepLink === `/leagues/${leagueId}/submit` && 'bg-accent font-medium'
-              )}
-              onClick={() => setDeepLink(`/leagues/${leagueId}/submit`)}
-            >
-              <Dumbbell className="size-3.5" />
-              Submit Workout
-            </button>
+            <RecentWorkoutPicker leagueId={leagueId} onSelect={handleWorkoutSelect} />
             <button
               type="button"
               className={cn(
                 'w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent',
                 deepLink === `/leagues/${leagueId}/challenges` && 'bg-accent font-medium'
               )}
-              onClick={() => setDeepLink(`/leagues/${leagueId}/challenges`)}
+              onClick={() => { setDeepLink(`/leagues/${leagueId}/challenges`); setAttachMenuOpen(false); }}
             >
               <Link2 className="size-3.5" />
               Challenges
@@ -469,7 +500,7 @@ export function MessageInput({
                 'w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent',
                 deepLink === `/leagues/${leagueId}/leaderboard` && 'bg-accent font-medium'
               )}
-              onClick={() => setDeepLink(`/leagues/${leagueId}/leaderboard`)}
+              onClick={() => { setDeepLink(`/leagues/${leagueId}/leaderboard`); setAttachMenuOpen(false); }}
             >
               <Link2 className="size-3.5" />
               Leaderboard
@@ -480,7 +511,7 @@ export function MessageInput({
                 'w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent',
                 deepLink === `/leagues/${leagueId}/activities` && 'bg-accent font-medium'
               )}
-              onClick={() => setDeepLink(`/leagues/${leagueId}/activities`)}
+              onClick={() => { setDeepLink(`/leagues/${leagueId}/activities`); setAttachMenuOpen(false); }}
             >
               <Link2 className="size-3.5" />
               Activities
@@ -509,7 +540,7 @@ export function MessageInput({
             onChange={handleContentChange}
             onKeyDown={handleKeyDown}
             placeholder="Type a message... Use @ to mention"
-            className="min-h-[40px] max-h-32 resize-none text-sm py-2"
+            className="min-h-10 max-h-32 resize-none text-sm py-2"
             rows={1}
             disabled={sending}
           />
