@@ -54,7 +54,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Host landing page, activities fetch fallback, and chat badge count
 - Google Analytics placeholder replaced with proper G-XXXXXXXXXX format with TODO comments (#146, #147)
 - Anchor links now scroll to correct position without content hidden behind fixed nav (#146, #147)
-- AI Coach markdown rendering fixed by changing message container from `<p>` to `<div>` to properly render JSX array (#130)
 
 ## [2.0.0] — 2026-04-01
 
