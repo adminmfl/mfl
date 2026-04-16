@@ -24,5 +24,15 @@
       "path": "/api/cron/ai-nudges",
       "schedule": "30 4 * * *"
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/corporate",
+      "destination": "/mfl-landing-wired.html"
+    },
+    {
+      "source": "/communities",
+      "destination": "/mfl-residential-wired.html"
+    }
   ]
 }

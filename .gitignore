@@ -42,3 +42,6 @@ next-env.d.ts
 
 # scripts (contain PATs and local tooling)
 /scripts/
+.claude/
+.e
+test-perf.ts

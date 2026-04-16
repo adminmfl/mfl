@@ -5,7 +5,7 @@ All notable changes to My Fitness League (MFL) will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — v2.5.0
+## [Unreleased] — v2.6.0
 
 ### Added
 - Team messaging engine with realtime chat, @mentions, read receipts, and guided onboarding tour

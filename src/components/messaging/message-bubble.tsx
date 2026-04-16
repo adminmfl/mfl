@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { Megaphone, ExternalLink, Pencil, Shield, Check, CheckCheck, Reply, SmilePlus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -88,6 +88,16 @@ function formatRelativeTime(dateStr: string): string {
  * Strips UUIDs / league IDs so raw database identifiers are never shown.
  */
 function deepLinkLabel(path: string): string {
+  try {
+    const url = new URL(path, 'https://mfl.local');
+    const customLabel = url.searchParams.get('label');
+    if (customLabel) {
+      return customLabel;
+    }
+  } catch {
+    // Fall through to the path-based label mapping.
+  }
+
   // Normalise: remove trailing slash
   const p = path.replace(/\/+$/, '');
 
@@ -119,7 +129,7 @@ function deepLinkLabel(path: string): string {
 
 /** Very lightweight markdown-lite: **bold**, [text](url) links, @[name] mentions */
 function renderContent(content: string) {
-  const parts: (string | JSX.Element)[] = [];
+  const parts: ReactNode[] = [];
   // Matches: **bold**, @[username](user_id) (legacy), @[username] (new), [text](url)
   const regex = /(\*\*(.+?)\*\*)|(@\[([^\]]+)\](?:\([^)]+\))?)|(\[([^\]]+)\]\(([^)]+)\))/g;
   let lastIdx = 0;
@@ -224,13 +234,14 @@ export function MessageBubble({ message, isOwn, currentUserId, onReply, onReact 
       {/* Single self-contained bubble — WhatsApp style */}
       <div
         className={cn(
-          'relative rounded-2xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap break-words',
+          'relative rounded-2xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap',
           isAnnouncement
             ? 'bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 text-foreground'
             : isOwn
               ? 'bg-primary text-primary-foreground rounded-br-md'
               : 'bg-muted text-foreground rounded-bl-md'
         )}
+        style={{ overflowWrap: 'anywhere' }}
       >
         {/* Sender name + role badge — inside bubble */}
         {!isOwn && (

@@ -48,13 +48,16 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user is a member of this league (via leaguemembers or roles)
-    const isMember = await isLeagueMember(session.user.id, leagueId);
-    const hasRole = await userHasAnyRole(session.user.id, leagueId, [
-      'host',
-      'governor',
-      'captain',
-      'player',
+    // Check if user is a member of this league and fetch team members in parallel
+    const [isMember, hasRole, members] = await Promise.all([
+      isLeagueMember(session.user.id, leagueId),
+      userHasAnyRole(session.user.id, leagueId, [
+        'host',
+        'governor',
+        'captain',
+        'player',
+      ]),
+      getTeamMembers(teamId, leagueId)
     ]);
 
     if (!isMember && !hasRole) {
@@ -63,9 +66,6 @@ export async function GET(
         { status: 403 }
       );
     }
-
-    console.log('[Team Members API] Fetching members for team:', teamId, 'league:', leagueId);
-    const members = await getTeamMembers(teamId, leagueId);
     console.log('[Team Members API] Fetched members:', members);
 
     return NextResponse.json({

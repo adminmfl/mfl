@@ -128,7 +128,8 @@ export default function MyTeamPage({
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   const userTeamId = activeLeague?.team_id;
-  const userTeamName = activeLeague?.team_name;
+  const [freshTeamName, setFreshTeamName] = useState<string | null>(null);
+  const userTeamName = freshTeamName || activeLeague?.team_name;
   const teamCapacity = activeLeague?.league_capacity || 20;
 
   // AI inline insights
@@ -138,287 +139,84 @@ export default function MyTeamPage({
     'leader_badge',
   ]);
 
-  // Fetch team members
+  // Combined data fetch for team members, stats, and logo
   useEffect(() => {
-    async function fetchMembers() {
+    async function fetchData() {
       if (!userTeamId) {
         setIsLoading(false);
         return;
       }
 
-      console.debug('[MyTeamPage] fetchMembers start', { leagueId, userTeamId });
+      console.debug('[MyTeamPage] fetchData start', { leagueId, userTeamId });
 
       try {
         setIsLoading(true);
         setError(null);
-        const response = await fetch(
-          `/api/leagues/${leagueId}/teams/${userTeamId}/members`
-        );
-        const result = await response.json();
+        setLeaderboardError(null);
 
-        if (!response.ok) {
-          throw new Error(result.error || 'Failed to fetch team members');
-        }
+        // Fetch everything in parallel
+        const [membersRes, lbRes, teamRes] = await Promise.all([
+          fetch(`/api/leagues/${leagueId}/teams/${userTeamId}/members`),
+          fetch(`/api/leagues/${leagueId}/leaderboard?full=true`),
+          fetch(`/api/leagues/${leagueId}/teams/${userTeamId}`)
+        ]);
 
-        if (result.success) {
-          // Map members and attach default points
-          let membersWithPoints = (result.data || []).map((m: any) => ({ ...m, points: 0 }));
+        const [membersJson, lbJson, teamJson] = await Promise.all([
+          membersRes.json(),
+          lbRes.json(),
+          teamRes.json()
+        ]);
 
-          // Try to fetch full leaderboard to get individual points
-          try {
-            const lbRes = await fetch(`/api/leagues/${leagueId}/leaderboard?full=true`);
-            const lbJson = await lbRes.json();
-            if (lbRes.ok && lbJson?.success && lbJson.data?.individuals) {
-              console.debug('[MyTeamPage] leaderboard individuals count:', lbJson.data.individuals.length);
-              console.debug('[MyTeamPage] sample individuals:', lbJson.data.individuals.slice(0, 5));
-              const pts = new Map<string, number>(
-                lbJson.data.individuals.map((i: any) => [String(i.user_id), Number(i.points || 0)])
-              );
-              console.debug('[MyTeamPage] built points map size:', pts.size);
-              membersWithPoints = membersWithPoints.map((m: any) => ({ ...m, points: pts.get(String(m.user_id)) || 0 }));
-            }
-          } catch (err) {
-            console.error('Error fetching leaderboard for points:', err);
+        // 1. Process Team Members
+        if (!membersRes.ok) throw new Error(membersJson.error || 'Failed to fetch team members');
+        
+        let membersData = membersJson.data || [];
+        
+        // 2. Process Leaderboard (Individual Points + Team Stats)
+        if (lbRes.ok && lbJson?.success) {
+          // Individual points
+          if (lbJson.data?.individuals) {
+            const pts = new Map<string, number>(
+              lbJson.data.individuals.map((i: any) => [String(i.user_id), Number(i.points || 0)])
+            );
+            membersData = membersData.map((m: any) => ({ ...m, points: pts.get(String(m.user_id)) || 0 }));
           }
 
-          setMembers(membersWithPoints);
+          // Team stats
+          if (lbJson.data?.teams) {
+            const team = lbJson.data.teams.find((t: any) => String(t.team_id) === String(userTeamId));
+            if (team) {
+              // Include pending window points
+              const pendingTeam = (lbJson.data?.pendingWindow?.teams || []).find((t: any) => String(t.team_id) === String(userTeamId));
+              const pendingPts = pendingTeam?.total_points ?? 0;
 
-          // Also attempt to fetch leaderboard stats now that we have team id
-          try {
-            console.debug('[MyTeamPage] fetching leaderboard from fetchMembers');
-            const res2 = await fetch(`/api/leagues/${leagueId}/leaderboard`);
-            const json2 = await res2.json();
-            console.debug('[MyTeamPage] leaderboard from fetchMembers ok:', res2.ok, 'status:', res2.status, 'keys:', Object.keys(json2 || {}));
-            if (!res2.ok) {
-              setLeaderboardError(`Leaderboard request failed: ${res2.status}`);
-            } else {
-              setLeaderboardError(null);
+              setTeamRank(`#${team.rank ?? '--'}`);
+              const mainPts = team.total_points ?? team.points ?? 0;
+              setTeamPoints(String(mainPts + pendingPts));
+              setTeamAvgRR(String(team.avg_rr ?? 0));
+              if (team.team_name) setFreshTeamName(team.team_name);
             }
-            if (res2.ok && json2?.success && json2.data?.teams) {
-              const teams2: any[] = json2.data.teams || [];
-              const team2 = teams2.find((t) => String(t.team_id) === String(userTeamId));
-              console.debug('[MyTeamPage] matched team (from fetchMembers):', team2);
-              if (team2) {
-                setTeamRank(`#${team2.rank ?? '--'}`);
-                const pts2 = team2.total_points ?? team2.points ?? 0;
-                setTeamPoints(String(pts2));
-                setTeamAvgRR(String(team2.avg_rr ?? 0));
-              }
-            }
-          } catch (err) {
-            console.error('Error fetching leaderboard inside fetchMembers:', err);
           }
+        } else if (!lbRes.ok) {
+          setLeaderboardError(`Leaderboard request failed: ${lbRes.status}`);
         }
+
+        setMembers(membersData);
+
+        // 3. Process Team Logo
+        if (teamRes.ok && teamJson?.success && teamJson.data?.logo_url) {
+          setTeamLogoUrl(`${teamJson.data.logo_url}?t=${Date.now()}`);
+        }
+
       } catch (err) {
-        console.error('Error fetching team members:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load team');
+        console.error('Error fetching My Team data:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load team data');
       } finally {
         setIsLoading(false);
       }
     }
 
-    fetchMembers();
-  }, [leagueId, userTeamId]);
-
-  // Filter members based on search
-  const filteredMembers = useMemo(() => {
-    return members.filter(
-      (member) =>
-        member.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        member.email.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [searchQuery, members]);
-
-  // Pagination
-  const paginatedMembers = useMemo(() => {
-    const start = pagination.pageIndex * pagination.pageSize;
-    return filteredMembers.slice(start, start + pagination.pageSize);
-  }, [filteredMembers, pagination]);
-
-  const pageCount = Math.ceil(filteredMembers.length / pagination.pageSize);
-
-  // Get captain info
-  const captain = members.find((m) => m.is_captain);
-
-  // Handle bulk assigning selected members to captain's own team only
-  const handleBulkAssignMembers = async () => {
-    // Captains can only add to their own team
-    const teamId = userTeamId;
-    if (!teamId) {
-      toast.error('You are not assigned to a team');
-      return;
-    }
-
-    if (selectedMemberIds.size === 0) {
-      toast.error('Please select at least one member');
-      return;
-    }
-
-    const teamName = userTeamName;
-    const memberCount = selectedMemberIds.size;
-
-    setIsBulkAssigning(true);
-
-    try {
-      let successCount = 0;
-      let failCount = 0;
-
-      // Assign all selected members
-      for (const memberId of selectedMemberIds) {
-        try {
-          const success = await assignMember(teamId, memberId);
-          if (success) {
-            successCount++;
-          } else {
-            failCount++;
-          }
-        } catch (err) {
-          console.error('Error assigning member:', err);
-          failCount++;
-        }
-      }
-
-      // Show results
-      if (successCount > 0) {
-        toast.success(`${successCount} member${successCount !== 1 ? 's' : ''} assigned to ${teamName}`);
-      }
-      if (failCount > 0) {
-        toast.error(`Failed to assign ${failCount} member${failCount !== 1 ? 's' : ''}`);
-      }
-
-      // Clear selections and refetch
-      setSelectedMemberIds(new Set());
-      await refetchTeams();
-    } catch (err) {
-      console.error('Error in bulk assignment:', err);
-      toast.error('Failed to assign members');
-    } finally {
-      setIsBulkAssigning(false);
-    }
-  };
-
-  // Toggle member selection
-  const toggleMemberSelection = (memberId: string) => {
-    setSelectedMemberIds(prev => {
-      const next = new Set(prev);
-      if (next.has(memberId)) {
-        next.delete(memberId);
-      } else {
-        next.add(memberId);
-      }
-      return next;
-    });
-  };
-
-  // Select/deselect all filtered members
-  const toggleSelectAll = () => {
-    if (selectedMemberIds.size === filteredUnallocatedMembers.length && filteredUnallocatedMembers.length > 0) {
-      setSelectedMemberIds(new Set());
-    } else {
-      setSelectedMemberIds(new Set(filteredUnallocatedMembers.map(m => m.league_member_id)));
-    }
-  };
-
-  // Filter unallocated members based on search
-  const filteredUnallocatedMembers = useMemo(() => {
-    if (!teamsData?.members?.unallocated) return [];
-    return teamsData.members.unallocated.filter(
-      (member) =>
-        member.username.toLowerCase().includes(unallocatedSearchQuery.toLowerCase()) ||
-        member.email.toLowerCase().includes(unallocatedSearchQuery.toLowerCase())
-    );
-  }, [teamsData?.members?.unallocated, unallocatedSearchQuery]);
-
-  const rrFormula = (activeLeague as any)?.rr_config?.formula || 'standard';
-  const showRR = rrFormula === 'standard';
-  const showRestDays = ((activeLeague as any)?.rest_days ?? 1) > 0;
-
-  // Stats cards data
-  const stats = [
-    {
-      title: 'Team Rank',
-      value: teamRank,
-      description: 'League standing',
-      detail: 'Rank updates daily',
-      icon: Trophy,
-    },
-    {
-      title: 'Team Members',
-      value: `${members.length}/${teamCapacity}`,
-      description: 'Current roster',
-      detail: 'Active members',
-      icon: Users,
-    },
-    {
-      title: 'Team Points',
-      value: String(teamPoints),
-      description: 'Total points',
-      detail: 'Combined team effort',
-      icon: Target,
-    },
-    ...(showRR ? [{
-      title: 'Team RR',
-      value: String(teamAvgRR),
-      description: 'RR',
-      detail: 'Average RR per approved entry',
-      icon: Flame,
-    }] : []),
-  ];
-
-  // Fetch leaderboard to populate team rank/points/avg rr
-  useEffect(() => {
-    async function fetchLeaderboardStats() {
-      if (!leagueId || !userTeamId) return;
-      try {
-        console.debug('[MyTeamPage] fetchLeaderboardStats start', { leagueId, userTeamId });
-        const res = await fetch(`/api/leagues/${leagueId}/leaderboard`);
-        const json = await res.json();
-        console.debug('[MyTeamPage] leaderboard response ok:', res.ok, 'status:', res.status, 'body keys:', Object.keys(json || {}));
-        console.debug('[MyTeamPage] leaderboard teams length:', json?.data?.teams?.length ?? 0);
-        if (!res.ok) {
-          setLeaderboardError(`Leaderboard request failed: ${res.status}`);
-        } else {
-          setLeaderboardError(null);
-        }
-        if (res.ok && json?.success && json.data?.teams) {
-          const teams: any[] = json.data.teams || [];
-          const team = teams.find((t) => String(t.team_id) === String(userTeamId));
-          console.debug('[MyTeamPage] matched team:', team);
-          if (team) {
-            // Include pending window points so recently submitted entries are visible
-            const pendingTeam = (json.data?.pendingWindow?.teams || []).find((t: any) => String(t.team_id) === String(userTeamId));
-            const pendingPts = pendingTeam?.total_points ?? 0;
-
-            setTeamRank(`#${team.rank ?? '--'}`);
-            const mainPts = team.total_points ?? team.points ?? 0;
-            setTeamPoints(String(mainPts + pendingPts));
-            setTeamAvgRR(String(team.avg_rr ?? 0));
-          }
-        }
-      } catch (err) {
-        console.error('Error fetching leaderboard stats for team:', err);
-      }
-    }
-
-    fetchLeaderboardStats();
-  }, [leagueId, userTeamId]);
-
-  // Fetch team logo
-  useEffect(() => {
-    async function fetchTeamLogo() {
-      if (!leagueId || !userTeamId) return;
-      try {
-        const res = await fetch(`/api/leagues/${leagueId}/teams/${userTeamId}`);
-        const json = await res.json();
-        if (res.ok && json?.success && json.data?.logo_url) {
-          // Add cache busting to initial load too
-          setTeamLogoUrl(`${json.data.logo_url}?t=${Date.now()}`);
-        }
-      } catch (err) {
-        console.error('Error fetching team logo:', err);
-      }
-    }
-    fetchTeamLogo();
+    fetchData();
   }, [leagueId, userTeamId]);
 
   // Logo handlers
