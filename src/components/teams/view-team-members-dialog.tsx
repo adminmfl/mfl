@@ -35,6 +35,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "@/lib/toast";
 import type { TeamMember } from "@/hooks/use-league-teams";
+import { CaptainGuidelinesTooltip } from "@/components/captain/captain-guidelines-tooltip";
 
 interface ViewTeamMembersDialogProps {
   open: boolean;
@@ -203,7 +204,12 @@ export function ViewTeamMembersDialog({
             {members.length > 0
               ? `${members.length} member${members.length !== 1 ? "s" : ""} in this team`
               : "No members in this team yet"}
-            {captain && ` | Captain: ${captain.username}`}
+            {captain && (
+              <span className="flex items-center gap-1 mt-1">
+                Captain: {captain.username}
+                <CaptainGuidelinesTooltip />
+              </span>
+            )}
           </DialogDescription>
         </DialogHeader>
 
