@@ -41,7 +41,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Challenges page returns friendly empty state instead of 500 error
 - Duration, distance, and steps validation enforced on client and server with shared limits
 - Chat deep links display human-readable labels instead of raw UUID paths
-- AI Coach chat renders markdown properly (bold, italic, code blocks)
 - AI nudges address teams collectively; individual player names are never exposed
 - Chat workout attachment flow with explicit picker and challenges/leaderboard/activities links (#131)
 - AI league creator progress bar no longer resets when fields contain null values
@@ -54,6 +53,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Host landing page, activities fetch fallback, and chat badge count
 - Google Analytics placeholder replaced with proper `G-XXXXXXXXXX` format with TODO comments
 - Anchor links now scroll to correct position without content hidden behind fixed nav
+- AI Coach chat renders markdown properly (bold, italic, code blocks)
+- AI league creation assistant markdown rendering with proper line breaks, bold/italic formatting, and code block syntax highlighting (#130)
 
 ## [2.0.0] - 2026-04-01
 
