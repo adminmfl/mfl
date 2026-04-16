@@ -37,6 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Null guards added on `.roles` and `.name` across dashboard, profile, leagues, sidebar, header, and league context (#15)
 - Host landing page, activities fetch fallback, and chat badge count
 - Fix captain permission to only remove members from their own team (#124)
+- Toast scoping: informational toasts auto-dismiss after 4 seconds and all toasts clear on navigation (#151)
+- Fix `use-tournament-matches` and `submissions-table` importing toast directly from sonner, bypassing wrapper duration rules (#151)
 
 ## [2.0.0] — 2026-04-01
 

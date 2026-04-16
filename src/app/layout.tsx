@@ -8,7 +8,7 @@ import {
 } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next";
-import { ToasterProvider } from "@/components/providers/toaster-provider";
+import { ToastManager } from "@/components/ui/toast-manager";
 import AuthProvider from "@/components/auth/auth-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ColorThemeProvider } from "@/components/providers/color-theme-provider";
@@ -103,7 +103,7 @@ export default async function RootLayout({
           <ColorThemeProvider>
             <FontProvider>
               <AuthProvider session={session}>{children}</AuthProvider>
-              <ToasterProvider />
+              <ToastManager />
             </FontProvider>
           </ColorThemeProvider>
         </ThemeProvider>

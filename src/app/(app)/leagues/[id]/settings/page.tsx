@@ -55,7 +55,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { useLeagueTeams } from '@/hooks/use-league-teams';
 import { useLeagueActivities } from '@/hooks/use-league-activities';
 

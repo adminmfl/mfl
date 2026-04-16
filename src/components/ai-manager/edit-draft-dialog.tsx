@@ -12,7 +12,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { IconCheck, IconLoader2 } from '@tabler/icons-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { Draft } from './types';
 
 interface EditDraftDialogProps {

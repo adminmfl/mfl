@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DumbbellLoading } from '@/components/ui/dumbbell-loading';
-import { toast } from "sonner";
+import { toast } from '@/lib/toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { TierFormDialog } from "./tier-form-dialog";
 import { useAdminTiers } from "@/hooks/admin/use-admin-tiers";

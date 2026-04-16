@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 
 const ACTIVITY_SYMBOLS = ['Duration', 'Distance', 'Steps', 'Holes'];
 const ACTIVITY_UNITS = {

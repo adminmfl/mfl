@@ -14,7 +14,7 @@ import {
   RefreshCw,
   AlertCircle,
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

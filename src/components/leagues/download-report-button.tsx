@@ -11,7 +11,7 @@
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { IconDownload, IconLoader2, IconCertificate, IconFileDescription } from '@tabler/icons-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 
 // ============================================================================

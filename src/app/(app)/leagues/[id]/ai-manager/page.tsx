@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { IconBrain, IconRefresh, IconLoader2 } from '@tabler/icons-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 
 import type { DigestItem, Draft, Intervention, ChallengeTemplate } from '@/components/ai-manager/types';
 import { DashboardTab } from '@/components/ai-manager/dashboard-tab';
