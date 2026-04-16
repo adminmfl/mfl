@@ -1,47 +1,41 @@
-"use client";
+'use client';
 
-import React, { useState, useMemo } from "react";
-import { format, parseISO } from "date-fns";
-import {
-  RefreshCw,
-  Calendar,
-  ChevronDown,
-  Trophy,
-  Flag,
-} from "lucide-react";
+import { useState, useMemo } from 'react';
+import { format, parseISO } from 'date-fns';
+import { RefreshCw, Calendar, ChevronDown, Trophy, Flag } from 'lucide-react';
 
-import { Button } from "@/components/ui/button";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Button } from '@/components/ui/button';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
-import { Tabs, TabsContent } from "@/components/ui/tabs";
+} from '@/components/ui/popover';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
+} from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
 
-import { useLeagueLeaderboard } from "@/hooks/use-league-leaderboard";
-import { useAiInsights } from "@/hooks/use-ai-insights";
+import { useLeagueLeaderboard } from '@/hooks/use-league-leaderboard';
+import { useAiInsights } from '@/hooks/use-ai-insights';
 import {
   LeaderboardStats,
   LeagueTeamsTable,
   LeagueIndividualsTable,
   ChallengeSpecificLeaderboard,
   RealTimeScoreboardTable,
-} from "@/components/leaderboard";
+} from '@/components/leaderboard';
 import {
   HeaderSkeleton,
   TableSkeleton,
   StatsSkeleton,
-} from "@/components/leaderboard/leaderboard-skeletons";
-import { calculateWeekPresets } from "@/lib/utils/leaderboard-utils";
-import type { LeaderboardData } from "@/hooks/use-league-leaderboard";
+} from '@/components/leaderboard/leaderboard-skeletons';
+import { calculateWeekPresets } from '@/lib/utils/leaderboard-utils';
+import type { LeaderboardData } from '@/hooks/use-league-leaderboard';
 
 interface LeaderboardClientContainerProps {
   leagueId: string;
@@ -55,17 +49,17 @@ export function LeaderboardClientContainer({
   initialData,
 }: LeaderboardClientContainerProps) {
   // AI inline insights
-  const { insights: aiInsights } = useAiInsights(leagueId, "leaderboard", [
-    "leaderboard_cta",
+  const { insights: aiInsights } = useAiInsights(leagueId, 'leaderboard', [
+    'leaderboard_cta',
   ]);
 
   const [viewRawTotals, setViewRawTotals] = useState(false);
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [filterOpen, setFilterOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("teams");
-  const [selectedWeek, setSelectedWeek] = useState<number | "all" | "custom">(
-    "all",
+  const [activeTab, setActiveTab] = useState('teams');
+  const [selectedWeek, setSelectedWeek] = useState<number | 'all' | 'custom'>(
+    'all',
   );
 
   // Fetch leaderboard data (initialize with server data)
@@ -79,26 +73,27 @@ export function LeaderboardClientContainer({
     setDateRange,
   } = useLeagueLeaderboard(leagueId, { initialData });
 
-  const canToggleRaw = initialRoles.includes("host") || initialRoles.includes("governor");
+  const canToggleRaw =
+    initialRoles.includes('host') || initialRoles.includes('governor');
 
   // Calculate week presets based on league dates
   const league = data?.league;
-  const rrFormula = league?.rr_config?.formula || "standard";
-  const showRR = rrFormula === "standard";
-  
+  const rrFormula = league?.rr_config?.formula || 'standard';
+  const showRR = rrFormula === 'standard';
+
   const weekPresets = useMemo(() => {
     if (!league?.start_date || !league?.end_date) return [];
     return calculateWeekPresets(league.start_date, league.end_date);
   }, [league?.start_date, league?.end_date]);
 
-  const handleWeekSelect = (week: number | "all" | "custom") => {
-    if (week === "all") {
-      setSelectedWeek("all");
+  const handleWeekSelect = (week: number | 'all' | 'custom') => {
+    if (week === 'all') {
+      setSelectedWeek('all');
       setStartDate(undefined);
       setEndDate(undefined);
       setDateRange(null, null);
       setFilterOpen(false);
-    } else if (week === "custom") {
+    } else if (week === 'custom') {
       setSelectedWeek(week);
       setFilterOpen(true);
     } else {
@@ -115,10 +110,10 @@ export function LeaderboardClientContainer({
 
   const handleApplyDateRange = () => {
     if (startDate && endDate) {
-      setSelectedWeek("custom");
+      setSelectedWeek('custom');
       setDateRange(
-        format(startDate, "yyyy-MM-dd"),
-        format(endDate, "yyyy-MM-dd"),
+        format(startDate, 'yyyy-MM-dd'),
+        format(endDate, 'yyyy-MM-dd'),
       );
       setFilterOpen(false);
     }
@@ -128,7 +123,7 @@ export function LeaderboardClientContainer({
     setStartDate(undefined);
     setEndDate(undefined);
     setDateRange(null, null);
-    setSelectedWeek("all");
+    setSelectedWeek('all');
     setFilterOpen(false);
   };
 
@@ -176,7 +171,7 @@ export function LeaderboardClientContainer({
             <div>
               <h1 className="text-xl font-bold tracking-tight">Leaderboard</h1>
               <p className="text-sm text-muted-foreground leading-none truncate max-w-[200px]">
-                {league?.league_name || "Rankings"}
+                {league?.league_name || 'Rankings'}
               </p>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
@@ -189,15 +184,15 @@ export function LeaderboardClientContainer({
                   >
                     <Calendar className="size-3.5 mr-1.5" />
                     <span className="truncate max-w-[80px] sm:max-w-none">
-                      {selectedWeek === "all"
-                        ? "All Time"
-                        : selectedWeek === "custom"
+                      {selectedWeek === 'all'
+                        ? 'All Time'
+                        : selectedWeek === 'custom'
                           ? startDate && endDate
-                            ? `${format(startDate, "MMM d")} - ${format(endDate, "MMM d")}`
-                            : "Custom"
+                            ? `${format(startDate, 'MMM d')} - ${format(endDate, 'MMM d')}`
+                            : 'Custom'
                           : weekPresets.find(
                               (w) => w.weekNumber === selectedWeek,
-                            )?.label || "All Time"}
+                            )?.label || 'All Time'}
                     </span>
                     <ChevronDown className="size-3.5 ml-1.5 opacity-50" />
                   </Button>
@@ -208,10 +203,10 @@ export function LeaderboardClientContainer({
                 >
                   <div className="flex flex-col gap-1 p-2">
                     <Button
-                      variant={selectedWeek === "all" ? "secondary" : "ghost"}
+                      variant={selectedWeek === 'all' ? 'secondary' : 'ghost'}
                       size="sm"
                       className="justify-start shadow-sm"
-                      onClick={() => handleWeekSelect("all")}
+                      onClick={() => handleWeekSelect('all')}
                     >
                       All Time
                     </Button>
@@ -227,8 +222,8 @@ export function LeaderboardClientContainer({
                               key={week.weekNumber}
                               variant={
                                 selectedWeek === week.weekNumber
-                                  ? "secondary"
-                                  : "ghost"
+                                  ? 'secondary'
+                                  : 'ghost'
                               }
                               size="sm"
                               className="justify-start w-full shadow-sm"
@@ -236,8 +231,8 @@ export function LeaderboardClientContainer({
                             >
                               <span className="font-medium">{week.label}</span>
                               <span className="ml-auto text-xs text-muted-foreground pl-2">
-                                {format(parseISO(week.startDate), "MMM d")} –{" "}
-                                {format(parseISO(week.endDate), "MMM d")}
+                                {format(parseISO(week.startDate), 'MMM d')} –{' '}
+                                {format(parseISO(week.endDate), 'MMM d')}
                               </span>
                             </Button>
                           ))}
@@ -256,11 +251,11 @@ export function LeaderboardClientContainer({
                               variant="outline"
                               size="sm"
                               className={cn(
-                                "flex-1 text-xs shadow-sm hover:shadow",
-                                !startDate && "text-muted-foreground",
+                                'flex-1 text-xs shadow-sm hover:shadow',
+                                !startDate && 'text-muted-foreground',
                               )}
                             >
-                              {startDate ? format(startDate, "MMM d") : "Start"}
+                              {startDate ? format(startDate, 'MMM d') : 'Start'}
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent
@@ -285,11 +280,11 @@ export function LeaderboardClientContainer({
                               variant="outline"
                               size="sm"
                               className={cn(
-                                "flex-1 text-xs shadow-sm hover:shadow",
-                                !endDate && "text-muted-foreground",
+                                'flex-1 text-xs shadow-sm hover:shadow',
+                                !endDate && 'text-muted-foreground',
                               )}
                             >
-                              {endDate ? format(endDate, "MMM d") : "End"}
+                              {endDate ? format(endDate, 'MMM d') : 'End'}
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent
@@ -358,7 +353,7 @@ export function LeaderboardClientContainer({
                           size="sm"
                           className="h-8 text-xs font-normal"
                         >
-                          {activeTab === "teams" ? (
+                          {activeTab === 'teams' ? (
                             <>
                               <Trophy className="size-3.5 mr-1.5" />
                               <span>Overall</span>
@@ -374,14 +369,14 @@ export function LeaderboardClientContainer({
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-44">
                         <DropdownMenuItem
-                          onClick={() => setActiveTab("teams")}
+                          onClick={() => setActiveTab('teams')}
                           className="gap-2"
                         >
                           <Trophy className="size-4" />
                           <span>Overall</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={() => setActiveTab("challenges")}
+                          onClick={() => setActiveTab('challenges')}
                           className="gap-2"
                         >
                           <Flag className="size-4" />
@@ -396,7 +391,7 @@ export function LeaderboardClientContainer({
                 </div>
                 <p className="text-xs text-muted-foreground mb-2">
                   {aiInsights.leaderboard_cta ||
-                    "Log today to move up the rankings."}
+                    'Log today to move up the rankings.'}
                 </p>
                 <div className="overflow-hidden">
                   <LeagueTeamsTable teams={teams} showAvgRR={showRR} />
@@ -414,7 +409,7 @@ export function LeaderboardClientContainer({
                           size="sm"
                           className="h-8 text-xs font-normal"
                         >
-                          {activeTab === "challenges" ? (
+                          {activeTab === 'challenges' ? (
                             <>
                               <Flag className="size-3.5 mr-1.5" />
                               <span>Challenges</span>
@@ -430,14 +425,14 @@ export function LeaderboardClientContainer({
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-44">
                         <DropdownMenuItem
-                          onClick={() => setActiveTab("teams")}
+                          onClick={() => setActiveTab('teams')}
                           className="gap-2"
                         >
                           <Trophy className="size-4" />
                           <span>Overall</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={() => setActiveTab("challenges")}
+                          onClick={() => setActiveTab('challenges')}
                           className="gap-2"
                         >
                           <Flag className="size-4" />
