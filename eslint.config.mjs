@@ -27,4 +27,18 @@ export default [
     },
   },
   prettierConfig,
+  // Prevent direct sonner toast imports to enforce wrapper usage
+  {
+    files: ['src/**/*.{ts,tsx,js,jsx}'],
+    ignores: ['src/lib/toast.ts', 'src/components/ui/toast-manager.tsx', 'src/components/ui/sonner.tsx'],
+    rules: {
+      'no-restricted-imports': ['warn', {
+        paths: [{
+          name: 'sonner',
+          importNames: ['toast'],
+          message: 'Use @/lib/toast instead of importing toast directly from sonner.',
+        }],
+      }],
+    },
+  },
 ];
