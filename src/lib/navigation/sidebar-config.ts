@@ -255,6 +255,11 @@ export function getSidebarNavItems(
           url: leagueUrl('/rest-day-donations'),
           icon: HeartHandshake,
         },
+        {
+          title: 'Captain Guidelines',
+          url: '#captain-guidelines',
+          icon: BookOpen,
+        },
       ],
     });
   }
