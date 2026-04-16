@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Client feedback: filter dropdown, instant messaging UX, left-aligned dropdowns, mobile nav, league info title, and tour flow improvements
 - AI Coach v2.5: inline intelligence replaces standalone AI components
+- Add inputMode="numeric" to activity input fields for improved mobile input experience (#133)
 
 ### Fixed
 - Captain restricted to own team only; removed ability to switch between teams (#1)
@@ -39,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix captain permission to only remove members from their own team (#124)
 - Toast scoping: informational toasts auto-dismiss after 4 seconds and all toasts clear on navigation (#151)
 - Fix `use-tournament-matches` and `submissions-table` importing toast directly from sonner, bypassing wrapper duration rules (#151)
+- Add inputMode="decimal" to distance input field for proper mobile keyboard (#133)
 
 ## [2.0.0] — 2026-04-01
 
