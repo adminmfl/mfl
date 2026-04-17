@@ -20,7 +20,7 @@ import {
   Info,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { DumbbellLoading } from '@/components/ui/dumbbell-loading';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // ============================================================================
 // Types
@@ -145,7 +145,7 @@ export default function RulesPage({
   }, [id]);
 
   if (loading) {
-    return <DumbbellLoading label="Loading rules..." />;
+    return <RulesPageSkeleton />;
   }
 
   if (error) {
@@ -273,6 +273,65 @@ export default function RulesPage({
         )}
       </div>
 
+    </div>
+  );
+}
+// ============================================================================
+// Skeleton Component
+// ============================================================================
+
+function RulesPageSkeleton() {
+  return (
+    <div className="flex flex-col gap-6 py-4 md:py-6 text-white">
+      {/* Header Skeleton */}
+      <div className="flex flex-col gap-4 px-4 lg:px-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Skeleton className="size-6 rounded-md" />
+              <Skeleton className="h-8 w-48" />
+            </div>
+            <Skeleton className="h-4 w-64" />
+            <Skeleton className="h-6 w-56 rounded-full" />
+          </div>
+          <Skeleton className="h-10 w-32 rounded-md" />
+        </div>
+      </div>
+
+      {/* Content Skeleton */}
+      <div className="px-4 lg:px-6">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-24" />
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+            </CardContent>
+          </Card>
+
+          <Card className="p-3">
+            <div className="flex items-center gap-3">
+              <Skeleton className="size-10 rounded-lg" />
+              <div className="flex-1 space-y-1">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-3 w-32" />
+              </div>
+              <Skeleton className="size-4" />
+            </div>
+          </Card>
+
+          <div className="space-y-3 mt-6">
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-6 w-40" />
+              <Skeleton className="h-9 w-28" />
+            </div>
+            <Skeleton className="w-full rounded-lg border h-[500px]" />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

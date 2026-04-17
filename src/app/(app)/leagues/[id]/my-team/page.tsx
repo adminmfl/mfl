@@ -71,9 +71,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { DumbbellLoading } from '@/components/ui/dumbbell-loading';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useAiInsights } from '@/hooks/use-ai-insights';
 import { Sparkles } from 'lucide-react';
 
@@ -84,7 +84,73 @@ import type { TeamMember } from '@/hooks/use-league-teams';
 // ============================================================================
 
 function PageSkeleton() {
-  return <DumbbellLoading label="Loading team..." />;
+  return (
+    <div className="@container/main flex flex-1 flex-col gap-4 lg:gap-6">
+      <div className="flex flex-col gap-4 px-4 lg:px-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-4">
+          <Skeleton className="size-14 rounded-xl" />
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-40" />
+            <Skeleton className="h-4 w-36" />
+            <Skeleton className="h-3 w-44" />
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-9 w-40 rounded-md" />
+          <Skeleton className="h-7 w-28 rounded-full" />
+          <Skeleton className="h-9 w-28 rounded-md" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 px-4 lg:px-6">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <Card key={index} className="p-2.5">
+            <div className="mb-1 flex items-center gap-1.5 text-[10px] text-muted-foreground">
+              <Skeleton className="size-3 rounded-sm" />
+              <Skeleton className="h-3 w-16" />
+            </div>
+            <Skeleton className="h-6 w-16" />
+            <Skeleton className="mt-1 h-3 w-full" />
+          </Card>
+        ))}
+      </div>
+
+      <div className="px-4 lg:px-6">
+        <Skeleton className="h-3 w-52" />
+      </div>
+
+      <div className="px-4 lg:px-6">
+        <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-6 w-32" />
+            <Skeleton className="h-4 w-40" />
+          </div>
+          <Skeleton className="h-10 w-full sm:w-64" />
+        </div>
+
+        <div className="rounded-lg border">
+          <div className="grid grid-cols-5 gap-3 border-b bg-muted/50 px-4 py-3">
+            {Array.from({ length: 5 }).map((_, index) => (
+              <Skeleton key={index} className="h-4 w-full" />
+            ))}
+          </div>
+          <div className="space-y-4 px-4 py-4">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div key={index} className="grid grid-cols-5 items-center gap-3">
+                <Skeleton className="h-4 w-6" />
+                <div className="col-span-2 flex items-center gap-2">
+                  <Skeleton className="size-8 rounded-full" />
+                  <Skeleton className="h-4 w-24" />
+                </div>
+                <Skeleton className="h-4 w-12" />
+                <Skeleton className="h-4 w-12" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ============================================================================
@@ -217,6 +283,211 @@ export default function MyTeamPage({
     }
 
     fetchData();
+  }, [leagueId, userTeamId]);
+
+  // Filter members based on search
+  const filteredMembers = useMemo(() => {
+    return members.filter(
+      (member) =>
+        member.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        member.email.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [searchQuery, members]);
+
+  // Pagination
+  const paginatedMembers = useMemo(() => {
+    const start = pagination.pageIndex * pagination.pageSize;
+    return filteredMembers.slice(start, start + pagination.pageSize);
+  }, [filteredMembers, pagination]);
+
+  const pageCount = Math.ceil(filteredMembers.length / pagination.pageSize);
+
+  // Get captain info
+  const captain = members.find((m) => m.is_captain);
+
+  // Handle bulk assigning selected members to captain's own team only
+  const handleBulkAssignMembers = async () => {
+    // Captains can only add to their own team
+    const teamId = userTeamId;
+    if (!teamId) {
+      toast.error('You are not assigned to a team');
+      return;
+    }
+
+    if (selectedMemberIds.size === 0) {
+      toast.error('Please select at least one member');
+      return;
+    }
+
+    const teamName = userTeamName;
+    const memberCount = selectedMemberIds.size;
+
+    setIsBulkAssigning(true);
+
+    try {
+      let successCount = 0;
+      let failCount = 0;
+      let firstError: string | null = null;
+
+      // Assign all selected members
+      for (const memberId of selectedMemberIds) {
+        try {
+          const success = await assignMember(teamId, memberId);
+          if (success) {
+            successCount++;
+          } else {
+            firstError = firstError || 'Failed to assign member';
+            console.error('Failed to assign member');
+            failCount++;
+          }
+        } catch (err) {
+          console.error('Error assigning member:', err);
+          firstError = firstError || 'Failed to assign member';
+          failCount++;
+        }
+      }
+
+      // Show results
+      if (successCount > 0) {
+        toast.success(`${successCount} member${successCount !== 1 ? 's' : ''} assigned to ${teamName}`);
+      }
+      if (failCount > 0) {
+        toast.error(firstError || `Failed to assign ${failCount} member${failCount !== 1 ? 's' : ''}`);
+      }
+
+      // Clear selections and refetch
+      setSelectedMemberIds(new Set());
+      await refetchTeams();
+    } catch (err) {
+      console.error('Error in bulk assignment:', err);
+      toast.error('Failed to assign members');
+    } finally {
+      setIsBulkAssigning(false);
+    }
+  };
+
+  // Toggle member selection
+  const toggleMemberSelection = (memberId: string) => {
+    setSelectedMemberIds(prev => {
+      const next = new Set(prev);
+      if (next.has(memberId)) {
+        next.delete(memberId);
+      } else {
+        next.add(memberId);
+      }
+      return next;
+    });
+  };
+
+  // Select/deselect all filtered members
+  const toggleSelectAll = () => {
+    if (selectedMemberIds.size === filteredUnallocatedMembers.length && filteredUnallocatedMembers.length > 0) {
+      setSelectedMemberIds(new Set());
+    } else {
+      setSelectedMemberIds(new Set(filteredUnallocatedMembers.map(m => m.league_member_id)));
+    }
+  };
+
+  // Filter unallocated members based on search
+  const filteredUnallocatedMembers = useMemo(() => {
+    if (!teamsData?.members?.unallocated) return [];
+    return teamsData.members.unallocated.filter(
+      (member) =>
+        member.username.toLowerCase().includes(unallocatedSearchQuery.toLowerCase()) ||
+        member.email.toLowerCase().includes(unallocatedSearchQuery.toLowerCase())
+    );
+  }, [teamsData?.members?.unallocated, unallocatedSearchQuery]);
+
+  const rrFormula = (activeLeague as any)?.rr_config?.formula || 'standard';
+  const showRR = rrFormula === 'standard';
+  const showRestDays = ((activeLeague as any)?.rest_days ?? 1) > 0;
+
+  // Stats cards data
+  const stats = [
+    {
+      title: 'Team Rank',
+      value: teamRank,
+      description: 'League standing',
+      detail: 'Rank updates daily',
+      icon: Trophy,
+    },
+    {
+      title: 'Team Members',
+      value: `${members.length}/${teamCapacity}`,
+      description: 'Current roster',
+      detail: 'Active members',
+      icon: Users,
+    },
+    {
+      title: 'Team Points',
+      value: String(teamPoints),
+      description: 'Total points',
+      detail: 'Combined team effort',
+      icon: Target,
+    },
+    ...(showRR ? [{
+      title: 'Team RR',
+      value: String(teamAvgRR),
+      description: 'RR',
+      detail: 'Average RR per approved entry',
+      icon: Flame,
+    }] : []),
+  ];
+
+  // Fetch leaderboard to populate team rank/points/avg rr
+  useEffect(() => {
+    async function fetchLeaderboardStats() {
+      if (!leagueId || !userTeamId) return;
+      try {
+        console.debug('[MyTeamPage] fetchLeaderboardStats start', { leagueId, userTeamId });
+        const res = await fetch(`/api/leagues/${leagueId}/leaderboard`);
+        const json = await res.json();
+        console.debug('[MyTeamPage] leaderboard response ok:', res.ok, 'status:', res.status, 'body keys:', Object.keys(json || {}));
+        console.debug('[MyTeamPage] leaderboard teams length:', json?.data?.teams?.length ?? 0);
+        if (!res.ok) {
+          setLeaderboardError(`Leaderboard request failed: ${res.status}`);
+        } else {
+          setLeaderboardError(null);
+        }
+        if (res.ok && json?.success && json.data?.teams) {
+          const teams: any[] = json.data.teams || [];
+          const team = teams.find((t) => String(t.team_id) === String(userTeamId));
+          console.debug('[MyTeamPage] matched team:', team);
+          if (team) {
+            // Include pending window points so recently submitted entries are visible
+            const pendingTeam = (json.data?.pendingWindow?.teams || []).find((t: any) => String(t.team_id) === String(userTeamId));
+            const pendingPts = pendingTeam?.total_points ?? 0;
+
+            setTeamRank(`#${team.rank ?? '--'}`);
+            const mainPts = team.total_points ?? team.points ?? 0;
+            setTeamPoints(String(mainPts + pendingPts));
+            setTeamAvgRR(String(team.avg_rr ?? 0));
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching leaderboard stats for team:', err);
+      }
+    }
+
+    fetchLeaderboardStats();
+  }, [leagueId, userTeamId]);
+
+  // Fetch team logo
+  useEffect(() => {
+    async function fetchTeamLogo() {
+      if (!leagueId || !userTeamId) return;
+      try {
+        const res = await fetch(`/api/leagues/${leagueId}/teams/${userTeamId}`);
+        const json = await res.json();
+        if (res.ok && json?.success && json.data?.logo_url) {
+          // Add cache busting to initial load too
+          setTeamLogoUrl(`${json.data.logo_url}?t=${Date.now()}`);
+        }
+      } catch (err) {
+        console.error('Error fetching team logo:', err);
+      }
+    }
+    fetchTeamLogo();
   }, [leagueId, userTeamId]);
 
   // Logo handlers

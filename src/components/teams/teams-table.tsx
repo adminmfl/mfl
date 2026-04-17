@@ -67,8 +67,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { DumbbellLoading } from '@/components/ui/dumbbell-loading';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 
 import { CreateTeamDialog } from "./create-team-dialog";
 import { AddMembersDialog } from "./add-members-dialog";
@@ -90,7 +90,50 @@ import {
 // ============================================================================
 
 function TableSkeleton() {
-  return <DumbbellLoading label="Loading teams..." />;
+  return (
+    <div className="space-y-4">
+      {/* Header Skeleton */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-2">
+          <Skeleton className="h-7 w-48" />
+          <Skeleton className="h-4 w-32" />
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-8 w-24 rounded-md" />
+          ))}
+        </div>
+      </div>
+
+      {/* Table Skeleton */}
+      <div className="rounded-lg border overflow-hidden">
+        <div className="bg-muted p-4 border-b">
+          <div className="grid grid-cols-4 gap-4">
+            <Skeleton className="h-4 w-12" />
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-4 w-8 ml-auto" />
+          </div>
+        </div>
+        <div className="p-4 space-y-4">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="grid grid-cols-4 items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Skeleton className="size-6 rounded-lg" />
+                <Skeleton className="h-4 w-32" />
+              </div>
+              <div className="flex items-center gap-2">
+                <Skeleton className="size-5 rounded-full" />
+                <Skeleton className="h-4 w-24" />
+              </div>
+              <Skeleton className="h-5 w-10 rounded-full" />
+              <Skeleton className="size-6 rounded-md ml-auto" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ============================================================================
@@ -298,14 +341,8 @@ export function TeamsTable({ leagueId, isHost, isGovernor }: TeamsTableProps) {
     }
   };
 
-  const handleAddMember = async (teamId: string, leagueMemberId: string): Promise<boolean> => {
-    const success = await assignMember(teamId, leagueMemberId);
-    if (success) {
-      toast.success("Member added to team");
-    } else {
-      toast.error("Failed to add member");
-    }
-    return success;
+  const handleAddMember = async (teamId: string, leagueMemberId: string) => {
+    return assignMember(teamId, leagueMemberId);
   };
 
   const handleAssignCaptain = async (teamId: string, userId: string): Promise<boolean> => {

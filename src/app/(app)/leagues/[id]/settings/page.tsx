@@ -35,7 +35,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { DumbbellLoading } from '@/components/ui/dumbbell-loading';
 import {
   Select,
   SelectContent,
@@ -58,6 +57,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { toast } from '@/lib/toast';
 import { useLeagueTeams } from '@/hooks/use-league-teams';
 import { useLeagueActivities } from '@/hooks/use-league-activities';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // ============================================================================
 // League Settings Page (Host Only)
@@ -260,7 +260,7 @@ export default function LeagueSettingsPage({
   }
 
   if (loading) {
-    return <DumbbellLoading label="Loading league settings..." />;
+    return <SettingsPageSkeleton />;
   }
 
   if (loadError) {
@@ -946,5 +946,62 @@ export default function LeagueSettingsPage({
         </div>
       </div>
     </div >
+  );
+}
+// ============================================================================
+// Skeleton Component
+// ============================================================================
+
+function SettingsPageSkeleton() {
+  return (
+    <div className="flex flex-col gap-6 py-4 md:py-6">
+      {/* Header Skeleton */}
+      <div className="flex flex-col gap-4 px-4 lg:px-6">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Skeleton className="size-6 rounded-md" />
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-6 w-20 rounded-full" />
+          </div>
+          <div className="flex items-center gap-2">
+            <Skeleton className="size-3.5 rounded-full" />
+            <Skeleton className="h-4 w-40" />
+          </div>
+          <Skeleton className="h-4 w-64" />
+        </div>
+      </div>
+
+      {/* Content Skeleton */}
+      <div className="px-4 lg:px-6">
+        <div className="max-w-5xl mx-auto">
+          <Card className="overflow-hidden">
+            <CardContent className="divide-y p-0">
+              {/* Quick Links Skeleton */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-5">
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-5 w-24" />
+                  <Skeleton className="h-4 w-64" />
+                </div>
+                <div className="grid grid-cols-2 gap-2 w-full sm:w-auto">
+                  <Skeleton className="h-10 w-28 rounded-md" />
+                  <Skeleton className="h-10 w-28 rounded-md" />
+                </div>
+              </div>
+
+              {/* Form Fields Skeletons */}
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex flex-col sm:flex-row sm:items-center gap-4 p-5">
+                  <div className="flex-1 space-y-1">
+                    <Skeleton className="h-5 w-32" />
+                    <Skeleton className="h-3 w-48" />
+                  </div>
+                  <Skeleton className="h-10 w-full sm:max-w-sm rounded-md" />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
   );
 }

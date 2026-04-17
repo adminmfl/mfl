@@ -35,8 +35,8 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { DumbbellLoading } from "@/components/ui/dumbbell-loading";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // ============================================================================
 // Types
@@ -456,9 +456,48 @@ function LeaguesEmptyState() {
 // ============================================================================
 
 function SectionCardsSkeleton() {
-  return <DumbbellLoading label="Loading dashboard..." />;
+  return (
+    <div className="grid grid-cols-2 gap-2 px-4 sm:grid-cols-2 lg:grid-cols-3 lg:px-6 @5xl/main:grid-cols-3">
+      {Array.from({ length: 4 }).map((_, index) => (
+        <Card key={index} className="@container/card p-2.5 sm:p-4">
+          <CardHeader className="p-0 sm:p-4 sm:pb-1.5">
+            <CardDescription className="flex items-center gap-2 text-[11px] sm:text-xs">
+              <Skeleton className="size-4 rounded-sm" />
+              <Skeleton className="h-3 w-20 sm:h-4 sm:w-24" />
+            </CardDescription>
+            <Skeleton className="mt-2 h-6 w-20 sm:h-8 sm:w-24" />
+          </CardHeader>
+          <CardFooter className="flex-col items-start gap-1 p-0 pt-1.5 sm:p-4 sm:pt-0">
+            <Skeleton className="h-3 w-28 sm:h-4 sm:w-36" />
+            <Skeleton className="h-3 w-full sm:h-4" />
+          </CardFooter>
+        </Card>
+      ))}
+    </div>
+  );
 }
 
 function LeagueGridSkeleton() {
-  return <DumbbellLoading label="Loading leagues..." />;
+  return (
+    <div className="grid gap-2 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3">
+      {Array.from({ length: 6 }).map((_, index) => (
+        <Card key={index} className="overflow-hidden p-0">
+          <div className="relative h-16 rounded-t-lg bg-gradient-to-br from-muted/70 to-muted lg:h-28">
+            <Skeleton className="absolute left-1.5 top-1.5 size-6 rounded-full lg:left-3 lg:top-3 lg:size-10" />
+            <Skeleton className="absolute right-1.5 top-1.5 h-5 w-14 rounded-full lg:right-3 lg:top-3 lg:h-6 lg:w-16" />
+            <Skeleton className="absolute bottom-2 left-2.5 h-3 w-24 lg:bottom-3 lg:left-4 lg:h-4 lg:w-32" />
+          </div>
+          <div className="space-y-3 p-2 lg:p-4">
+            <Skeleton className="h-3 w-full lg:h-4" />
+            <Skeleton className="h-3 w-2/3 lg:h-4" />
+            <Skeleton className="h-5 w-28 rounded-full lg:w-36" />
+            <div className="flex flex-wrap gap-1">
+              <Skeleton className="h-5 w-16 rounded-full" />
+              <Skeleton className="h-5 w-20 rounded-full" />
+            </div>
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
 }

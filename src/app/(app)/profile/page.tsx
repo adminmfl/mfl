@@ -51,8 +51,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { DumbbellLoading } from '@/components/ui/dumbbell-loading';
 import { ThemeDrawer } from '@/components/theme-drawer';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // ============================================================================
 // Types
@@ -923,5 +923,76 @@ export default function ProfilePage() {
 // ============================================================================
 
 function ProfileSkeleton() {
-  return <DumbbellLoading label="Loading profile..." />;
+  return (
+    <div className="flex flex-col gap-6 py-4 md:py-6">
+      {/* Header Skeleton */}
+      <div className="flex flex-col gap-1 px-4 lg:px-6">
+        <div className="flex items-center gap-2">
+          <Skeleton className="size-6 rounded-md" />
+          <Skeleton className="h-8 w-48" />
+        </div>
+        <Skeleton className="h-4 w-80" />
+      </div>
+
+      {/* Main Form Skeleton */}
+      <div className="px-4 lg:px-6">
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-48 mb-2" />
+            <Skeleton className="h-4 w-64" />
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Avatar Section Skeleton */}
+            <div className="flex items-start gap-6 p-4 rounded-lg bg-muted/30 border">
+              <Skeleton className="size-24 rounded-full" />
+              <div className="flex-1 space-y-3">
+                <Skeleton className="h-7 w-32" />
+                <Skeleton className="h-4 w-48" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-6 w-20 rounded-full" />
+                  <Skeleton className="h-6 w-16 rounded-full" />
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Skeleton className="h-9 w-28 rounded-md" />
+                  <Skeleton className="h-9 w-20 rounded-md" />
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Form Fields Skeleton */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className={i === 2 ? "sm:col-span-2 space-y-2" : "space-y-2"}>
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-10 w-full rounded-md" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+          <CardFooter className="border-t pt-6">
+            <Skeleton className="h-10 w-32 rounded-md" />
+          </CardFooter>
+        </Card>
+      </div>
+
+      {/* Stats/Other sections skeletons */}
+      <div className="px-4 lg:px-6">
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-32 mb-2" />
+            <Skeleton className="h-4 w-48" />
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-20 w-full rounded-lg" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
 }

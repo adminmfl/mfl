@@ -6,6 +6,7 @@ import { ClipboardCheck } from 'lucide-react';
 
 import { useLeague } from '@/contexts/league-context';
 import { Card } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function SubmissionsRedirectPage() {
   const router = useRouter();
@@ -25,9 +26,18 @@ export default function SubmissionsRedirectPage() {
 
   return (
     <div className="p-6">
-      <Card className="p-8 text-center">
-        <ClipboardCheck className="size-10 text-muted-foreground mx-auto mb-3" />
-        <div className="text-sm text-muted-foreground">Redirecting to your submissions…</div>
+      <Card className="p-8">
+        <div className="mx-auto flex max-w-sm flex-col items-center gap-4 text-center">
+          <div className="flex size-12 items-center justify-center rounded-full bg-muted">
+            <ClipboardCheck className="size-6 text-muted-foreground" />
+          </div>
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-4 w-56" />
+          <div className="flex w-full gap-2 pt-2">
+            <Skeleton className="h-9 flex-1 rounded-md" />
+            <Skeleton className="h-9 flex-1 rounded-md" />
+          </div>
+        </div>
       </Card>
     </div>
   );
