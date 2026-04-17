@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add inputMode="numeric" to activity input fields for improved mobile input experience (#133)
 
 ### Fixed
+- Replace generic loading spinners with structured skeleton UI across all major pages (#126)
 - Captain restricted to own team only; removed ability to switch between teams (#1)
 - Add-member API returns proper response for captain on own team instead of 403 (#2)
 - Chat attach workout: replaced auto-action with explicit popover menu (#3)
