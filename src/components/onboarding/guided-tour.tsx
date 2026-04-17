@@ -82,6 +82,7 @@ const FALLBACK_STEPS: TourStep[] = [
 ];
 
 const STORAGE_KEY = 'mfl_guided_tour_dismissed';
+const SESSION_KEY = 'mfl_tour_shown_this_session';
 
 // ---------------------------------------------------------------------------
 // Public API to re-open tour from Help menu
@@ -123,12 +124,17 @@ export function GuidedTour() {
       });
   }, []);
 
-  // Auto-open on first visit
+  // Auto-open once per session (unless permanently dismissed)
   useEffect(() => {
     try {
       const dismissed = localStorage.getItem(STORAGE_KEY);
       if (dismissed === 'true') return;
-      const timer = setTimeout(() => setOpen(true), 1500);
+      const shownThisSession = sessionStorage.getItem(SESSION_KEY);
+      if (shownThisSession === 'true') return;
+      const timer = setTimeout(() => {
+        setOpen(true);
+        sessionStorage.setItem(SESSION_KEY, 'true');
+      }, 1500);
       return () => clearTimeout(timer);
     } catch {}
   }, []);
