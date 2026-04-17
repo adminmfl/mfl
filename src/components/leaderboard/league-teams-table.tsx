@@ -19,7 +19,6 @@ import Star from 'lucide-react/dist/esm/icons/star';
 import Medal from 'lucide-react/dist/esm/icons/medal';
 
 
-import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import {
   Table,

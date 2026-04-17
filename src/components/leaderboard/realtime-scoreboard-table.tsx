@@ -4,9 +4,11 @@
  */
 'use client';
 
-import * as React from 'react';
 import { format } from 'date-fns';
-import { Medal, Star, Trophy, Users } from 'lucide-react';
+import Medal from 'lucide-react/dist/esm/icons/medal';
+import Star from 'lucide-react/dist/esm/icons/star';
+import Trophy from 'lucide-react/dist/esm/icons/trophy';
+import Users from 'lucide-react/dist/esm/icons/users';
 
 import {
   Table,

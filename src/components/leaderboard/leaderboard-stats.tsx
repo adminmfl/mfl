@@ -2,14 +2,11 @@
  * Leaderboard Stats - Compact Horizontal Bar
  * Displays summary statistics in a single line.
  */
-'use client';
 
-import {
-  Trophy,
-  CheckCircle2,
-  Clock3,
-  TrendingUp,
-} from 'lucide-react';
+import Trophy from 'lucide-react/dist/esm/icons/trophy';
+import CheckCircle2 from 'lucide-react/dist/esm/icons/check-circle-2';
+import Clock3 from 'lucide-react/dist/esm/icons/clock-3';
+import TrendingUp from 'lucide-react/dist/esm/icons/trending-up';
 
 import type { LeaderboardStats as StatsType } from '@/hooks/use-league-leaderboard';
 

@@ -22,7 +22,9 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Trophy, Medal, Users } from 'lucide-react';
+import Trophy from 'lucide-react/dist/esm/icons/trophy';
+import Medal from 'lucide-react/dist/esm/icons/medal';
+import Users from 'lucide-react/dist/esm/icons/users';
 import { cn } from '@/lib/utils';
 
 // ============================================================================
