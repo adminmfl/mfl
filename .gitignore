@@ -44,4 +44,9 @@ next-env.d.ts
 /scripts/
 .claude/
 .e
-test-perf.ts
+
+# lock files
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
