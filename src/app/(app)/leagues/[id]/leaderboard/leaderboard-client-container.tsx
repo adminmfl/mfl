@@ -1,16 +1,12 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { format, parseISO } from 'date-fns';
-import { RefreshCw, Calendar, ChevronDown, Trophy, Flag } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import RefreshCw from 'lucide-react/dist/esm/icons/refresh-cw';
+import Trophy from 'lucide-react/dist/esm/icons/trophy';
+import Flag from 'lucide-react/dist/esm/icons/flag';
+import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
 
 import { Button } from '@/components/ui/button';
-import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import {
   DropdownMenu,
@@ -20,21 +16,35 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
+import dynamic from 'next/dynamic';
 import { useLeagueLeaderboard } from '@/hooks/use-league-leaderboard';
 import { useAiInsights } from '@/hooks/use-ai-insights';
-import {
-  LeaderboardStats,
-  LeagueTeamsTable,
-  LeagueIndividualsTable,
-  ChallengeSpecificLeaderboard,
-  RealTimeScoreboardTable,
-} from '@/components/leaderboard';
+
+// Dynamically import heavy components
+const LeagueTeamsTable = dynamic(() => import('@/components/leaderboard').then(mod => mod.LeagueTeamsTable), {
+  loading: () => <div className="h-40 animate-pulse bg-muted/20 rounded-lg" />
+});
+const LeagueIndividualsTable = dynamic(() => import('@/components/leaderboard').then(mod => mod.LeagueIndividualsTable), {
+  loading: () => <div className="h-40 animate-pulse bg-muted/20 rounded-lg" />
+});
+const ChallengeSpecificLeaderboard = dynamic(() => import('@/components/leaderboard').then(mod => mod.ChallengeSpecificLeaderboard), {
+  loading: () => <div className="h-40 animate-pulse bg-muted/20 rounded-lg" />
+});
+const RealTimeScoreboardTable = dynamic(() => import('@/components/leaderboard').then(mod => mod.RealTimeScoreboardTable), {
+  loading: () => <div className="h-40 animate-pulse bg-muted/20 rounded-lg" />
+});
+const CalendarComponent = dynamic(() => import('@/components/ui/calendar').then(mod => mod.Calendar), {
+  ssr: false
+});
+
 import {
   HeaderSkeleton,
   TableSkeleton,
   StatsSkeleton,
 } from '@/components/leaderboard/leaderboard-skeletons';
+import { LeaderboardStats } from '@/components/leaderboard/leaderboard-stats';
 import { calculateWeekPresets } from '@/lib/utils/leaderboard-utils';
+import { LeaderboardControls } from './leaderboard-controls';
 import type { LeaderboardData } from '@/hooks/use-league-leaderboard';
 
 interface LeaderboardClientContainerProps {
@@ -169,170 +179,22 @@ export function LeaderboardClientContainer({
         <div className="rounded-lg border bg-card/70 shadow-sm px-3 py-3">
           <div className="flex items-center justify-between gap-2 mb-2">
             <div>
-              <h1 className="text-xl font-bold tracking-tight">Leaderboard</h1>
-              <p className="text-sm text-muted-foreground leading-none truncate max-w-[200px]">
-                {league?.league_name || 'Rankings'}
-              </p>
+              {/* Header components handled by page.tsx server component */}
             </div>
-            <div className="flex items-center gap-1.5 shrink-0">
-              <Popover open={filterOpen} onOpenChange={setFilterOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 text-xs font-normal shadow-sm hover:shadow"
-                  >
-                    <Calendar className="size-3.5 mr-1.5" />
-                    <span className="truncate max-w-[80px] sm:max-w-none">
-                      {selectedWeek === 'all'
-                        ? 'All Time'
-                        : selectedWeek === 'custom'
-                          ? startDate && endDate
-                            ? `${format(startDate, 'MMM d')} - ${format(endDate, 'MMM d')}`
-                            : 'Custom'
-                          : weekPresets.find(
-                              (w) => w.weekNumber === selectedWeek,
-                            )?.label || 'All Time'}
-                    </span>
-                    <ChevronDown className="size-3.5 ml-1.5 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent
-                  className="w-72 p-0 shadow-lg border-muted"
-                  align="end"
-                >
-                  <div className="flex flex-col gap-1 p-2">
-                    <Button
-                      variant={selectedWeek === 'all' ? 'secondary' : 'ghost'}
-                      size="sm"
-                      className="justify-start shadow-sm"
-                      onClick={() => handleWeekSelect('all')}
-                    >
-                      All Time
-                    </Button>
-
-                    {weekPresets.length > 0 && (
-                      <>
-                        <div className="text-xs font-medium text-muted-foreground px-2 py-2 mt-1">
-                          Weeks
-                        </div>
-                        <div className="max-h-[240px] overflow-y-auto pr-1 space-y-1">
-                          {[...weekPresets].reverse().map((week) => (
-                            <Button
-                              key={week.weekNumber}
-                              variant={
-                                selectedWeek === week.weekNumber
-                                  ? 'secondary'
-                                  : 'ghost'
-                              }
-                              size="sm"
-                              className="justify-start w-full shadow-sm"
-                              onClick={() => handleWeekSelect(week.weekNumber)}
-                            >
-                              <span className="font-medium">{week.label}</span>
-                              <span className="ml-auto text-xs text-muted-foreground pl-2">
-                                {format(parseISO(week.startDate), 'MMM d')} –{' '}
-                                {format(parseISO(week.endDate), 'MMM d')}
-                              </span>
-                            </Button>
-                          ))}
-                        </div>
-                      </>
-                    )}
-
-                    <div className="text-xs font-medium text-muted-foreground px-2 py-2 mt-2">
-                      Custom Range
-                    </div>
-                    <div className="flex flex-col gap-2.5 p-3 rounded-md border bg-muted/20 shadow-inner">
-                      <div className="flex items-center gap-2">
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className={cn(
-                                'flex-1 text-xs shadow-sm hover:shadow',
-                                !startDate && 'text-muted-foreground',
-                              )}
-                            >
-                              {startDate ? format(startDate, 'MMM d') : 'Start'}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent
-                            className="w-auto p-0 shadow-lg"
-                            align="start"
-                          >
-                            <CalendarComponent
-                              mode="single"
-                              selected={startDate}
-                              onSelect={setStartDate}
-                              disabled={(date) =>
-                                endDate ? date > endDate : false
-                              }
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <span className="text-xs text-muted-foreground">–</span>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className={cn(
-                                'flex-1 text-xs shadow-sm hover:shadow',
-                                !endDate && 'text-muted-foreground',
-                              )}
-                            >
-                              {endDate ? format(endDate, 'MMM d') : 'End'}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent
-                            className="w-auto p-0 shadow-lg"
-                            align="start"
-                          >
-                            <CalendarComponent
-                              mode="single"
-                              selected={endDate}
-                              onSelect={setEndDate}
-                              disabled={(date) =>
-                                startDate ? date < startDate : false
-                              }
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="flex-1 text-xs shadow-sm hover:shadow"
-                          onClick={handleResetDateRange}
-                        >
-                          Reset
-                        </Button>
-                        <Button
-                          size="sm"
-                          className="flex-1 text-xs shadow-sm hover:shadow-md"
-                          onClick={handleApplyDateRange}
-                        >
-                          Apply
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 w-8 p-0"
-                onClick={refetch}
-              >
-                <RefreshCw className="size-3.5" />
-              </Button>
-            </div>
+            <LeaderboardControls
+              selectedWeek={selectedWeek}
+              startDate={startDate}
+              endDate={endDate}
+              filterOpen={filterOpen}
+              setFilterOpen={setFilterOpen}
+              weekPresets={weekPresets}
+              handleWeekSelect={handleWeekSelect}
+              handleApplyDateRange={handleApplyDateRange}
+              handleResetDateRange={handleResetDateRange}
+              setStartDate={setStartDate}
+              setEndDate={setEndDate}
+              refetch={refetch}
+            />
           </div>
           <div className="border-t mt-2 pt-3">
             <Tabs
@@ -482,7 +344,12 @@ export function LeaderboardClientContainer({
         </div>
       </div>
 
-      <div className="px-4 lg:px-6 pb-4">
+      {/* 
+          Rendering stats here for client-side updates. 
+          The initial load is handled by page.tsx server component.
+          When data changes due to filters, this will update the view.
+      */}
+      <div className="px-4 lg:px-6 pb-4 mt-4">
         <LeaderboardStats stats={stats} />
       </div>
     </div>
