@@ -208,6 +208,54 @@ export async function POST(
             return NextResponse.json({ error: 'Receiver not found in this league' }, { status: 400 });
         }
 
+        // Validate donor has enough rest days remaining before creating the donation request.
+        const { data: league, error: leagueError } = await supabase
+            .from('leagues')
+            .select('rest_days, start_date')
+            .eq('league_id', leagueId)
+            .single();
+
+        if (leagueError || !league) {
+            return NextResponse.json({ error: 'League not found' }, { status: 404 });
+        }
+
+        const totalAllowed = league.rest_days ?? 1;
+        const activeDonationStatuses = ['pending', 'captain_approved', 'approved'];
+
+        const restDayQuery = supabase
+            .from('effortentry')
+            .select('*', { count: 'exact', head: true })
+            .eq('league_member_id', donorMembership.league_member_id)
+            .eq('type', 'rest')
+            .eq('status', 'approved');
+
+        const restDayQueryWithDate = league.start_date ? restDayQuery.gte('date', league.start_date) : restDayQuery;
+        const { count: approvedRestDays } = await restDayQueryWithDate;
+
+        const { data: receivedDonations } = await supabase
+            .from('rest_day_donations')
+            .select('days_transferred')
+            .eq('receiver_member_id', donorMembership.league_member_id)
+            .in('status', activeDonationStatuses);
+
+        const received = (receivedDonations || []).reduce((sum, d) => sum + d.days_transferred, 0);
+
+        const { data: donatedDonations } = await supabase
+            .from('rest_day_donations')
+            .select('days_transferred')
+            .eq('donor_member_id', donorMembership.league_member_id)
+            .in('status', activeDonationStatuses);
+
+        const donated = (donatedDonations || []).reduce((sum, d) => sum + d.days_transferred, 0);
+
+        const finalRemaining = Math.max(0, totalAllowed + received - donated - (approvedRestDays || 0));
+
+        if (days_transferred > finalRemaining) {
+            return NextResponse.json({
+                error: `You only have ${finalRemaining} rest day${finalRemaining === 1 ? '' : 's'} available to donate.`,
+            }, { status: 400 });
+        }
+
         // Create donation request
         const { data: donation, error: createError } = await supabase
             .from('rest_day_donations')
