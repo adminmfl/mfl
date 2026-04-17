@@ -15,6 +15,7 @@ import {
 import { getLeagueById } from '@/lib/services/leagues';
 import { userHasAnyRole } from '@/lib/services/roles';
 import { getSupabaseServiceRole } from '@/lib/supabase/client';
+import { sendWelcomeMessage, sendTeamAnnouncement } from '@/lib/services/bonding-automations';
 
 // Helper to check if user is league member
 async function isLeagueMember(userId: string, leagueId: string): Promise<boolean> {
@@ -180,6 +181,28 @@ export async function POST(
         { error: 'Failed to assign member to team' },
         { status: 500 }
       );
+    }
+
+    // Get the newly added member's details for bonding messages
+    const { data: newMember } = await supabase
+      .from('leaguemembers')
+      .select(`
+        user_id,
+        users!leaguemembers_user_id_fkey(username)
+      `)
+      .eq('league_member_id', validated.league_member_id)
+      .single();
+
+    if (newMember?.users) {
+      const memberName = (newMember.users as any).username;
+
+      // Send automated bonding messages (don't block response on these)
+      Promise.all([
+        sendWelcomeMessage(leagueId, teamId, newMember.user_id, memberName),
+        sendTeamAnnouncement(leagueId, teamId, memberName)
+      ]).catch(error => {
+        console.error('[Bonding] Error sending automated messages:', error);
+      });
     }
 
     return NextResponse.json({
