@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import Confetti from 'react-confetti';
@@ -74,44 +74,87 @@ declare global {
 // Lightweight markdown renderer for AI assistant messages
 // ---------------------------------------------------------------------------
 
-function renderMarkdown(text: string): (string | JSX.Element)[] {
-  const parts: (string | JSX.Element)[] = [];
-  // Match **bold**, *italic*, and `code`
-  const regex = /(\*\*(.+?)\*\*)|(\*(.+?)\*)|(`(.+?)`)/g;
-  let lastIdx = 0;
-  let match: RegExpExecArray | null;
+function parseInlineMarkdown(text: string, keyPrefix: string): ReactNode[] {
+  const parts: ReactNode[] = [];
+  let i = 0;
+  let tokenIndex = 0;
 
-  while ((match = regex.exec(text)) !== null) {
-    if (match.index > lastIdx) {
-      parts.push(text.slice(lastIdx, match.index));
+  while (i < text.length) {
+    // **bold**
+    if (text.startsWith('**', i)) {
+      const end = text.indexOf('**', i + 2);
+      if (end !== -1) {
+        const inner = text.slice(i + 2, end);
+        parts.push(
+          <strong key={`${keyPrefix}-b-${tokenIndex++}`} className="font-semibold">
+            {parseInlineMarkdown(inner, `${keyPrefix}-b-${tokenIndex}`)}
+          </strong>
+        );
+        i = end + 2;
+        continue;
+      }
     }
-    if (match[1]) {
-      // **bold**
-      parts.push(
-        <strong key={match.index} className="font-semibold">
-          {match[2]}
-        </strong>
-      );
-    } else if (match[3]) {
-      // *italic*
-      parts.push(
-        <em key={match.index}>
-          {match[4]}
-        </em>
-      );
-    } else if (match[5]) {
-      // `code`
-      parts.push(
-        <code key={match.index} className="bg-muted-foreground/10 rounded px-1 py-0.5 text-xs font-mono">
-          {match[6]}
-        </code>
-      );
+
+    // *italic*
+    if (text[i] === '*') {
+      const end = text.indexOf('*', i + 1);
+      if (end !== -1) {
+        const inner = text.slice(i + 1, end);
+        parts.push(
+          <em key={`${keyPrefix}-i-${tokenIndex++}`}>
+            {parseInlineMarkdown(inner, `${keyPrefix}-i-${tokenIndex}`)}
+          </em>
+        );
+        i = end + 1;
+        continue;
+      }
     }
-    lastIdx = match.index + match[0].length;
+
+    // `code`
+    if (text[i] === '`') {
+      const end = text.indexOf('`', i + 1);
+      if (end !== -1) {
+        const inner = text.slice(i + 1, end);
+        parts.push(
+          <code
+            key={`${keyPrefix}-c-${tokenIndex++}`}
+            className="bg-muted-foreground/10 rounded px-1 py-0.5 text-xs font-mono"
+          >
+            {inner}
+          </code>
+        );
+        i = end + 1;
+        continue;
+      }
+    }
+
+    // Plain text until the next formatting token
+    let next = text.length;
+    const nextBold = text.indexOf('**', i);
+    const nextItalic = text.indexOf('*', i);
+    const nextCode = text.indexOf('`', i);
+    if (nextBold !== -1 && nextBold < next) next = nextBold;
+    if (nextItalic !== -1 && nextItalic < next) next = nextItalic;
+    if (nextCode !== -1 && nextCode < next) next = nextCode;
+
+    parts.push(text.slice(i, next));
+    i = next;
   }
-  if (lastIdx < text.length) {
-    parts.push(text.slice(lastIdx));
-  }
+
+  return parts;
+}
+
+function renderMarkdown(text: string): ReactNode[] {
+  const lines = text.split('\n');
+  const parts: ReactNode[] = [];
+
+  lines.forEach((line, index) => {
+    parts.push(...parseInlineMarkdown(line, `line-${index}`));
+    if (index < lines.length - 1) {
+      parts.push(<br key={`br-${index}`} />);
+    }
+  });
+
   return parts;
 }
 

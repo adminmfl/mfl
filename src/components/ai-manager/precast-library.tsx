@@ -22,7 +22,7 @@ import {
   IconLoader2,
   IconCheck,
 } from '@tabler/icons-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 
 interface CannedMessage {
   canned_message_id: string;

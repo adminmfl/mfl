@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getSupabase } from '@/lib/supabase/client';
 import { TournamentMatch } from '@/lib/supabase/types';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 
 export function useTournamentMatches(challengeId: string) {
     const [matches, setMatches] = useState<TournamentMatch[]>([]);

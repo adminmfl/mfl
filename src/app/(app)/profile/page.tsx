@@ -26,7 +26,7 @@ import {
   KeyRound,
   Palette,
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 
 import { useLeague } from '@/contexts/league-context';
 import { Button } from '@/components/ui/button';

@@ -17,7 +17,7 @@ import {
   Link2,
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { useLeague } from '@/contexts/league-context';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
