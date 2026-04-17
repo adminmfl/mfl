@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add inputMode="decimal" to distance input field for proper mobile keyboard (#133)
 - Guided tour only shows once per login session instead of on every navigation
 - Root URL `/` now serves the corporate landing page; old landing preserved at `/landing`
+- Add Log In and Sign Up buttons to corporate landing page nav bar
 
 ## [2.0.0] — 2026-04-01
 

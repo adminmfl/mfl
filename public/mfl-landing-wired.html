@@ -158,6 +158,26 @@
       background: var(--orange-dark);
     }
 
+    .nav-login {
+      color: var(--navy);
+      padding: .55rem 1.4rem;
+      font-family: 'DM Sans', sans-serif;
+      font-size: .82rem;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 3px;
+      text-decoration: none;
+      transition: background .2s, color .2s;
+      white-space: nowrap;
+      border: 1.5px solid var(--navy);
+      background: transparent;
+    }
+
+    .nav-login:hover {
+      background: var(--navy);
+      color: #fff;
+    }
+
     /* ── CORP ID BANNER ── */
     .cid {
       background: var(--navy);
@@ -2090,6 +2110,11 @@
         white-space: nowrap;
       }
 
+      .nav-login {
+        font-size: .7rem;
+        padding: .45rem .85rem;
+      }
+
       .cid {
         padding: .65rem 1rem;
         margin-top: 50px;
@@ -2501,9 +2526,10 @@
         <span class="np on">🏢 Corporate</span>
         <a href="/communities" class="np">🏘️ Communities</a>
       </div>
+      <a href="/login" class="nav-login"
+        onclick="gtag('event', 'click', {'event_category': 'CTA', 'event_label': 'nav_login'});">Log In</a>
       <a href="/signup" class="nav-btn"
-        onclick="gtag('event', 'click', {'event_category': 'CTA', 'event_label': 'nav_cta'});">Launch Free — 7 Days
-        →</a>
+        onclick="gtag('event', 'click', {'event_category': 'CTA', 'event_label': 'nav_cta'});">Sign Up — Free →</a>
     </div>
   </nav>
 
