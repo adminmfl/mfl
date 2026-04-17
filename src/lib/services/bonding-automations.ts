@@ -205,7 +205,7 @@ export async function sendTeamIdentityReveal(
             .join('\n');
 
         const message = BONDING_TEMPLATES.team_identity_reveal
-            .replace('{team_name}', team.team_name)
+            .replaceAll('{team_name}', team.team_name)
             .replace('{member_list}', memberList)
             .replace('{captain_name}', captain?.username || 'TBD');
 
