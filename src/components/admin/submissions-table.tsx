@@ -27,7 +27,7 @@ import {
   type ColumnFiltersState,
   type SortingState,
 } from "@tanstack/react-table";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -109,27 +109,84 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-// ... (omitted parts of file not changing) ...
+export function SubmissionsTable() {
+  const [data, setData] = React.useState<Submission[]>([]);
+  const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const [globalFilter, setGlobalFilter] = React.useState("");
+  const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 10 });
+  const [formDialogOpen, setFormDialogOpen] = React.useState(false);
+  const [editingSubmission, setEditingSubmission] = React.useState<Submission | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+  const [submissionToDelete, setSubmissionToDelete] = React.useState<Submission | null>(null);
 
-const handleReject = (submission: Submission, type: "rejected_resubmit" | "rejected_permanent") => {
-  setData(
-    data.map((s) =>
-      s.id === submission.id
-        ? {
-          ...s,
-          status: type,
-          points: 0,
-          reviewedAt: new Date().toISOString(),
-          reviewedBy: "Admin",
-        }
-        : s
-    )
-  );
-  toast.success(`Submission "${submission.title}" rejected`);
-};
+  const handleApprove = (submission: Submission) => {
+    setData(data.map(s => s.id === submission.id ? { ...s, status: 'approved', points: 10, reviewedAt: new Date().toISOString(), reviewedBy: 'Admin' } : s));
+    toast.success(`Submission "${submission.title}" approved`);
+  };
 
-// ...
+  const handleReject = (submission: Submission, type: "rejected_resubmit" | "rejected_permanent") => {
+    setData(data.map(s => s.id === submission.id ? { ...s, status: type, points: 0, reviewedAt: new Date().toISOString(), reviewedBy: 'Admin' } : s));
+    toast.success(`Submission "${submission.title}" rejected`);
+  };
 
+  const handleEditSubmission = (submission: Submission) => {
+    setEditingSubmission(submission);
+    setFormDialogOpen(true);
+  };
+
+  const handleDeleteClick = (submission: Submission) => {
+    setSubmissionToDelete(submission);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleAddSubmission = () => {
+    setEditingSubmission(null);
+    setFormDialogOpen(true);
+  };
+
+  const handleFormSubmit = (submission: Partial<Submission>) => {
+    if (editingSubmission) {
+      setData(data.map(s => s.id === editingSubmission.id ? { ...s, ...submission } as Submission : s));
+      toast.success("Submission updated");
+    } else {
+      const newSubmission = { ...submission, id: Math.random().toString(36).substr(2, 9), status: 'pending', createdAt: new Date().toISOString() } as Submission;
+      setData([newSubmission, ...data]);
+      toast.success("Submission added");
+    }
+    setFormDialogOpen(false);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (submissionToDelete) {
+      setData(data.filter(s => s.id !== submissionToDelete.id));
+      toast.success("Submission deleted");
+    }
+    setDeleteDialogOpen(false);
+  };
+
+  const columns: ColumnDef<Submission>[] = [
+    {
+      accessorKey: "title",
+      header: "Title",
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => <StatusBadge status={row.original.status} />,
+    },
+    {
+      id: "actions",
+      cell: ({ row }) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <MoreVertical className="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {row.original.status === "pending" && (
+              <>
                 <DropdownMenuItem onClick={() => handleApprove(row.original)}>
                   <CheckCircle className="mr-2 size-4 text-green-600" />
                   Approve
@@ -157,222 +214,202 @@ const handleReject = (submission: Submission, type: "rejected_resubmit" | "rejec
               <Trash2 className="mr-2 size-4" />
               Delete
             </DropdownMenuItem>
-          </DropdownMenuContent >
-        </DropdownMenu >
+          </DropdownMenuContent>
+        </DropdownMenu>
       ),
     },
   ];
 
-const table = useReactTable({
-  data,
-  columns,
-  state: { sorting, columnFilters, globalFilter, pagination },
-  onSortingChange: setSorting,
-  onColumnFiltersChange: setColumnFilters,
-  onGlobalFilterChange: setGlobalFilter,
-  onPaginationChange: setPagination,
-  getCoreRowModel: getCoreRowModel(),
-  getFilteredRowModel: getFilteredRowModel(),
-  getPaginationRowModel: getPaginationRowModel(),
-  getSortedRowModel: getSortedRowModel(),
-});
+  const table = useReactTable({
+    data,
+    columns,
+    state: { sorting, columnFilters, globalFilter, pagination },
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    onGlobalFilterChange: setGlobalFilter,
+    onPaginationChange: setPagination,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+  });
 
-return (
-  <div className="space-y-4">
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Submission Management</h1>
-        <p className="text-muted-foreground">Review and manage activity submissions</p>
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Submission Management</h1>
+          <p className="text-muted-foreground">Review and manage activity submissions</p>
+        </div>
+        <Button onClick={handleAddSubmission}>
+          <Plus className="mr-2 size-4" />
+          Add Submission
+        </Button>
       </div>
-      <Button onClick={handleAddSubmission}>
-        <Plus className="mr-2 size-4" />
-        Add Submission
-      </Button>
-    </div>
 
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-      <div className="relative flex-1 sm:max-w-xs">
-        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Search submissions..."
-          value={globalFilter}
-          onChange={(e) => setGlobalFilter(e.target.value)}
-          className="pl-9"
-        />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+        <div className="relative flex-1 sm:max-w-xs">
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search submissions..."
+            value={globalFilter}
+            onChange={(e) => setGlobalFilter(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Select
+          value={(table.getColumn("status")?.getFilterValue() as string) || "all"}
+          onValueChange={(value) =>
+            table.getColumn("status")?.setFilterValue(value === "all" ? undefined : value)
+          }
+        >
+          <SelectTrigger className="w-[150px]">
+            <SelectValue placeholder="All Statuses" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="approved">Approved</SelectItem>
+            <SelectItem value="rejected">Rejected</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
-      <Select
-        value={(table.getColumn("status")?.getFilterValue() as string) || "all"}
-        onValueChange={(value) =>
-          table.getColumn("status")?.setFilterValue(value === "all" ? undefined : value)
-        }
-      >
-        <SelectTrigger className="w-[150px]">
-          <SelectValue placeholder="All Statuses" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Statuses</SelectItem>
-          <SelectItem value="pending">Pending</SelectItem>
-          <SelectItem value="approved">Approved</SelectItem>
-          <SelectItem value="rejected">Rejected</SelectItem>
-        </SelectContent>
-      </Select>
-      <Select
-        value={(table.getColumn("activityType")?.getFilterValue() as string) || "all"}
-        onValueChange={(value) =>
-          table.getColumn("activityType")?.setFilterValue(value === "all" ? undefined : value)
-        }
-      >
-        <SelectTrigger className="w-[150px]">
-          <SelectValue placeholder="All Activities" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Activities</SelectItem>
-          <SelectItem value="workout">Workout</SelectItem>
-          <SelectItem value="weigh_in">Weigh In</SelectItem>
-          <SelectItem value="meal">Meal</SelectItem>
-          <SelectItem value="steps">Steps</SelectItem>
-          <SelectItem value="meditation">Meditation</SelectItem>
-          <SelectItem value="yoga">Yoga</SelectItem>
-          <SelectItem value="challenge">Challenge</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
 
-    <div className="rounded-lg border">
-      <Table>
-        <TableHeader>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
-                <TableHead key={header.id}>
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(header.column.columnDef.header, header.getContext())}
-                </TableHead>
-              ))}
-            </TableRow>
-          ))}
-        </TableHeader>
-        <TableBody>
-          {table.getRowModel().rows?.length ? (
-            table.getRowModel().rows.map((row) => (
-              <TableRow key={row.id}>
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
+      <div className="rounded-lg border">
+        <Table>
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(header.column.columnDef.header, header.getContext())}
+                  </TableHead>
                 ))}
               </TableRow>
-            ))
-          ) : (
-            <TableRow>
-              <TableCell colSpan={columns.length} className="h-24 text-center">
-                No submissions found.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-    </div>
-
-    <div className="flex items-center justify-between">
-      <div className="text-sm text-muted-foreground">
-        {table.getFilteredRowModel().rows.length} submission(s) total
+            ))}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow key={row.id}>
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-24 text-center">
+                  No submissions found.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
       </div>
-      <div className="flex items-center gap-6">
-        <div className="flex items-center gap-2">
-          <Label htmlFor="rows-per-page" className="text-sm">
-            Rows per page
-          </Label>
-          <Select
-            value={`${pagination.pageSize}`}
-            onValueChange={(value) => setPagination({ ...pagination, pageSize: Number(value) })}
-          >
-            <SelectTrigger className="w-16" id="rows-per-page">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {[10, 20, 30, 50].map((size) => (
-                <SelectItem key={size} value={`${size}`}>
-                  {size}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-muted-foreground">
+          {table.getFilteredRowModel().rows.length} submission(s) total
         </div>
-        <div className="text-sm">
-          Page {pagination.pageIndex + 1} of {table.getPageCount()}
-        </div>
-        <div className="flex items-center gap-1">
-          <Button
-            variant="outline"
-            size="icon"
-            className="size-8"
-            onClick={() => table.setPageIndex(0)}
-            disabled={!table.getCanPreviousPage()}
-          >
-            <ChevronsLeft className="size-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className="size-8"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            <ChevronLeft className="size-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className="size-8"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            <ChevronRight className="size-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className="size-8"
-            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-            disabled={!table.getCanNextPage()}
-          >
-            <ChevronsRight className="size-4" />
-          </Button>
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="rows-per-page" className="text-sm">
+              Rows per page
+            </Label>
+            <Select
+              value={`${pagination.pageSize}`}
+              onValueChange={(value) => setPagination({ ...pagination, pageSize: Number(value) })}
+            >
+              <SelectTrigger className="w-16" id="rows-per-page">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[10, 20, 30, 50].map((size) => (
+                  <SelectItem key={size} value={`${size}`}>
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="text-sm">
+            Page {pagination.pageIndex + 1} of {table.getPageCount()}
+          </div>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="icon"
+              className="size-8"
+              onClick={() => table.setPageIndex(0)}
+              disabled={!table.getCanPreviousPage()}
+            >
+              <ChevronsLeft className="size-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="size-8"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              <ChevronLeft className="size-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="size-8"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              <ChevronRight className="size-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="size-8"
+              onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+              disabled={!table.getCanNextPage()}
+            >
+              <ChevronsRight className="size-4" />
+            </Button>
+          </div>
         </div>
       </div>
+
+      <SubmissionFormDialog
+        open={formDialogOpen}
+        onOpenChange={setFormDialogOpen}
+        submission={editingSubmission}
+        onSubmit={handleFormSubmit}
+      />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Submission</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{submissionToDelete?.title}"? This action cannot be
+              undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
-
-    <SubmissionFormDialog
-      open={formDialogOpen}
-      onOpenChange={setFormDialogOpen}
-      submission={editingSubmission}
-      onSubmit={handleFormSubmit}
-    />
-
-    <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Delete Submission</AlertDialogTitle>
-          <AlertDialogDescription>
-            Are you sure you want to delete "{submissionToDelete?.title}"? This action cannot be
-            undone.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={handleDeleteConfirm}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-          >
-            Delete
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  </div>
-);
+  );
 }
 
 export default SubmissionsTable;

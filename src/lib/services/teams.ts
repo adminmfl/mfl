@@ -58,6 +58,11 @@ export interface LeagueMemberWithDetails {
   team_name?: string | null;
 }
 
+export interface TeamMembershipMutationResult {
+  success: boolean;
+  error?: string;
+}
+
 // ============================================================================
 // Team CRUD Operations
 // ============================================================================
@@ -583,21 +588,38 @@ export async function assignMemberToTeam(
 export async function removeMemberFromTeam(
   leagueMemberId: string,
   modifiedBy: string
-): Promise<boolean> {
+): Promise<TeamMembershipMutationResult> {
   try {
-    const { error } = await getSupabaseServiceRole()
+    const { data, error } = await getSupabaseServiceRole()
       .from('leaguemembers')
       .update({
         team_id: null,
         modified_by: modifiedBy,
         modified_date: new Date().toISOString(),
       })
-      .eq('league_member_id', leagueMemberId);
+      .eq('league_member_id', leagueMemberId)
+      .not('team_id', 'is', null)
+      .select('league_member_id')
+      .maybeSingle();
 
-    return !error;
+    if (error) {
+      return {
+        success: false,
+        error: error.message || 'Failed to remove member from team',
+      };
+    }
+
+    if (!data) {
+      return {
+        success: false,
+        error: 'Member is not currently assigned to a team',
+      };
+    }
+
+    return { success: true };
   } catch (err) {
     console.error('Error removing member from team:', err);
-    return false;
+    return { success: false, error: 'Failed to remove member from team' };
   }
 }
 

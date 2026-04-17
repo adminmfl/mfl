@@ -4,7 +4,7 @@ import { useState } from "react";
 import { signIn, getSession } from "next-auth/react";
 import Link from "next/link";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";

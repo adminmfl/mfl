@@ -5,7 +5,7 @@ All notable changes to My Fitness League (MFL) will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — v2.5.0
+## [Unreleased] — v2.6.0
 
 ### Added
 - Team messaging engine with realtime chat, @mentions, read receipts, and guided onboarding tour
@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Client feedback: filter dropdown, instant messaging UX, left-aligned dropdowns, mobile nav, league info title, and tour flow improvements
 - AI Coach v2.5: inline intelligence replaces standalone AI components
+- Add inputMode="numeric" to activity input fields for improved mobile input experience (#133)
 
 ### Fixed
 - Captain restricted to own team only; removed ability to switch between teams (#1)
@@ -36,6 +37,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dashboard: `deriveLeagueStatus` wrapped in try-catch to prevent blank screen on corrupt data (#14)
 - Null guards added on `.roles` and `.name` across dashboard, profile, leagues, sidebar, header, and league context (#15)
 - Host landing page, activities fetch fallback, and chat badge count
+- Fix captain permission to only remove members from their own team (#124)
+- Toast scoping: informational toasts auto-dismiss after 4 seconds and all toasts clear on navigation (#151)
+- Fix `use-tournament-matches` and `submissions-table` importing toast directly from sonner, bypassing wrapper duration rules (#151)
+- Add inputMode="decimal" to distance input field for proper mobile keyboard (#133)
+- Guided tour only shows once per login session instead of on every navigation
+- Root URL `/` now serves the corporate landing page; old landing preserved at `/landing`
+- Add Log In and Sign Up buttons to corporate landing page nav bar
 
 ## [2.0.0] — 2026-04-01
 

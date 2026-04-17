@@ -41,7 +41,7 @@ import {
   type SortingState,
 } from '@tanstack/react-table';
 import { format, parseISO, isSameDay } from 'date-fns';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 
 import { useLeague } from '@/contexts/league-context';
 import { useRole } from '@/contexts/role-context';

@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { IconRocket, IconLoader2 } from '@tabler/icons-react';
-import { toast } from 'sonner';
+import { toast } from '@/lib/toast';
 import { ChallengeTemplate } from './types';
 
 interface DeployDialogProps {
