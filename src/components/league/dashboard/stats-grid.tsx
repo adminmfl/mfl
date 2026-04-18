@@ -19,10 +19,11 @@ import { DashboardSummaryData, MySummary } from "@/lib/types/dashboard";
 interface StatsGridProps {
   id: string;
   showRest?: boolean;
+  isLeagueEnded?: boolean;
   initialData?: DashboardSummaryData;
 }
 
-export function StatsGrid({ id, showRest: initialShowRest, initialData }: StatsGridProps) {
+export function StatsGrid({ id, showRest: initialShowRest, isLeagueEnded = false, initialData }: StatsGridProps) {
   const { activeRole, isHost, isGovernor, isCaptain } = useRole();
   const [data, setData] = useState<DashboardSummaryData | null>(initialData || null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -71,7 +72,7 @@ export function StatsGrid({ id, showRest: initialShowRest, initialData }: StatsG
 
   // Zero-flash immediate return if we have data
   if (!data) {
-    return <StatsSkeleton id={id} showRest={initialShowRest} />;
+    return <StatsSkeleton id={id} showRest={initialShowRest} isLeagueEnded={isLeagueEnded} />;
   }
 
   const { mySummary, league, rejectedCount } = data;
@@ -83,21 +84,36 @@ export function StatsGrid({ id, showRest: initialShowRest, initialData }: StatsG
     <>
       <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 px-4 lg:px-6 py-2 border-b md:backdrop-blur-lg">
         <div className="grid grid-cols-2 gap-2">
-          <Button asChild size="sm">
-            <Link href={`/leagues/${id}/submit?type=workout`} aria-label="Log Today's Activity">
+          {isLeagueEnded ? (
+            <Button size="sm" disabled>
               <Dumbbell className="mr-2 size-4" aria-hidden="true" />
               Log Today's Activity
-            </Link>
-          </Button>
-          {showRest && (
+            </Button>
+          ) : (
+            <Button asChild size="sm">
+              <Link href={`/leagues/${id}/submit?type=workout`} aria-label="Log Today's Activity">
+                <Dumbbell className="mr-2 size-4" aria-hidden="true" />
+                Log Today's Activity
+              </Link>
+            </Button>
+          )}
+          {showRest && (isLeagueEnded ? (
+            <Button size="sm" variant="outline" className="bg-muted/50" disabled>
+              <Moon className="mr-2 size-4" aria-hidden="true" />
+              Mark Rest Day
+            </Button>
+          ) : (
             <Button asChild size="sm" variant="outline" className="bg-muted/50">
               <Link href={`/leagues/${id}/submit?type=rest`} aria-label="Mark Rest Day">
                 <Moon className="mr-2 size-4" aria-hidden="true" />
                 Mark Rest Day
               </Link>
             </Button>
-          )}
+          ))}
         </div>
+        {isLeagueEnded && (
+          <p className="mt-1 text-xs text-muted-foreground">Submissions are closed for this league.</p>
+        )}
         <AiCoachInsight leagueId={id} />
       </div>
 
@@ -307,7 +323,7 @@ function RrComparisonChart({ mySummary }: { mySummary: MySummary }) {
   );
 }
 
-function StatsSkeleton({ id, showRest }: { id: string; showRest?: boolean }) {
+function StatsSkeleton({ id, showRest, isLeagueEnded = false }: { id: string; showRest?: boolean; isLeagueEnded?: boolean }) {
   return (
     <div className="flex flex-col gap-2">
       <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md px-4 lg:px-6 py-2 border-b">
@@ -315,6 +331,9 @@ function StatsSkeleton({ id, showRest }: { id: string; showRest?: boolean }) {
           <Skeleton className="h-9 w-full rounded-md" />
           {showRest && <Skeleton className="h-9 w-full rounded-md" />}
         </div>
+        {isLeagueEnded && (
+          <p className="mt-1 text-xs text-muted-foreground">Submissions are closed for this league.</p>
+        )}
         <div className="mt-1.5 h-5 flex items-center">
             <Skeleton className="h-4 w-3/4" />
         </div>

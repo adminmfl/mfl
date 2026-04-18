@@ -6,17 +6,18 @@ import { DynamicReportDialog } from '@/components/leagues/dynamic-report-dialog'
 
 interface ActionCardsProps {
   id: string;
+  isLeagueEnded: boolean;
   league: {
     start_date: string;
     end_date: string;
     status: string;
-    rest_days: number;
+    rest_days?: number;
   };
 }
 
-export function ActionCards({ id, league }: ActionCardsProps) {
-  const showReport = league.start_date && league.end_date && league.status !== 'completed';
-  const showDonate = league.rest_days > 0 && league.status !== 'completed';
+export function ActionCards({ id, isLeagueEnded, league }: ActionCardsProps) {
+  const showReport = league.start_date && league.end_date && !isLeagueEnded;
+  const showDonate = (league.rest_days ?? 0) > 0 && !isLeagueEnded;
 
   return (
     <div className="px-4 lg:px-6 space-y-4">
