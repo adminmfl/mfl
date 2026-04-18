@@ -258,9 +258,12 @@ export function useLeagueLeaderboard(
           // Apply normalized points using: (raw_points / member_count) × max_team_size
           const normalizedTeams = data.teams.map((t) => {
             const memberCount = Math.max(1, t.member_count);
-            const normalizedBase = Math.round(t.points * (variance.maxSize / memberCount));
-            const normalizedChallenge = Math.round((t.challenge_bonus || 0) * (variance.maxSize / memberCount));
-            const displayTotal = normalizedBase + normalizedChallenge;
+            const normFactor = variance.maxSize / memberCount;
+            // Only normalise base workout/activity points.
+            // Challenge bonus is already per-capita-adjusted server-side
+            // in leaderboard-logic.ts (÷ team_size), so must NOT be scaled again.
+            const normalizedBase = Math.round(t.points * normFactor);
+            const displayTotal = normalizedBase + (t.challenge_bonus || 0);
             return {
               ...t,
               normalized_points: normalizedBase,

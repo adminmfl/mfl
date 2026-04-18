@@ -49,7 +49,8 @@ export async function fetchLeagueNormalizationData(leagueId: string) {
 export function applyNormalizationToLeaderboard(
   teams: TeamWithNormalization[],
   shouldNormalize: boolean,
-  maxTeamSize?: number // Maximum team size from variance stats (baseline)
+  maxTeamSize?: number, // Maximum team size from variance stats (baseline)
+  excludeChallengeBonus: boolean = true // Whether to exclude challenge bonus from normalization
 ): TeamWithNormalization[] {
   if (!shouldNormalize || teams.length === 0) {
     return teams;
@@ -72,14 +73,27 @@ export function applyNormalizationToLeaderboard(
     return teams;
   }
 
-  return teams.map(team => ({
-    ...team,
-    normalized_points: normalizePoints(
-      team.total_points,
+  return teams.map(team => {
+    // If excludeChallengeBonus is true, we only normalize the base points
+    // (total_points - challenge_bonus)
+    const pointsToNormalize = excludeChallengeBonus 
+      ? (team as any).points || team.total_points 
+      : team.total_points;
+    
+    const normalizedBase = normalizePoints(
+      pointsToNormalize,
       team.member_count,
       baseline
-    ),
-  }));
+    );
+
+    const bonus = excludeChallengeBonus ? ((team as any).challenge_bonus || 0) : 0;
+
+    return {
+      ...team,
+      normalized_points: normalizedBase,
+      total_points: excludeChallengeBonus ? (normalizedBase + bonus) : normalizedBase,
+    };
+  });
 }
 
 /**

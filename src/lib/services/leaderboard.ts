@@ -47,16 +47,24 @@ export async function getLeagueLeaderboard(
       return [];
     }
 
-    // Get member counts for each team
-    const teamIds = teams.map(t => t.team_id);
-    const { data: memberCounts, error: memberError } = await supabase
-      .from('teamusers')
-      .select('team_id, count')
-      .in('team_id', teamIds);
+    // Get member counts for each team in this league
+    const memberCountsRaw = await Promise.all(
+      teamIds.map(async (tid) => {
+        const { count, error } = await supabase
+          .from('leaguemembers')
+          .select('*', { count: 'exact', head: true })
+          .eq('team_id', tid)
+          .eq('league_id', leagueId);
+        
+        if (error) {
+          console.error(`Error fetching member count for team ${tid}:`, error);
+        }
+        
+        return { team_id: tid, count: count || 0 };
+      })
+    );
 
-    if (memberError) {
-      console.error('Error fetching member counts:', memberError);
-    }
+    const memberCounts = memberCountsRaw;
 
     // Get total points for each team from submissions/entries
     const { data: teamPoints, error: pointsError } = await supabase

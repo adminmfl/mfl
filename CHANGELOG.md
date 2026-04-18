@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add inputMode="numeric" to activity input fields for improved mobile input experience (#133)
 
 ### Fixed
+- Fix points normalisation producing unfair scores for teams of uneven sizes (#148)
+- Stop double-normalising challenge bonus points (smaller teams were getting a ~60% inflated bonus)
+- Fix leaderboard service using wrong table (`teamusers` vs `leaguemembers`) for member counts
+- Remove duplicate normalisation utility function
 - Captain restricted to own team only; removed ability to switch between teams (#1)
 - Add-member API returns proper response for captain on own team instead of 403 (#2)
 - Chat attach workout: replaced auto-action with explicit popover menu (#3)
