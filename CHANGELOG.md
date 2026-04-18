@@ -14,11 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Workout link button in chat message input
 - Landing page revamp with corporate imagery, orange accent theme, and wearable integration copy
 - V2.5 P0/P1/P2 feature implementation across the platform
+- Add League Ended status badge based on end_date (#150)
 
 ### Changed
 - Client feedback: filter dropdown, instant messaging UX, left-aligned dropdowns, mobile nav, league info title, and tour flow improvements
 - AI Coach v2.5: inline intelligence replaces standalone AI components
-- Add inputMode="numeric" to activity input fields for improved mobile input experience (#133)
+- Disable submission actions and enforce read-only mode for ended leagues (#150)
 
 ### Fixed
 - Captain restricted to own team only; removed ability to switch between teams (#1)
