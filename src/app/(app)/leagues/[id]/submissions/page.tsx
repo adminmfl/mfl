@@ -77,9 +77,9 @@ import {
 } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { DumbbellLoading } from '@/components/ui/dumbbell-loading';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import {
@@ -140,7 +140,71 @@ interface TeamOption {
 // ============================================================================
 
 function PageSkeleton() {
-  return <DumbbellLoading label="Loading submissions..." />;
+  return (
+    <div className="@container/main flex flex-1 flex-col gap-4 lg:gap-6">
+      <div className="flex flex-col gap-4 px-4 lg:px-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-4">
+          <Skeleton className="size-14 rounded-xl" />
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-44" />
+            <Skeleton className="h-4 w-56" />
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-7 w-24 rounded-full" />
+          <Skeleton className="h-9 w-24 rounded-md" />
+        </div>
+      </div>
+
+      <div className="space-y-6 px-4 lg:px-6">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="rounded-lg border bg-card p-4">
+              <div className="flex items-center gap-3">
+                <Skeleton className="size-10 rounded-lg" />
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-16" />
+                  <Skeleton className="h-6 w-10" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <Skeleton className="h-10 w-full sm:max-w-xs" />
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
+            <Skeleton className="h-10 w-full sm:w-[130px]" />
+            <Skeleton className="h-10 w-full sm:w-[160px]" />
+            <Skeleton className="col-span-2 h-10 w-full sm:w-[200px]" />
+          </div>
+        </div>
+
+        <div className="hidden rounded-lg border md:block">
+          <div className="grid grid-cols-7 gap-3 border-b px-4 py-3">
+            {Array.from({ length: 7 }).map((_, index) => (
+              <Skeleton key={index} className="h-4 w-full" />
+            ))}
+          </div>
+          <div className="space-y-4 px-4 py-4">
+            {Array.from({ length: 7 }).map((_, index) => (
+              <div key={index} className="grid grid-cols-7 items-center gap-3">
+                <div className="col-span-2 flex items-center gap-3">
+                  <Skeleton className="size-9 rounded-full" />
+                  <Skeleton className="h-4 w-28" />
+                </div>
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-6 w-20 rounded-full" />
+                <Skeleton className="h-8 w-24 rounded-md" />
+                <Skeleton className="h-8 w-8 rounded-md justify-self-end" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ============================================================================

@@ -24,7 +24,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { DumbbellLoading } from '@/components/ui/dumbbell-loading';
 import {
   Card,
   CardContent,
@@ -42,6 +41,7 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { toast } from '@/lib/toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // ============================================================================
 // Loading State
@@ -178,7 +178,7 @@ export default function LeagueActivitiesPage({
   }, [filteredActivities, enabledActivityIds]);
 
   if (isLoading) {
-    return <DumbbellLoading label="Loading activities..." />;
+    return <ActivitiesPageSkeleton />;
   }
 
   const handleToggle = (activityId: string, enable: boolean) => {
@@ -889,6 +889,47 @@ export default function LeagueActivitiesPage({
             )}
           </>
         )}
+      </div>
+    </div>
+  );
+}
+// ============================================================================
+// Skeleton Component
+// ============================================================================
+
+function ActivitiesPageSkeleton() {
+  return (
+    <div className="flex flex-col gap-6 py-4 md:py-6">
+      <div className="flex flex-col gap-4 px-4 lg:px-6">
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-52" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full">
+          <Skeleton className="h-10 flex-1 min-w-52" />
+          <Skeleton className="h-10 w-[180px]" />
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-9 w-36 rounded-md" />
+            <Skeleton className="h-6 w-16 rounded-full" />
+            <Skeleton className="size-9 rounded-md" />
+          </div>
+        </div>
+      </div>
+      <div className="px-4 lg:px-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="flex items-start gap-3 p-4 rounded-lg border">
+              <Skeleton className="size-5 rounded-sm mt-0.5" />
+              <div className="flex-1 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="h-5 w-16 rounded-full" />
+                </div>
+                <Skeleton className="h-3 w-full" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
