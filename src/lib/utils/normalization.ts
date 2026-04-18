@@ -51,6 +51,10 @@ export function getTeamSizeStats(teams: TeamSizeInfo[]) {
  * 
  * Formula: normalized_points = (raw_points / team_member_count) × max_team_size
  * 
+ * IMPORTANT: Only use for base activity/workout points.
+ * Do NOT use for challenge bonus points — those are already
+ * per-capita-adjusted in leaderboard-logic.ts.
+ * 
  * @param teamMemberCount - Number of members in the team
  * @param maxTeamSize - Maximum team size across all teams (baseline)
  * @returns Normalization factor to multiply points by
@@ -60,6 +64,7 @@ export function calculateNormalizationFactor(
   maxTeamSize: number
 ): number {
   if (teamMemberCount === 0 || maxTeamSize === 0) return 1;
+  if (teamMemberCount === maxTeamSize) return 1;
   return maxTeamSize / teamMemberCount;
 }
 

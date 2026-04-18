@@ -40,14 +40,4 @@ export function calculateWeekPresets(
   return weeks;
 }
 
-/**
- * Normalizes points by team size.
- */
-export function calculateNormalizedPoints(
-  points: number,
-  memberCount: number,
-  maxTeamSize: number,
-): number {
-  const count = Math.max(1, memberCount);
-  return Math.round(points * (maxTeamSize / count));
-}
+
