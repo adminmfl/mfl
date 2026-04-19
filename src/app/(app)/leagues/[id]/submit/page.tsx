@@ -63,7 +63,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { cn } from '@/lib/utils';
+import { cn, isLeagueEnded as isLeagueEndedByDate } from '@/lib/utils';
 
 // ============================================================================
 // Rest Day Stats Interface
@@ -187,28 +187,10 @@ export default function SubmitActivityPage({
     }
   }, [searchParams, resubmitId]);
 
-  // Whether the active league has completed
-  const isLeagueCompleted = React.useMemo(() => {
+  // Whether the active league has ended based on end date or completed status
+  const isLeagueEnded = React.useMemo(() => {
     if (!activeLeague) return false;
-    if (activeLeague.status === 'completed') return true;
-    if (activeLeague.end_date) {
-      try {
-        // Parse end date as UTC midnight
-        // Ensure we handle ISO strings by taking only the 'YYYY-MM-DD' portion
-        const [y, m, d] = String(activeLeague.end_date).slice(0, 10).split('-').map(Number);
-        const cutoff = new Date(Date.UTC(y, m - 1, d));
-
-        // Add 1 day + 9 hours = 33 hours
-        cutoff.setHours(cutoff.getHours() + 33);
-        cutoff.setMinutes(0); // Reset minutes to 0 for exactly 9:00 AM
-
-        const now = new Date();
-        return now > cutoff;
-      } catch {
-        return false;
-      }
-    }
-    return false;
+    return activeLeague.status === 'completed' || isLeagueEndedByDate(activeLeague.end_date);
   }, [activeLeague]);
 
   const today = React.useMemo(() => startOfDay(new Date()), []);
@@ -280,7 +262,7 @@ export default function SubmitActivityPage({
   // NOTE: activityDate is intentionally NOT in the dependency array to prevent infinite loops.
   // This effect runs only when the allowed window boundaries change.
   React.useEffect(() => {
-    if (!maxActivityDate || !minActivityDate) return;
+    if (!maxActivityDate || !minActivityDate || isLeagueEnded) return;
 
     const current = startOfDay(activityDate);
 
@@ -292,7 +274,7 @@ export default function SubmitActivityPage({
       toast.info(`Date adjusted to earliest allowed (${format(minActivityDate, 'yyyy-MM-dd')})`);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [maxActivityDate, minActivityDate]);
+  }, [maxActivityDate, minActivityDate, isLeagueEnded]);
 
   // Check for trial mode (before league start)
   const isTrialMode = React.useMemo(() => {
@@ -1113,7 +1095,7 @@ export default function SubmitActivityPage({
 
       setSubmittedData(result.data);
       setSubmitted(true);
-      if (isLeagueCompleted) {
+      if (isLeagueEnded) {
         toast.success('League completed — you did great! Your submission has been recorded.');
       } else {
         toast.success('Activity submitted successfully!');
@@ -1197,7 +1179,7 @@ export default function SubmitActivityPage({
       if (needsExemption) {
         toast.success('Rest day exemption request submitted! Awaiting approval.');
       } else {
-        if (isLeagueCompleted) {
+        if (isLeagueEnded) {
           toast.success('League completed — you did great! Your rest day has been recorded.');
         } else {
           toast.success('Rest day logged successfully!');
@@ -1255,7 +1237,7 @@ export default function SubmitActivityPage({
   // If the league is completed, show a friendly, non-blocking note to the user
   // We still allow submissions but show a congratulatory banner.
   const CompletedBanner = () => (
-    isLeagueCompleted ? (
+    isLeagueEnded ? (
       <div className="mb-4">
         <Alert>
           <Info className="size-4" />
@@ -1279,7 +1261,7 @@ export default function SubmitActivityPage({
   }
 
   // If the league is completed, block submissions and show a message
-  if (isLeagueCompleted) {
+  if (isLeagueEnded) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 p-4 lg:gap-6 lg:p-6">
         <Alert>
@@ -1386,7 +1368,7 @@ export default function SubmitActivityPage({
         </div>
       )}
 
-      <Tabs value={submissionType} onValueChange={(v) => setSubmissionType(v as 'workout' | 'rest')} className="w-full" disabled={activeLeague && !activeLeague.team_id}>
+      <Tabs value={submissionType} onValueChange={(v) => setSubmissionType(v as 'workout' | 'rest')} className="w-full">
         {/* Workout Tab Content */}
         <TabsContent value="workout" className="mt-3">
           <form onSubmit={handleSubmit} className="space-y-6">
