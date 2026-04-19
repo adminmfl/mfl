@@ -12,6 +12,10 @@
 
 **Deployment Stability** - The release train was stabilized for QA with scoped lint/format guardrails and cleaner promotion hygiene.
 
+**Rest Day Donation Sync Improvements** — Rest day donations now reflect instantly, with real-time updates to both recipient availability and donor balances.
+
+**Auto-Assignment Refinements** — Automatic rest day assignment now avoids days with existing submissions and respects updated rest day availability.
+
 ### What's Fixed
 - Captain permissions and add-member edge cases
 - Chat workout attach flow and deep-link usability
@@ -19,6 +23,8 @@
 - AI Coach markdown rendering and AI creator null-state handling
 - Null-safety and dashboard crash guards across core screens
 - Landing-page anchor, analytics placeholder, and CTA polish issues
+
+- Rest day donation sync, balance tracking, and auto-assignment inconsistencies.
 
 ### Breaking Changes
 - None.

@@ -123,21 +123,23 @@ async function getMemberRestDaysRemaining(
   // Formula: final_used = auto + donated - received
   // =========================================================================
 
-  // Get approved donations received by this member
+  const activeDonationStatuses = ['pending', 'captain_approved', 'approved'];
+
+  // Get active donations received by this member (includes pending transfers)
   const { data: receivedDonations } = await supabase
     .from('rest_day_donations')
     .select('days_transferred')
     .eq('receiver_member_id', leagueMemberId)
-    .eq('status', 'approved');
+    .in('status', activeDonationStatuses);
 
   const daysReceived = (receivedDonations || []).reduce((sum: number, d: any) => sum + d.days_transferred, 0);
 
-  // Get approved donations given by this member
+  // Get active donations given by this member (includes pending transfers)
   const { data: donatedDonations } = await supabase
     .from('rest_day_donations')
     .select('days_transferred')
     .eq('donor_member_id', leagueMemberId)
-    .eq('status', 'approved');
+    .in('status', activeDonationStatuses);
 
   const daysDonated = (donatedDonations || []).reduce((sum: number, d: any) => sum + d.days_transferred, 0);
 
