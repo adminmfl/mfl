@@ -6,8 +6,7 @@
  * DELETE /api/leagues/[id]/activities - Remove activity from league (host only)
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth/config';
+import { getAuthUser } from '@/lib/auth/get-auth-user';
 import { getSupabaseServiceRole } from '@/lib/supabase/client';
 
 // ============================================================================
@@ -78,13 +77,12 @@ export async function PATCH(
 ) {
   try {
     const { id: leagueId } = await params;
-    const session = (await getServerSession(authOptions as any)) as import('next-auth').Session | null;
-
-    if (!session?.user?.id) {
+    const authUser = await getAuthUser(request);
+    if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userId = session.user.id;
+    const userId = authUser.id;
     const supabase = getSupabaseServiceRole();
 
     // Check if user is host of this league (creator or assigned host role)
@@ -351,19 +349,19 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const includeAll = searchParams.get('includeAll') === 'true';
 
-    const session = (await getServerSession(authOptions as any)) as import('next-auth').Session | null;
-
-    if (!session?.user?.id) {
+    const authUser = await getAuthUser(request);
+    if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const userId = authUser.id;
     const supabase = getSupabaseServiceRole();
 
     // First check if user is a member of this league
     const { data: membership } = await supabase
       .from('leaguemembers')
       .select('league_member_id')
-      .eq('user_id', session.user.id)
+      .eq('user_id', userId)
       .eq('league_id', leagueId)
       .maybeSingle();
 
@@ -371,7 +369,7 @@ export async function GET(
     const { data: roleData } = await supabase
       .from('assignedrolesforleague')
       .select('roles(role_name)')
-      .eq('user_id', session.user.id)
+      .eq('user_id', userId)
       .eq('league_id', leagueId);
 
     const roleNames = (roleData || []).map((r: any) => r.roles?.role_name).filter(Boolean);
@@ -383,7 +381,7 @@ export async function GET(
       .eq('league_id', leagueId)
       .single();
 
-    const isHost = league?.created_by === session.user.id || roleNames.includes('host');
+    const isHost = league?.created_by === userId || roleNames.includes('host');
     const isGovernor = roleNames.includes('governor');
 
     if (!membership && !isHost && !isGovernor) {
@@ -647,7 +645,7 @@ export async function GET(
       const { data: customActs } = await supabase
         .from('custom_activities')
         .select('*')
-        .eq('created_by', session.user.id)
+        .eq('created_by', userId)
         .eq('is_active', true)
         .order('activity_name');
 
@@ -711,13 +709,12 @@ export async function POST(
 ) {
   try {
     const { id: leagueId } = await params;
-    const session = (await getServerSession(authOptions as any)) as import('next-auth').Session | null;
-
-    if (!session?.user?.id) {
+    const authUser = await getAuthUser(request);
+    if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userId = session.user.id;
+    const userId = authUser.id;
     const supabase = getSupabaseServiceRole();
 
     // Check if user is host of this league (creator or assigned host role)
@@ -916,13 +913,12 @@ export async function DELETE(
 ) {
   try {
     const { id: leagueId } = await params;
-    const session = (await getServerSession(authOptions as any)) as import('next-auth').Session | null;
-
-    if (!session?.user?.id) {
+    const authUser = await getAuthUser(request);
+    if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userId = session.user.id;
+    const userId = authUser.id;
     const supabase = getSupabaseServiceRole();
 
     // Check if user is host of this league (creator or assigned host role)

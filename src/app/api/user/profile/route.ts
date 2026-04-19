@@ -1,17 +1,15 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth/config';
+import { NextRequest, NextResponse } from 'next/server';
 import { updateUserProfile } from '@/lib/services/users';
 import { getSupabaseServiceRole } from '@/lib/supabase/client';
+import { getAuthUser } from '@/lib/auth/get-auth-user';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
-        const session = await getServerSession(authOptions as any);
-        const userId = (session?.user as any)?.id;
-
-        if (!userId) {
+        const authUser = await getAuthUser(req);
+        if (!authUser) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
+        const userId = authUser.id;
 
         const supabase = getSupabaseServiceRole();
         const { data: user, error } = await supabase
@@ -37,14 +35,13 @@ export async function GET() {
     }
 }
 
-export async function PATCH(req: Request) {
+export async function PATCH(req: NextRequest) {
     try {
-        const session = await getServerSession(authOptions as any);
-        const userId = (session?.user as any)?.id;
-
-        if (!userId) {
+        const authUser = await getAuthUser(req);
+        if (!authUser) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
+        const userId = authUser.id;
 
         const body = await req.json();
         const { name, phone, profile_picture_url } = body;

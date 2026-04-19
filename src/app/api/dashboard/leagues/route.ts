@@ -1,7 +1,6 @@
-import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth/config'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { getAuthUser } from '@/lib/auth/get-auth-user'
 
 // Server-side Supabase client with service role to satisfy RLS while using NextAuth for auth
 function getServiceClient() {
@@ -27,13 +26,13 @@ type ApiLeague = {
   cover_image: string | null
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const session = (await getServerSession(authOptions as any)) as import('next-auth').Session | null
-    const userId = (session?.user as any)?.id || (session?.user as any)?.user_id
-    if (!userId) {
+    const authUser = await getAuthUser(req)
+    if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const userId = authUser.id
 
     const supabase = getServiceClient()
     const { data, error } = await supabase
