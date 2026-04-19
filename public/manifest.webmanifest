@@ -2,7 +2,7 @@
   "name": "MFL - My Fitness League",
   "short_name": "MFL",
   "description": "My Fitness League Dashboard",
-  "start_url": "/",
+  "start_url": "/dashboard",
   "scope": "/",
   "display": "standalone",
   "background_color": "#F7E2D5",
