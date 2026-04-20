@@ -35,6 +35,7 @@ async function getMemberFinalRestDays(
         .single();
 
     const totalAllowed = league?.rest_days ?? 1;
+    const activeDonationStatuses = ['pending', 'captain_approved', 'approved'];
 
     // Count auto rest days (from effortentry) - only from league start date
     let restDayQuery = supabase
@@ -48,21 +49,21 @@ async function getMemberFinalRestDays(
     }
     const { count: autoRestDays } = await restDayQuery;
 
-    // Get approved donations received
+    // Get active donations received
     const { data: receivedDonations } = await supabase
         .from('rest_day_donations')
         .select('days_transferred')
         .eq('receiver_member_id', leagueMemberId)
-        .eq('status', 'approved');
+        .in('status', activeDonationStatuses);
 
     const received = (receivedDonations || []).reduce((sum, d) => sum + d.days_transferred, 0);
 
-    // Get approved donations given
+    // Get active donations given
     const { data: donatedDonations } = await supabase
         .from('rest_day_donations')
         .select('days_transferred')
         .eq('donor_member_id', leagueMemberId)
-        .eq('status', 'approved');
+        .in('status', activeDonationStatuses);
 
     const donated = (donatedDonations || []).reduce((sum, d) => sum + d.days_transferred, 0);
 

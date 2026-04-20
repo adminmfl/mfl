@@ -1,20 +1,22 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth/config';
+import { NextRequest, NextResponse } from 'next/server';
 import { getUserLeaguesWithRoles } from '@/lib/services/leagues';
+import { getAuthUser } from '@/lib/auth/get-auth-user';
+
+// ============================================================================
+// GET /api/user/leagues
+// ============================================================================
 
 /**
  * Fetches all leagues for the current user with their roles in each league.
  * Now uses the centralized getUserLeaguesWithRoles service.
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const session = (await getServerSession(authOptions as any)) as import('next-auth').Session | null;
-    const userId = (session?.user as any)?.id || (session?.user as any)?.user_id;
-
-    if (!userId) {
+    const authUser = await getAuthUser(req);
+    if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const userId = authUser.id;
 
     const leagues = await getUserLeaguesWithRoles(userId);
 

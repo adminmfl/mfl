@@ -14,15 +14,16 @@ import { Progress } from '@/components/ui/progress';
 import { getLeagueProgress } from '@/lib/utils/leagues';
 
 interface LeagueInfoSectionProps {
+  isLeagueEnded: boolean;
   league: {
     start_date: string;
     end_date: string;
     status: string;
-    rest_days: number;
+    rest_days?: number;
     member_count?: number;
-    num_teams: number;
-    is_public: boolean;
-    is_exclusive: boolean;
+    num_teams?: number;
+    is_public?: boolean;
+    is_exclusive?: boolean;
   };
 }
 
@@ -36,7 +37,8 @@ function formatDate(dateString: string): string {
   });
 }
 
-export function LeagueInfoSection({ league }: LeagueInfoSectionProps) {
+export function LeagueInfoSection({ league, isLeagueEnded }: LeagueInfoSectionProps) {
+  const restDays = league.rest_days ?? 0;
   const { totalDays, daysElapsed, daysRemaining, progressPercent } = getLeagueProgress(
     league.start_date,
     league.end_date
@@ -51,7 +53,7 @@ export function LeagueInfoSection({ league }: LeagueInfoSectionProps) {
         </div>
         
         {/* Progress Bar (for launched/active leagues) */}
-        {(league.status === 'active' || league.status === 'launched') && (
+        {!isLeagueEnded && (league.status === 'active' || league.status === 'launched') && (
           <div className="p-4 border-b">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
@@ -100,13 +102,13 @@ export function LeagueInfoSection({ league }: LeagueInfoSectionProps) {
         </dl>
 
         {/* Key stats row 2: Rest Days (if >0), Players, Teams */}
-         <dl className={`grid ${league.rest_days > 0 ? 'grid-cols-3' : 'grid-cols-2'} divide-x border-b`}>
-          {league.rest_days > 0 && (
+         <dl className={`grid ${restDays > 0 ? 'grid-cols-3' : 'grid-cols-2'} divide-x border-b`}>
+          {restDays > 0 && (
             <div className="p-4 flex flex-col items-center text-center">
               <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center mb-2" aria-hidden="true">
                 <Moon className="size-5 text-primary" />
               </div>
-              <dd className="text-2xl font-bold tabular-nums">{league.rest_days}</dd>
+              <dd className="text-2xl font-bold tabular-nums">{restDays}</dd>
               <dt className="text-xs text-muted-foreground">Rest Days</dt>
             </div>
           )}

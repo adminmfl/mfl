@@ -6,8 +6,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseServiceRole } from "@/lib/supabase/client";
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth/config';
+import { getAuthUser } from '@/lib/auth/get-auth-user';
 import { getUserLocalDateYMD } from '@/lib/utils/timezone';
 import { calculateRR, getAgeThresholds, type RRConfig } from '@/lib/rr-calculator';
 
@@ -41,12 +40,12 @@ interface EntryPayload {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = (await getServerSession(authOptions as any)) as import('next-auth').Session | null;
-    if (!session?.user?.id) {
+    const authUser = await getAuthUser(req);
+    if (!authUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const userId = session.user.id;
+    const userId = authUser.id;
     const supabase = getSupabaseServiceRole();
 
     const body = await req.json();

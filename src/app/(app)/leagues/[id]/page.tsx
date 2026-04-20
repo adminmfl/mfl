@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth/config";
 import { getLeagueById } from "@/lib/services/leagues";
 import { calculateLeaderboard } from "@/lib/services/leaderboard-logic";
+import { isLeagueEnded as isLeagueEndedByDate } from "@/lib/utils";
 
 
 // Modular Components
@@ -69,6 +70,8 @@ export default async function LeagueDashboardPage({
     );
   }
 
+  const isLeagueEnded = league.status === "completed" || isLeagueEndedByDate(league.end_date);
+
   return (
     <div className="@container/main flex flex-1 flex-col gap-4 lg:gap-6">
       <div className="flex flex-col gap-4">
@@ -77,10 +80,10 @@ export default async function LeagueDashboardPage({
           <HeaderActions
             leagueId={id}
             userId={user.id}
-            leagueStatus={league.status}
+            leagueStatus={isLeagueEnded ? "ended" : league.status}
             leagueName={league.league_name}
             inviteCode={league.invite_code}
-            memberCount={league.member_count}
+            memberCount={(league as any).member_count}
             maxCapacity={league.league_capacity}
           />
         )}
@@ -97,7 +100,7 @@ export default async function LeagueDashboardPage({
       </div>
 
       {/* League Ended Banner */}
-      {league.status === "completed" && (
+      {isLeagueEnded && (
         <div className="mx-4 lg:mx-6 rounded-lg border border-primary/20 bg-primary/5 p-4 flex items-center gap-3" role="status">
           <MessageSquareHeart className="size-5 text-primary shrink-0" aria-hidden="true" />
           <div className="flex-1">
@@ -127,21 +130,22 @@ export default async function LeagueDashboardPage({
           <SummarySection 
             id={id} 
             userId={user.id} 
-            showRest={(league.rest_days ?? 0) > 0} 
+            showRest={(league.rest_days ?? 0) > 0}
+            isLeagueEnded={isLeagueEnded}
           />
         </Suspense>
       )}
 
       {/* Recent Activity Timeline with Suspense */}
       <Suspense fallback={<TimelineSkeleton />}>
-        <ActivityTimeline id={id} leagueStartDate={league.start_date} />
+        <ActivityTimeline id={id} leagueStartDate={league.start_date} isLeagueEnded={isLeagueEnded} />
       </Suspense>
 
       {/* Action Cards (Report, Donate) */}
-      <ActionCards id={id} league={league} />
+      <ActionCards id={id} league={league} isLeagueEnded={isLeagueEnded} />
 
       {/* League Information RSC */}
-      <LeagueInfoSection league={league} />
+      <LeagueInfoSection league={league} isLeagueEnded={isLeagueEnded} />
     </div>
   );
 }

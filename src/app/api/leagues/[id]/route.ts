@@ -4,14 +4,13 @@
  * DELETE /api/leagues/[id] - Delete league (Host only, draft status only)
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth/config';
 import {
   getLeagueById,
   updateLeague,
   deleteLeague,
   getUserRoleInLeague,
 } from '@/lib/services/leagues';
+import { getAuthUser } from '@/lib/auth/get-auth-user';
 import { z } from 'zod';
 
 const rrConfigSchema = z.object({
@@ -62,8 +61,8 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const session = (await getServerSession(authOptions as any)) as import('next-auth').Session | null;
-    if (!session?.user?.id) {
+    const authUser = await getAuthUser(request);
+    if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -88,15 +87,15 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const session = (await getServerSession(authOptions as any)) as import('next-auth').Session | null;
-    if (!session?.user?.id) {
+    const authUser = await getAuthUser(request);
+    if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await request.json();
     const validated = updateLeagueSchema.parse(body);
 
-    const updated = await updateLeague(id, session.user.id, validated);
+    const updated = await updateLeague(id, authUser.id, validated);
     if (!updated) {
       return NextResponse.json(
         { error: 'Failed to update league (host only; limited fields once launched)' },
@@ -126,12 +125,12 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const session = (await getServerSession(authOptions as any)) as import('next-auth').Session | null;
-    if (!session?.user?.id) {
+    const authUser = await getAuthUser(request);
+    if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const success = await deleteLeague(id, session.user.id);
+    const success = await deleteLeague(id, authUser.id);
     if (!success) {
       return NextResponse.json(
         { error: 'Failed to delete league (must be host and league must be in draft status)' },

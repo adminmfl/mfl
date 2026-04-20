@@ -3,9 +3,8 @@
  * POST /api/leagues - Create a new league (Host role required)
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth/config';
 import { getLeaguesForUser, createLeague } from '@/lib/services/leagues';
+import { getAuthUser } from '@/lib/auth/get-auth-user';
 import { z } from 'zod';
 
 const createLeagueSchema = z.object({
@@ -24,12 +23,12 @@ const createLeagueSchema = z.object({
 
 export async function GET(req: NextRequest) {
   try {
-    const session = (await getServerSession(authOptions as any)) as import('next-auth').Session | null;
-    if (!session?.user?.id) {
+    const authUser = await getAuthUser(req);
+    if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const leagues = await getLeaguesForUser(session.user.id);
+    const leagues = await getLeaguesForUser(authUser.id);
     return NextResponse.json({ data: leagues, success: true });
   } catch (error) {
     console.error('Error fetching leagues:', error);
@@ -42,8 +41,8 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = (await getServerSession(authOptions as any)) as import('next-auth').Session | null;
-    if (!session?.user?.id) {
+    const authUser = await getAuthUser(req);
+    if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -60,7 +59,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const league = await createLeague(session.user.id, validated);
+    const league = await createLeague(authUser.id, validated);
     if (!league) {
       return NextResponse.json(
         { error: 'Failed to create league' },

@@ -5,8 +5,7 @@
  * including status, proof, and metadata.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth/config';
+import { getAuthUser } from '@/lib/auth/get-auth-user';
 import { getSupabaseServiceRole } from '@/lib/supabase/client';
 
 // ============================================================================
@@ -42,14 +41,13 @@ export async function GET(
 ) {
   try {
     const { id: leagueId } = await params;
-    const session = (await getServerSession(authOptions as any)) as import('next-auth').Session | null;
-
-    if (!session?.user?.id) {
+    const authUser = await getAuthUser(request);
+    if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const supabase = getSupabaseServiceRole();
-    const userId = session.user.id;
+    const userId = authUser.id;
 
     // Get the user's league_member_id for this league
     const { data: leagueMember, error: memberError } = await supabase

@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { assignCaptain, removeCaptain, getTeamMembers } from '@/lib/services/teams';
 import { userHasAnyRole } from '@/lib/services/roles';
 import { getSupabaseServiceRole } from '@/lib/supabase/client';
+import { sendCaptainGuidance } from '@/lib/services/bonding-automations';
 
 // Helper to check if user is league member
 async function isLeagueMember(userId: string, leagueId: string): Promise<boolean> {
@@ -67,6 +68,11 @@ export async function POST(
         { status: 400 }
       );
     }
+
+    // Send captain guidance message (don't block response)
+    sendCaptainGuidance(leagueId, teamId, validated.user_id).catch(error => {
+      console.error('[Bonding] Error sending captain guidance:', error);
+    });
 
     return NextResponse.json({
       success: true,
