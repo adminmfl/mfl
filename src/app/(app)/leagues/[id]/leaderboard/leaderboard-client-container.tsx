@@ -195,9 +195,6 @@ export function LeaderboardClientContainer({
       <div className="px-4 lg:px-6">
         <div className="rounded-lg border bg-card/70 shadow-sm px-3 py-3">
           <div className="flex items-center justify-between gap-2 mb-2">
-            <div>
-              {/* Header components handled by page.tsx server component */}
-            </div>
             <LeaderboardControls
               selectedWeek={selectedWeek}
               startDate={startDate}

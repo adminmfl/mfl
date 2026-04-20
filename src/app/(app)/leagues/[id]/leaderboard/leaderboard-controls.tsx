@@ -1,9 +1,7 @@
 'use client';
 
 import { format, parseISO } from 'date-fns';
-import Calendar from 'lucide-react/dist/esm/icons/calendar';
-import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
-import RefreshCw from 'lucide-react/dist/esm/icons/refresh-cw';
+import { Calendar, ChevronDown, RefreshCw } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
 import { Button } from '@/components/ui/button';
@@ -14,10 +12,17 @@ import {
 } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
-const CalendarComponent = dynamic(() => import('@/components/ui/calendar').then(mod => mod.Calendar), {
-  ssr: false,
-  loading: () => <div className="p-4 h-[300px] flex items-center justify-center">Loading Calendar...</div>
-});
+const CalendarComponent = dynamic(
+  () => import('@/components/ui/calendar').then((mod) => mod.Calendar),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="p-4 h-[300px] flex items-center justify-center">
+        Loading Calendar...
+      </div>
+    ),
+  },
+);
 
 interface WeekPreset {
   weekNumber: number;
@@ -72,17 +77,13 @@ export function LeaderboardControls({
                   ? startDate && endDate
                     ? `${format(startDate, 'MMM d')} - ${format(endDate, 'MMM d')}`
                     : 'Custom'
-                  : weekPresets.find(
-                      (w) => w.weekNumber === selectedWeek,
-                    )?.label || 'All Time'}
+                  : weekPresets.find((w) => w.weekNumber === selectedWeek)
+                      ?.label || 'All Time'}
             </span>
             <ChevronDown className="size-3.5 ml-1.5 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent
-          className="w-72 p-0 shadow-lg border-muted"
-          align="end"
-        >
+        <PopoverContent className="w-72 p-0 shadow-lg border-muted" align="end">
           <div className="flex flex-col gap-1 p-2">
             <Button
               variant={selectedWeek === 'all' ? 'secondary' : 'ghost'}
@@ -103,9 +104,7 @@ export function LeaderboardControls({
                     <Button
                       key={week.weekNumber}
                       variant={
-                        selectedWeek === week.weekNumber
-                          ? 'secondary'
-                          : 'ghost'
+                        selectedWeek === week.weekNumber ? 'secondary' : 'ghost'
                       }
                       size="sm"
                       className="justify-start w-full shadow-sm"
@@ -148,9 +147,7 @@ export function LeaderboardControls({
                       mode="single"
                       selected={startDate}
                       onSelect={setStartDate}
-                      disabled={(date) =>
-                        endDate ? date > endDate : false
-                      }
+                      disabled={(date) => (endDate ? date > endDate : false)}
                       initialFocus
                     />
                   </PopoverContent>
