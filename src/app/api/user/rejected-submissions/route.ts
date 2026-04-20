@@ -5,9 +5,8 @@
  * Includes a small in-memory TTL cache to reduce unnecessary DB load.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth/config';
 import { getSupabaseServiceRole } from '@/lib/supabase/client';
+import { getAuthUser } from '@/lib/auth/get-auth-user';
 
 type RejectedLeagueSummary = {
   league_id: string;
@@ -34,12 +33,11 @@ const cache = new Map<string, { expiresAt: number; value: ApiResponse }>();
 
 export async function GET(request: NextRequest): Promise<NextResponse<ApiResponse>> {
   try {
-    const session = (await getServerSession(authOptions as any)) as import('next-auth').Session | null;
-    const userId = session?.user?.id;
-
-    if (!userId) {
+    const authUser = await getAuthUser(request);
+    if (!authUser) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
+    const userId = authUser.id;
 
     const force = request.nextUrl.searchParams.get('force');
     const bypassCache = force === '1' || force === 'true';

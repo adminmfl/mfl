@@ -3,8 +3,7 @@
  * POST /api/leagues/[id]/teams - Create a new team (Host/Governor only)
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth/config';
+import { getAuthUser } from '@/lib/auth/get-auth-user';
 import { z } from 'zod';
 import {
   getTeamsForLeague,
@@ -28,11 +27,12 @@ export async function GET(
 ) {
   try {
     const { id: leagueId } = await params;
-    const session = (await getServerSession(authOptions as any)) as import('next-auth').Session | null;
-
-    if (!session?.user?.id) {
+    const authUser = await getAuthUser(request);
+    if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const userId = authUser.id;
 
     // Check if user is a member of this league (via leaguemembers or assignedrolesforleague)
     const supabase = getSupabaseServiceRole();
@@ -41,12 +41,12 @@ export async function GET(
     const { data: memberCheck } = await supabase
       .from('leaguemembers')
       .select('league_member_id')
-      .eq('user_id', session.user.id)
+      .eq('user_id', userId)
       .eq('league_id', leagueId)
       .maybeSingle();
 
     // Also check assignedrolesforleague (user might have role without being in leaguemembers)
-    const hasRole = await userHasAnyRole(session.user.id, leagueId, [
+    const hasRole = await userHasAnyRole(userId, leagueId, [
       'host',
       'governor',
       'captain',
@@ -147,19 +147,20 @@ export async function POST(
 ) {
   try {
     const { id: leagueId } = await params;
-    const session = (await getServerSession(authOptions as any)) as import('next-auth').Session | null;
-
-    if (!session?.user?.id) {
+    const authUser = await getAuthUser(request);
+    if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const userId = authUser.id;
+
     // Check permissions (must be host or governor)
-    const canCreate = await userHasAnyRole(session.user.id, leagueId, [
+    const canCreate = await userHasAnyRole(userId, leagueId, [
       'host',
       'governor',
     ]);
 
-    console.log('[Create Team] User:', session.user.id, 'League:', leagueId, 'canCreate:', canCreate);
+    console.log('[Create Team] User:', userId, 'League:', leagueId, 'canCreate:', canCreate);
 
     if (!canCreate) {
       return NextResponse.json(
@@ -192,7 +193,7 @@ export async function POST(
     const team = await createTeamForLeague(
       leagueId,
       validated.team_name,
-      session.user.id
+      userId
     );
 
     if (!team) {
