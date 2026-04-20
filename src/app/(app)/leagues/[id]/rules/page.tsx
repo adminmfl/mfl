@@ -282,7 +282,7 @@ export default function RulesPage({
 
 function RulesPageSkeleton() {
   return (
-    <div className="flex flex-col gap-6 py-4 md:py-6 text-white">
+    <div className="flex flex-col gap-6 py-4 md:py-6">
       {/* Header Skeleton */}
       <div className="flex flex-col gap-4 px-4 lg:px-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
