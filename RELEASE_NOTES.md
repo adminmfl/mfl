@@ -1,6 +1,7 @@
 # Release Notes
 
 ## v2.6.0 - Client Readiness Release
+
 **Status:** On QA
 **Target:** v2.6 validation
 
@@ -16,7 +17,10 @@
 
 **Auto-Assignment Refinements** — Automatic rest day assignment now avoids days with existing submissions and respects updated rest day availability.
 
+**Fair Play Safeguards** — Suspicious submissions can now be flagged and tracked through a strike-based system, with warnings for players and improved visibility for captains and organizers.
+
 ### What's Fixed
+
 - Captain permissions and add-member edge cases
 - Chat workout attach flow and deep-link usability
 - Validation issues around duration, distance, and steps
@@ -27,17 +31,21 @@
 - Rest day donation sync, balance tracking, and auto-assignment inconsistencies.
 
 ### Breaking Changes
+
 - None.
 
 ### Database Migrations
+
 - No new database migrations required for v2.6 deliverables.
 
 ### Environment Setup
+
 - No new production environment variables required for v2.6 deliverables.
 
 ---
 
 ## v2.0.0 - Production-Ready Release
+
 **Released:** April 1, 2026
 
 ### Highlights
@@ -51,6 +59,7 @@
 **Challenge System Overhaul** - Removed the payment gate for challenges, fixed team scoring logic, and resolved sub-team all-or-nothing edge cases. Challenges are now more accessible and scores are accurate.
 
 ### What's Fixed
+
 - 26 bug fixes across leaderboards, rest day automation, submission handling, report accuracy, and UI polish. Major areas:
   - Auto rest day cron: timezone handling, late submissions, pre-start assignment
   - Leaderboard: deduplication, RR tiebreakers, truncation, decimal display
@@ -58,12 +67,14 @@
   - Security: cross-login session hardening
 
 ### Upgrade Notes
+
 - No database migrations required beyond v1.0.
 - No breaking API changes.
 
 ---
 
 ## v1.0.0 - Initial Release
+
 **Released:** February 11, 2026
 
 ### Highlights
@@ -81,6 +92,7 @@
 **Reports & Certificates** - Generate PDF league reports and downloadable certificates on league completion.
 
 ### Platform
+
 - **Frontend:** Next.js with TypeScript, Tailwind CSS, shadcn/ui
 - **Backend:** Supabase (PostgreSQL + Row-Level Security + Realtime)
 - **Auth:** NextAuth.js with Google OAuth and email/password
@@ -88,6 +100,7 @@
 - **Hosting:** Vercel
 
 ### Known Limitations
+
 - No team-level messaging (addressed in v2.5)
 - No AI-powered features (addressed in v2.5)
 - Single environment setup (multi-environment support added post-release)

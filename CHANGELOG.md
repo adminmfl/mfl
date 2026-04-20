@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Captain intro prompt (nudge captain to introduce themselves) on league launch
   - First day of league motivational message to all teams (automated via cron)
   - Messages are configurable per league (host can enable/disable via bonding_automations_enabled)
+- Add suspicious-proof strike tracking system with warning UI and 3-strike logic (#157)
 
 ### Changed
 
