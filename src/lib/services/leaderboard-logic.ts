@@ -240,29 +240,47 @@ export async function calculateLeaderboard(
 
   const PAGE_SIZE = 1000;
   let entries: any[] = [];
-  {
-    let page = 0;
-    let hasMore = true;
-    while (hasMore) {
-      // Use join filter (!inner) instead of large IN clause for better performance
-      let q = supabase
-        .from('effortentry')
-        .select(
-          'id, league_member_id, date, type, workout_type, outcome, rr_value, status, leaguemembers!inner(league_id)',
-        )
-        .eq('leaguemembers.league_id', leagueId)
-        .gte('date', filterStartDate)
-        .lte('date', effectiveEndDate)
-        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
-      const { data, error } = await q;
-      if (error) {
-        console.error('Error fetching effort entries:', error);
-        break;
+  // Fetch first page to get count and initial data
+  const firstPageRes = await supabase
+    .from('effortentry')
+    .select(
+      'id, league_member_id, date, type, workout_type, outcome, rr_value, status, leaguemembers!inner(league_id)',
+      { count: 'exact' },
+    )
+    .eq('leaguemembers.league_id', leagueId)
+    .gte('date', filterStartDate)
+    .lte('date', effectiveEndDate)
+    .range(0, PAGE_SIZE - 1);
+
+  if (firstPageRes.error) {
+    console.error('Error fetching effort entries:', firstPageRes.error);
+  } else {
+    entries = firstPageRes.data || [];
+    const totalCount = firstPageRes.count || 0;
+
+    if (totalCount > PAGE_SIZE) {
+      const remainingPages = Math.ceil((totalCount - PAGE_SIZE) / PAGE_SIZE);
+      const pagePromises = [];
+
+      for (let i = 1; i <= remainingPages; i++) {
+        pagePromises.push(
+          supabase
+            .from('effortentry')
+            .select(
+              'id, league_member_id, date, type, workout_type, outcome, rr_value, status, leaguemembers!inner(league_id)',
+            )
+            .eq('leaguemembers.league_id', leagueId)
+            .gte('date', filterStartDate)
+            .lte('date', effectiveEndDate)
+            .range(i * PAGE_SIZE, (i + 1) * PAGE_SIZE - 1),
+        );
       }
-      entries = entries.concat(data || []);
-      hasMore = (data?.length || 0) === PAGE_SIZE;
-      page++;
+
+      const additionalPages = await Promise.all(pagePromises);
+      additionalPages.forEach((res) => {
+        if (res.data) entries = entries.concat(res.data);
+      });
     }
   }
 
