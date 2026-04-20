@@ -16,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Landing page revamp with corporate imagery, orange accent theme, and wearable integration copy
 - V2.5 P0/P1/P2 feature implementation across the platform
 - Add League Ended status badge based on end_date (#150)
+- **Captain Guidelines and pre-launch bonding automations (#153)**
+  - Auto-send welcome message from captain when player joins team
+  - Auto-send team announcement when new member is added
+  - Captain Guidelines document/tooltip accessible in-app with Week 1 focus
+  - System-generated team identity reveal message (team name + logo) on league launch
+  - Messages use team collective language (not individual)
 
 ### Changed
 
