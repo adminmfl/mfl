@@ -1,11 +1,8 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
-import RefreshCw from 'lucide-react/dist/esm/icons/refresh-cw';
-import Trophy from 'lucide-react/dist/esm/icons/trophy';
-import Flag from 'lucide-react/dist/esm/icons/flag';
-import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
-
+import { useState, useMemo } from 'react';
+import { Trophy, Flag, ChevronDown } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import {
@@ -14,28 +11,53 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { cn } from '@/lib/utils';
 
 import dynamic from 'next/dynamic';
 import { useLeagueLeaderboard } from '@/hooks/use-league-leaderboard';
 import { useAiInsights } from '@/hooks/use-ai-insights';
 
 // Dynamically import heavy components
-const LeagueTeamsTable = dynamic(() => import('@/components/leaderboard').then(mod => mod.LeagueTeamsTable), {
-  loading: () => <div className="h-40 animate-pulse bg-muted/20 rounded-lg" />
-});
-const LeagueIndividualsTable = dynamic(() => import('@/components/leaderboard').then(mod => mod.LeagueIndividualsTable), {
-  loading: () => <div className="h-40 animate-pulse bg-muted/20 rounded-lg" />
-});
-const ChallengeSpecificLeaderboard = dynamic(() => import('@/components/leaderboard').then(mod => mod.ChallengeSpecificLeaderboard), {
-  loading: () => <div className="h-40 animate-pulse bg-muted/20 rounded-lg" />
-});
-const RealTimeScoreboardTable = dynamic(() => import('@/components/leaderboard').then(mod => mod.RealTimeScoreboardTable), {
-  loading: () => <div className="h-40 animate-pulse bg-muted/20 rounded-lg" />
-});
-const CalendarComponent = dynamic(() => import('@/components/ui/calendar').then(mod => mod.Calendar), {
-  ssr: false
-});
+const LeagueTeamsTable = dynamic(
+  () => import('@/components/leaderboard').then((mod) => mod.LeagueTeamsTable),
+  {
+    loading: () => (
+      <div className="h-40 animate-pulse bg-muted/20 rounded-lg" />
+    ),
+  },
+);
+const LeagueIndividualsTable = dynamic(
+  () =>
+    import('@/components/leaderboard').then(
+      (mod) => mod.LeagueIndividualsTable,
+    ),
+  {
+    loading: () => (
+      <div className="h-40 animate-pulse bg-muted/20 rounded-lg" />
+    ),
+  },
+);
+const ChallengeSpecificLeaderboard = dynamic(
+  () =>
+    import('@/components/leaderboard').then(
+      (mod) => mod.ChallengeSpecificLeaderboard,
+    ),
+  {
+    loading: () => (
+      <div className="h-40 animate-pulse bg-muted/20 rounded-lg" />
+    ),
+  },
+);
+const RealTimeScoreboardTable = dynamic(
+  () =>
+    import('@/components/leaderboard').then(
+      (mod) => mod.RealTimeScoreboardTable,
+    ),
+  {
+    loading: () => (
+      <div className="h-40 animate-pulse bg-muted/20 rounded-lg" />
+    ),
+  },
+);
 
 import {
   HeaderSkeleton,
@@ -63,7 +85,7 @@ export function LeaderboardClientContainer({
     'leaderboard_cta',
   ]);
 
-  const [viewRawTotals, setViewRawTotals] = useState(false);
+  const [viewRawTotals] = useState(false);
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [filterOpen, setFilterOpen] = useState(false);
@@ -73,28 +95,23 @@ export function LeaderboardClientContainer({
   );
 
   // Fetch leaderboard data (initialize with server data)
-  const {
-    data,
-    rawTeams,
-    rawPendingWindow,
-    isLoading,
-    error,
-    refetch,
-    setDateRange,
-  } = useLeagueLeaderboard(leagueId, { initialData });
+  const { data, rawTeams, rawPendingWindow, isLoading, refetch, setDateRange } =
+    useLeagueLeaderboard(leagueId, { initialData });
 
   const canToggleRaw =
     initialRoles.includes('host') || initialRoles.includes('governor');
 
   // Calculate week presets based on league dates
   const league = data?.league;
+  const leagueStartDate = league?.start_date;
+  const leagueEndDate = league?.end_date;
   const rrFormula = league?.rr_config?.formula || 'standard';
   const showRR = rrFormula === 'standard';
 
   const weekPresets = useMemo(() => {
-    if (!league?.start_date || !league?.end_date) return [];
-    return calculateWeekPresets(league.start_date, league.end_date);
-  }, [league?.start_date, league?.end_date]);
+    if (!leagueStartDate || !leagueEndDate) return [];
+    return calculateWeekPresets(leagueStartDate, leagueEndDate);
+  }, [leagueStartDate, leagueEndDate]);
 
   const handleWeekSelect = (week: number | 'all' | 'custom') => {
     if (week === 'all') {

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] — v2.6.0
 
 ### Added
+
 - Team messaging engine with realtime chat, @mentions, read receipts, and guided onboarding tour
 - AI Coach powered by Mistral: motivation nudges, captain insights, Q&A chatbot, and AI-assisted league creation wizard
 - AI League Manager: end-to-end AI-powered league setup and management
@@ -17,11 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add League Ended status badge based on end_date (#150)
 
 ### Changed
+
+- Improve Lighthouse mobile performance with server component migration and dynamic imports on leaderboard page (#129)
 - Client feedback: filter dropdown, instant messaging UX, left-aligned dropdowns, mobile nav, league info title, and tour flow improvements
 - AI Coach v2.5: inline intelligence replaces standalone AI components
 - Disable submission actions and enforce read-only mode for ended leagues (#150)
 
 ### Fixed
+
 - Captain restricted to own team only; removed ability to switch between teams (#1)
 - Add-member API returns proper response for captain on own team instead of 403 (#2)
 - Chat attach workout: replaced auto-action with explicit popover menu (#3)
@@ -51,6 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.0.0] — 2026-04-01
 
 ### Added
+
 - League feedback banner on My Activity page
 - Admin dashboard: host info column and "Login as Host" impersonation button (#90, #91)
 - MyTeam stats: activity/challenge statistics cards, welcome message with first name (#89)
@@ -61,12 +66,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Date picker for workout submission date selection (#98)
 
 ### Changed
+
 - Text and CTA copy updates across the app (#84)
 - League home: removed search/pagination, added RR column, improved UX (#88)
 - Simplified team members view on individual leaderboard (#87)
 - Player/team count cards added to configure dialogs (#94)
 
 ### Fixed
+
 - Cron timezone handling for auto rest day, captain validation window, submit date (#85)
 - Leaderboard RR tiebreaker logic, team name editing (#86)
 - UI bugs, leaderboard deduplication, rest day count accuracy, league settings editability (#92)
@@ -87,6 +94,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] — 2026-02-11
 
 ### Added
+
 - **Core platform**: Next.js application with Supabase backend and NextAuth (Google + Credentials)
 - **League management**: Multi-step creation form with tier selection, pricing preview, Razorpay payment integration
 - **Role-based access**: Host, Governor, Captain, Player roles with permission-gated pages and role context
@@ -116,6 +124,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **SEO & branding**: Updated icons, manifest, metadata
 
 ### Changed
+
 - Renamed "Workout" to "Activity" across all UI surfaces
 - Renamed "Avg RR" to "RR" for consistency
 - Renamed "Challenge Bonus" to "Challenge Points"
@@ -124,6 +133,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replaced hardcoded colors with semantic CSS variables
 
 ### Fixed
+
 - Realtime leaderboard accumulation on league completion
 - Submission deadline extended to 9:00 AM UTC next day for league end day
 - Timezone handling with IANA support and `date-fns-tz` v3.2.0
@@ -134,6 +144,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Auto rest day league query filtering
 
 ### Infrastructure
+
 - Complete Supabase database schema (28 tables, enums, indexes)
 - Row-level security policies for all tables
 - Cron jobs: auto-approve old submissions, auto-assign rest days
