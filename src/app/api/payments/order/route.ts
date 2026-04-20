@@ -7,17 +7,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createOrder } from '@/lib/razorpay';
 import { createPayment } from '@/lib/services/payments';
 import { getSupabaseServiceRole } from '@/lib/supabase/client';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth/config';
+import { getAuthUser } from '@/lib/auth/get-auth-user';
 
 export async function POST(req: NextRequest) {
   try {
-    const session = (await getServerSession(authOptions as any)) as import('next-auth').Session | null;
-    if (!session?.user?.id) {
+    const authUser = await getAuthUser(req);
+    if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userId = session.user.id;
+    const userId = authUser.id;
 
     const { leagueData } = await req.json();
     if (!leagueData) {

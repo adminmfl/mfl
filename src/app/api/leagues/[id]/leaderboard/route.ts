@@ -3,9 +3,8 @@
  * Refactored to use shared leaderboard calculation logic.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth/config';
 import { calculateLeaderboard } from '@/lib/services/leaderboard-logic';
+import { getAuthUser } from '@/lib/auth/get-auth-user';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,8 +16,8 @@ export async function GET(
     const { id: leagueId } = await params;
     
     // Auth check for API route
-    const session = (await getServerSession(authOptions as any)) as import('next-auth').Session | null;
-    if (!session?.user?.id) {
+    const authUser = await getAuthUser(request);
+    if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

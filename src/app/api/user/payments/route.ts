@@ -1,8 +1,7 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth/config';
+import { NextRequest, NextResponse } from 'next/server';
 import { getPaymentsForUser } from '@/lib/services/payments';
 import { getSupabaseServiceRole } from '@/lib/supabase/client';
+import { getAuthUser } from '@/lib/auth/get-auth-user';
 
 // ============================================================================
 // GET /api/user/payments
@@ -17,14 +16,13 @@ import { getSupabaseServiceRole } from '@/lib/supabase/client';
  * - league_name (if payment was for a league)
  * - created_at, completed_at
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const session = (await getServerSession(authOptions as any)) as import('next-auth').Session | null;
-    const userId = (session?.user as any)?.id || (session?.user as any)?.user_id;
-
-    if (!userId) {
+    const authUser = await getAuthUser(req);
+    if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const userId = authUser.id;
 
     const supabase = getSupabaseServiceRole();
 
