@@ -1,6 +1,15 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef, ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+  ReactNode,
+} from 'react';
 
 import { useSession } from 'next-auth/react';
 
@@ -8,9 +17,7 @@ import { useSession } from 'next-auth/react';
 // Types
 // ============================================================================
 
-import { LeagueRole, LeagueStatus, LeagueBranding, LeagueRRConfig, LeagueWithRoles } from '@/lib/types/leagues';
-
-
+import { LeagueRole, LeagueWithRoles } from '@/lib/types/leagues';
 
 interface LeagueContextType {
   // League state
@@ -81,7 +88,6 @@ interface LeagueProviderProps {
   initialLeagues?: LeagueWithRoles[];
 }
 
-
 /**
  * LeagueProvider - Manages the user's leagues, active league, and role switching.
  *
@@ -91,15 +97,21 @@ interface LeagueProviderProps {
  * - Supports role switching within a league
  * - Tracks whether user is participating as a player
  */
-export function LeagueProvider({ children, initialLeagues }: LeagueProviderProps) {
+export function LeagueProvider({
+  children,
+  initialLeagues,
+}: LeagueProviderProps) {
   const { data: session, status: sessionStatus } = useSession();
-  const [activeLeague, setActiveLeagueState] = useState<LeagueWithRoles | null>(null);
-  const [userLeagues, setUserLeagues] = useState<LeagueWithRoles[]>(initialLeagues || []);
+  const [activeLeague, setActiveLeagueState] = useState<LeagueWithRoles | null>(
+    null,
+  );
+  const [userLeagues, setUserLeagues] = useState<LeagueWithRoles[]>(
+    initialLeagues || [],
+  );
   const [isLoading, setIsLoading] = useState(!initialLeagues);
   const [error, setError] = useState<string | null>(null);
   const [currentRole, setCurrentRoleState] = useState<LeagueRole | null>(null);
   const hydratedRef = useRef(!!initialLeagues);
-
 
   // Fetch user's leagues with roles
   const fetchUserLeagues = useCallback(async () => {
@@ -146,7 +158,8 @@ export function LeagueProvider({ children, initialLeagues }: LeagueProviderProps
       let selectedLeague: LeagueWithRoles | null = null;
 
       if (savedLeagueId) {
-        selectedLeague = leagues.find(l => l.league_id === savedLeagueId) || null;
+        selectedLeague =
+          leagues.find((l) => l.league_id === savedLeagueId) || null;
       }
 
       if (!selectedLeague && leagues.length > 0) {
@@ -158,7 +171,9 @@ export function LeagueProvider({ children, initialLeagues }: LeagueProviderProps
         localStorage.setItem('activeLeagueId', selectedLeague.league_id);
 
         // Restore or set default role
-        const savedRole = localStorage.getItem(`role_${selectedLeague.league_id}`);
+        const savedRole = localStorage.getItem(
+          `role_${selectedLeague.league_id}`,
+        );
         const selectedRoles = selectedLeague.roles || [];
         const sortedRoles = sortRolesByHierarchy(selectedRoles);
         const highestAvailableRole = sortedRoles[0] || null;
@@ -189,17 +204,18 @@ export function LeagueProvider({ children, initialLeagues }: LeagueProviderProps
   // Fetch on mount and session change
   useEffect(() => {
     if (sessionStatus === 'loading') return;
-    
+
     // If we have initialLeagues, we skip the first fetch and just handle the active league restoration
     if (hydratedRef.current && userLeagues.length > 0) {
       hydratedRef.current = false; // Only skip once
-      
+
       const leagues = userLeagues;
       const savedLeagueId = localStorage.getItem('activeLeagueId');
       let selectedLeague: LeagueWithRoles | null = null;
 
       if (savedLeagueId) {
-        selectedLeague = leagues.find(l => l.league_id === savedLeagueId) || null;
+        selectedLeague =
+          leagues.find((l) => l.league_id === savedLeagueId) || null;
       }
 
       if (!selectedLeague && leagues.length > 0) {
@@ -209,8 +225,7 @@ export function LeagueProvider({ children, initialLeagues }: LeagueProviderProps
       if (selectedLeague) {
         setActiveLeagueState(selectedLeague);
         // ... rest of the role restoration logic below is already handled by setActiveLeague
-        // Actually, setActiveLeague logic is duplicated here in the original fetchUserLeagues.
-        // Let's just call setActiveLeague.
+
         setActiveLeague(selectedLeague);
       }
       return;
@@ -218,7 +233,6 @@ export function LeagueProvider({ children, initialLeagues }: LeagueProviderProps
 
     fetchUserLeagues();
   }, [sessionStatus, fetchUserLeagues, initialLeagues]);
-
 
   // Set active league with persistence
   const setActiveLeague = useCallback((league: LeagueWithRoles | null) => {
@@ -255,18 +269,23 @@ export function LeagueProvider({ children, initialLeagues }: LeagueProviderProps
   }, []);
 
   // Set current role with persistence
-  const setCurrentRole = useCallback((role: LeagueRole) => {
-    if (!activeLeague) return;
+  const setCurrentRole = useCallback(
+    (role: LeagueRole) => {
+      if (!activeLeague) return;
 
-    // Validate role is available
-    if (!(activeLeague.roles || []).includes(role)) {
-      console.warn(`Role ${role} is not available for user in league ${activeLeague.league_id}`);
-      return;
-    }
+      // Validate role is available
+      if (!(activeLeague.roles || []).includes(role)) {
+        console.warn(
+          `Role ${role} is not available for user in league ${activeLeague.league_id}`,
+        );
+        return;
+      }
 
-    setCurrentRoleState(role);
-    localStorage.setItem(`role_${activeLeague.league_id}`, role);
-  }, [activeLeague]);
+      setCurrentRoleState(role);
+      localStorage.setItem(`role_${activeLeague.league_id}`, role);
+    },
+    [activeLeague],
+  );
 
   // Computed values
   const availableRoles = useMemo(() => {

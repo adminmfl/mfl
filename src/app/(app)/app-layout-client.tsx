@@ -13,11 +13,12 @@ import { GuidedTour } from '@/components/onboarding/guided-tour';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ShieldAlert, LogOut } from 'lucide-react';
+import type { Session } from 'next-auth';
 import { LeagueWithRoles } from '@/lib/types/leagues';
 
 interface AppLayoutClientProps {
   children: React.ReactNode;
-  session: any;
+  session: Session | null;
   initialLeagues: LeagueWithRoles[];
 }
 
@@ -81,7 +82,9 @@ export default function AppLayoutClient({
   useEffect(() => {
     if (!isAdmin || !pathname) return;
     if (!pathname.startsWith('/leagues/')) {
-      fetch('/api/admin/impersonate/cleanup', { method: 'POST' }).catch(() => {});
+      fetch('/api/admin/impersonate/cleanup', { method: 'POST' }).catch(
+        () => {},
+      );
     }
   }, [isAdmin, pathname]);
 

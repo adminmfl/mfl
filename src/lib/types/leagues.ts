@@ -1,5 +1,3 @@
-import { ReactNode } from 'react';
-
 export type LeagueRole = 'host' | 'governor' | 'captain' | 'player';
 export type LeagueStatus = 'draft' | 'launched' | 'active' | 'completed';
 
