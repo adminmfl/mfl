@@ -12,7 +12,7 @@ export interface LeagueInput {
   league_name: string;
   description?: string | null;
   start_date: string; // YYYY-MM-DD
-  end_date: string;   // YYYY-MM-DD
+  end_date: string; // YYYY-MM-DD
   tier_id?: string; // references league_tiers
   tier_snapshot?: Record<string, any>; // Frozen tier config at creation time
   num_teams?: number;
@@ -30,7 +30,15 @@ export interface LeagueInput {
 
 export interface League extends LeagueInput {
   league_id: string;
-  status: 'draft' | 'payment_pending' | 'scheduled' | 'active' | 'ended' | 'completed' | 'cancelled' | 'abandoned';
+  status:
+    | 'draft'
+    | 'payment_pending'
+    | 'scheduled'
+    | 'active'
+    | 'ended'
+    | 'completed'
+    | 'cancelled'
+    | 'abandoned';
   is_active: boolean;
   invite_code: string | null;
   logo_url?: string | null;
@@ -49,7 +57,9 @@ function mapDbLeagueToLeague(dbLeague: any): League {
   return dbLeague as League;
 }
 
-function mapLeagueInputToDbUpdates(input: Partial<LeagueInput>): Record<string, any> {
+function mapLeagueInputToDbUpdates(
+  input: Partial<LeagueInput>,
+): Record<string, any> {
   return { ...input };
 }
 
@@ -58,9 +68,11 @@ function mapLeagueInputToDbUpdates(input: Partial<LeagueInput>): Record<string, 
  * Returns the derived status plus a flag indicating if we should persist it
  * back to the DB (we only persist when transitioning to 'completed').
  */
-export function deriveLeagueStatus(
-  league: { status?: string | null; start_date?: string | null; end_date?: string | null }
-): { derivedStatus: string; shouldPersist: boolean } {
+export function deriveLeagueStatus(league: {
+  status?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+}): { derivedStatus: string; shouldPersist: boolean } {
   // Use current timestamp for precise cutoff check
   const now = new Date();
 
@@ -69,7 +81,9 @@ export function deriveLeagueStatus(
     if (!ymd) return null;
     const m = /^\d{4}-\d{2}-\d{2}$/.exec(String(ymd));
     if (!m) return null;
-    const [y, mo, d] = String(ymd).split('-').map((p) => Number(p));
+    const [y, mo, d] = String(ymd)
+      .split('-')
+      .map((p) => Number(p));
     if (!y || !mo || !d) return null;
     return new Date(Date.UTC(y, mo - 1, d));
   };
@@ -89,7 +103,10 @@ export function deriveLeagueStatus(
 
       if (now.getTime() > cutoff.getTime()) {
         derivedStatus = 'completed';
-      } else if (now.getTime() >= startDt.getTime() && now.getTime() <= cutoff.getTime()) {
+      } else if (
+        now.getTime() >= startDt.getTime() &&
+        now.getTime() <= cutoff.getTime()
+      ) {
         // Active if within start and cutoff
         derivedStatus = 'active';
       } else if (now.getTime() < startDt.getTime()) {
@@ -105,7 +122,11 @@ export function deriveLeagueStatus(
     }
   }
 
-  if (!['draft', 'scheduled', 'payment_pending', 'active', 'completed'].includes(derivedStatus)) {
+  if (
+    !['draft', 'scheduled', 'payment_pending', 'active', 'completed'].includes(
+      derivedStatus,
+    )
+  ) {
     // Basic normalization
     if (derivedStatus === 'ended') derivedStatus = 'completed';
   }
@@ -116,7 +137,6 @@ export function deriveLeagueStatus(
   };
 }
 
-
 /**
  * Persist a derived status back to the DB when appropriate.
  * Currently only writes when moving into 'completed'.
@@ -124,10 +144,11 @@ export function deriveLeagueStatus(
 export async function persistLeagueStatusIfNeeded(
   leagueId: string,
   currentStatus: string | null,
-  derivedStatus: string
+  derivedStatus: string,
 ): Promise<boolean> {
   const normalizedCurrent = String(currentStatus || '').toLowerCase();
-  if (derivedStatus !== 'completed' || normalizedCurrent === 'completed') return false;
+  if (derivedStatus !== 'completed' || normalizedCurrent === 'completed')
+    return false;
 
   const { error } = await getSupabaseServiceRole()
     .from('leagues')
@@ -160,7 +181,10 @@ function generateInviteCode(): string {
  * @param data - League creation data
  * @returns Created league object
  */
-export async function createLeague(userId: string, data: LeagueInput): Promise<League | null> {
+export async function createLeague(
+  userId: string,
+  data: LeagueInput,
+): Promise<League | null> {
   try {
     const supabase = getSupabaseServiceRole();
 
@@ -186,7 +210,8 @@ export async function createLeague(userId: string, data: LeagueInput): Promise<L
         rest_days: data.rest_days ?? 1,
         rr_config: data.rr_config || { formula: 'standard' },
         auto_rest_day_enabled: data.auto_rest_day_enabled ?? true,
-        normalize_points_by_team_size: data.normalize_points_by_team_size ?? true,
+        normalize_points_by_team_size:
+          data.normalize_points_by_team_size ?? true,
         is_public: data.is_public || false,
         is_exclusive: data.is_exclusive ?? true,
         max_team_capacity: data.max_team_capacity || 10,
@@ -261,10 +286,12 @@ export async function getLeagueById(leagueId: string): Promise<League | null> {
   try {
     const supabase = getSupabaseServiceRole();
 
-    // Fetch league without embedded join
+    // Fetch league with specific columns to avoid large payloads
     const { data, error } = await supabase
       .from('leagues')
-      .select('*')
+      .select(
+        'league_id, league_name, description, status, start_date, end_date, num_teams, tier_id, is_public, is_exclusive, invite_code, created_by, logo_url, branding, rr_config, rest_days, tier_snapshot',
+      )
       .eq('league_id', leagueId)
       .single();
 
@@ -306,18 +333,22 @@ export async function getLeagueById(leagueId: string): Promise<League | null> {
     };
 
     // Derive the status for UI and persist completion back to DB when needed.
-    const { derivedStatus, shouldPersist } = deriveLeagueStatus(leagueWithCapacity);
+    const { derivedStatus, shouldPersist } =
+      deriveLeagueStatus(leagueWithCapacity);
 
     if (shouldPersist) {
       await persistLeagueStatusIfNeeded(
         leagueWithCapacity.league_id,
         leagueWithCapacity.status,
-        derivedStatus
+        derivedStatus,
       );
     }
 
     // Return league with possibly overridden status for UI consumers.
-    return mapDbLeagueToLeague({ ...leagueWithCapacity, status: derivedStatus });
+    return mapDbLeagueToLeague({
+      ...leagueWithCapacity,
+      status: derivedStatus,
+    });
   } catch (err) {
     console.error('Error fetching league:', err);
     return null;
@@ -330,7 +361,7 @@ export async function getLeagueById(leagueId: string): Promise<League | null> {
 export async function updateLeagueLogoUrl(
   leagueId: string,
   userId: string,
-  logoUrl: string | null
+  logoUrl: string | null,
 ): Promise<boolean> {
   try {
     const role = await getUserRoleInLeague(userId, leagueId);
@@ -360,7 +391,7 @@ export async function updateLeagueLogoUrl(
 export async function updateLeagueRulesDocUrl(
   leagueId: string,
   userId: string,
-  rulesDocUrl: string | null
+  rulesDocUrl: string | null,
 ): Promise<boolean> {
   try {
     const role = await getUserRoleInLeague(userId, leagueId);
@@ -390,7 +421,7 @@ export async function updateLeagueRulesDocUrl(
 export async function updateLeagueRulesSummary(
   leagueId: string,
   userId: string,
-  rulesSummary: string | null
+  rulesSummary: string | null,
 ): Promise<boolean> {
   try {
     const role = await getUserRoleInLeague(userId, leagueId);
@@ -414,7 +445,6 @@ export async function updateLeagueRulesSummary(
   }
 }
 
-
 /**
  * Get all leagues for a user
  * @param userId - User ID
@@ -424,7 +454,9 @@ export async function getLeaguesForUser(userId: string): Promise<League[]> {
   try {
     const { data, error } = await getSupabaseServiceRole()
       .from('leaguemembers')
-      .select('league_id, leagues(*)')
+      .select(
+        'league_id, leagues(league_id, league_name, description, status, start_date, end_date, logo_url)',
+      )
       .eq('user_id', userId);
 
     if (error) {
@@ -458,7 +490,7 @@ export async function getLeaguesForUser(userId: string): Promise<League[]> {
 export async function updateLeague(
   leagueId: string,
   userId: string,
-  data: Partial<LeagueInput>
+  data: Partial<LeagueInput>,
 ): Promise<League | null> {
   try {
     // Verify user is host
@@ -479,22 +511,28 @@ export async function updateLeague(
     if (isDraft) {
       Object.assign(allowedUpdates, data);
     } else if (league.status === 'launched' || league.status === 'active') {
-      if (data.rest_days !== undefined) allowedUpdates.rest_days = data.rest_days;
+      if (data.rest_days !== undefined)
+        allowedUpdates.rest_days = data.rest_days;
       if (data.auto_rest_day_enabled !== undefined) {
         allowedUpdates.auto_rest_day_enabled = data.auto_rest_day_enabled;
       }
       if (data.normalize_points_by_team_size !== undefined) {
-        allowedUpdates.normalize_points_by_team_size = data.normalize_points_by_team_size;
+        allowedUpdates.normalize_points_by_team_size =
+          data.normalize_points_by_team_size;
       }
       if (data.max_team_capacity !== undefined) {
         allowedUpdates.max_team_capacity = data.max_team_capacity;
       }
-      if (data.description !== undefined) allowedUpdates.description = data.description;
+      if (data.description !== undefined)
+        allowedUpdates.description = data.description;
       // RR config and branding are always editable for active leagues
-      if ((data as any).rr_config !== undefined) (allowedUpdates as any).rr_config = (data as any).rr_config;
-      if ((data as any).branding !== undefined) (allowedUpdates as any).branding = (data as any).branding;
+      if ((data as any).rr_config !== undefined)
+        (allowedUpdates as any).rr_config = (data as any).rr_config;
+      if ((data as any).branding !== undefined)
+        (allowedUpdates as any).branding = (data as any).branding;
       // League name is always editable (league_id stays constant)
-      if (data.league_name !== undefined) allowedUpdates.league_name = data.league_name;
+      if (data.league_name !== undefined)
+        allowedUpdates.league_name = data.league_name;
       // Allow date edits if the date hasn't passed yet
       const today = new Date().toISOString().slice(0, 10);
       if (data.start_date !== undefined) {
@@ -545,7 +583,10 @@ export async function updateLeague(
  * @param userId - User ID (must be host)
  * @returns Success boolean
  */
-export async function deleteLeague(leagueId: string, userId: string): Promise<boolean> {
+export async function deleteLeague(
+  leagueId: string,
+  userId: string,
+): Promise<boolean> {
   try {
     const league = await getLeagueById(leagueId);
     if (!league) return false;
@@ -579,7 +620,10 @@ export async function deleteLeague(leagueId: string, userId: string): Promise<bo
  * @param userId - User ID (must be host)
  * @returns Updated league or null
  */
-export async function launchLeague(leagueId: string, userId: string): Promise<League | null> {
+export async function launchLeague(
+  leagueId: string,
+  userId: string,
+): Promise<League | null> {
   try {
     const league = await getLeagueById(leagueId);
     if (!league) return null;
@@ -621,7 +665,7 @@ export async function launchLeague(leagueId: string, userId: string): Promise<Le
  */
 export async function getUserRoleInLeague(
   userId: string,
-  leagueId: string
+  leagueId: string,
 ): Promise<string | null> {
   try {
     const { data, error } = await getSupabaseServiceRole()
@@ -655,7 +699,7 @@ export async function getUserRoleInLeague(
  */
 export async function getUserRolesInLeague(
   userId: string,
-  leagueId: string
+  leagueId: string,
 ): Promise<string[]> {
   try {
     const { data, error } = await getSupabaseServiceRole()
@@ -684,7 +728,7 @@ export async function assignRoleToUser(
   userId: string,
   leagueId: string,
   roleName: string,
-  assignedBy: string
+  assignedBy: string,
 ): Promise<boolean> {
   try {
     // Get role_id from role_name
@@ -739,7 +783,7 @@ export async function assignRoleToUser(
 export async function removeRoleFromUser(
   userId: string,
   leagueId: string,
-  roleName: string
+  roleName: string,
 ): Promise<boolean> {
   try {
     const { data: roleData, error: roleError } = await getSupabaseServiceRole()

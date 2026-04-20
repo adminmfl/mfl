@@ -1,16 +1,9 @@
-/**
- * GET /api/leagues/[id]/ai-context - Compute PlayerInsightContext for the current user
- *
- * Returns a summarized context object used by the client-side trigger evaluator
- * to select inline AI insights. No LLM calls — pure data aggregation.
- *
- * Cached for 5 minutes via Cache-Control headers.
- */
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth/config';
 import { getSupabaseServiceRole } from '@/lib/supabase/client';
 import type { PlayerInsightContext } from '@/lib/ai/types';
+import { calculateLeaderboard } from '@/lib/services/leaderboard-logic';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,11 +22,13 @@ function daysBetween(a: string, b: string): number {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id: leagueId } = await params;
-    const session = (await getServerSession(authOptions as any)) as import('next-auth').Session | null;
+    const session = (await getServerSession(authOptions as any)) as
+      | import('next-auth').Session
+      | null;
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -43,23 +38,32 @@ export async function GET(
     const supabase = getSupabaseServiceRole();
     const today = todayYMD();
 
-    // Parallel queries for efficiency
+    // Extract query params for leaderboard calculation
+    const { searchParams } = new URL(request.url);
+    const tzOffsetMinutes = searchParams.get('tzOffsetMinutes')
+      ? Number(searchParams.get('tzOffsetMinutes'))
+      : 330;
+    const ianaTimezone = searchParams.get('ianaTimezone');
+
+    // 1. Initial parallel queries
+    // We use calculateLeaderboard directly to avoid the overhead of an internal HTTP fetch
     const [
       leagueRes,
       memberRes,
-      leaderboardRes,
+      leaderboardData,
       todayEntriesRes,
-      myTodayRes,
       activitiesRes,
     ] = await Promise.all([
-      // 1. League details (dates, status)
+      // League details (dates, status)
       supabase
         .from('leagues')
-        .select('league_id, league_name, start_date, end_date, status, rest_days')
+        .select(
+          'league_id, league_name, start_date, end_date, status, rest_days',
+        )
         .eq('league_id', leagueId)
         .single(),
 
-      // 2. Current user's membership
+      // Current user's membership
       supabase
         .from('leaguemembers')
         .select('league_member_id, team_id, teams(team_name)')
@@ -68,18 +72,14 @@ export async function GET(
         .limit(1)
         .maybeSingle(),
 
-      // 3. Leaderboard (team rankings + individual)
-      fetch(
-        `${request.nextUrl.origin}/api/leagues/${leagueId}/leaderboard`,
-        {
-          headers: {
-            cookie: request.headers.get('cookie') || '',
-          },
-        }
-      ).then((r) => r.json()),
+      // Leaderboard (team rankings + individual)
+      calculateLeaderboard(leagueId, {
+        tzOffsetMinutes,
+        ianaTimezone,
+        full: true,
+      }),
 
-      // 4. Today's entries for the user's team (to compute participation)
-      // Will be filtered by team after we know teamId
+      // Today's entries for the league (to compute participation)
       supabase
         .from('effortentry')
         .select('league_member_id, leaguemembers!inner(user_id, team_id)')
@@ -87,18 +87,12 @@ export async function GET(
         .eq('date', today)
         .in('status', ['approved', 'pending']),
 
-      // 5. Current user's today entry
-      supabase
-        .from('effortentry')
-        .select('id')
-        .eq('date', today)
-        .in('status', ['approved', 'pending'])
-        .limit(1),
-
-      // 6. League activities (to check measurement types)
+      // League activities (to check measurement types)
       supabase
         .from('leagueactivities')
-        .select('activity_id, custom_activity_id, activities(measurement_type), custom_activities(measurement_type)')
+        .select(
+          'activity_id, custom_activity_id, activities(measurement_type), custom_activities(measurement_type)',
+        )
         .eq('league_id', leagueId),
     ]);
 
@@ -108,31 +102,39 @@ export async function GET(
     if (!league || !member) {
       return NextResponse.json(
         { error: 'League or membership not found' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     const teamId = member.team_id;
     const teamName = (member as any).teams?.team_name || null;
 
+    // 2. Second level parallel queries (dependent on teamId/memberId)
+    const [teamCountRes, myEntriesRes] = await Promise.all([
+      teamId
+        ? supabase
+            .from('leaguemembers')
+            .select('league_member_id', { count: 'exact', head: true })
+            .eq('league_id', leagueId)
+            .eq('team_id', teamId)
+        : Promise.resolve({ count: 0 }),
+      supabase
+        .from('effortentry')
+        .select('date, type, status')
+        .eq('league_member_id', member.league_member_id)
+        .in('status', ['approved', 'pending'])
+        .order('date', { ascending: false })
+        .limit(365),
+    ]);
+
     // -----------------------------------------------------------------------
     // Compute team participation for today
     // -----------------------------------------------------------------------
     const todayEntries = todayEntriesRes.data || [];
     let teamMembersLogged = 0;
-    let teamTotalMembers = 0;
+    let teamTotalMembers = teamCountRes.count || 0;
 
     if (teamId) {
-      // Get team member count
-      const { count } = await supabase
-        .from('leaguemembers')
-        .select('league_member_id', { count: 'exact', head: true })
-        .eq('league_id', leagueId)
-        .eq('team_id', teamId);
-
-      teamTotalMembers = count || 0;
-
-      // Count unique users on the team who logged today
       const teamLoggedUsers = new Set<string>();
       for (const entry of todayEntries) {
         const lm = entry.leaguemembers as any;
@@ -149,26 +151,12 @@ export async function GET(
         : 0;
 
     // -----------------------------------------------------------------------
-    // Extract from leaderboard response
+    // Extract from leaderboard data
     // -----------------------------------------------------------------------
-    const teams: Array<{
-      rank: number;
-      team_id: string;
-      team_name: string;
-      points: number;
-      total_points: number;
-      avg_rr: number;
-    }> = leaderboardRes?.data?.teams || [];
+    const teams = leaderboardData?.teams || [];
+    const individuals = leaderboardData?.individuals || [];
 
-    const individuals: Array<{
-      rank: number;
-      user_id: string;
-      points: number;
-      avg_rr: number;
-    }> = leaderboardRes?.data?.individuals || [];
-
-    // My team's ranking
-    const myTeam = teams.find((t) => t.team_id === teamId);
+    const myTeam = teams.find((t: any) => t.team_id === teamId);
     const leaderTeam = teams.length > 0 ? teams[0] : null;
     const teamRank = myTeam?.rank ?? null;
     const teamPoints = myTeam?.total_points ?? 0;
@@ -180,8 +168,7 @@ export async function GET(
         : 0;
     const rankDelta = teamRank !== null ? teamRank - 1 : 0;
 
-    // My individual ranking
-    const myIndividual = individuals.find((i) => i.user_id === userId);
+    const myIndividual = individuals.find((i: any) => i.user_id === userId);
     const playerPoints = myIndividual?.points ?? 0;
     const playerAvgRR = myIndividual?.avg_rr ?? null;
     const playerRank = myIndividual?.rank ?? null;
@@ -189,36 +176,21 @@ export async function GET(
     // -----------------------------------------------------------------------
     // Check if user logged today
     // -----------------------------------------------------------------------
-    // Filter myTodayRes by the user's league_member_id
-    const hasLoggedToday = (() => {
-      // Check from todayEntries if user has an entry
-      for (const entry of todayEntries) {
-        const lm = entry.leaguemembers as any;
-        if (lm?.user_id === userId) return true;
-      }
-      return false;
-    })();
+    const hasLoggedToday = todayEntries.some(
+      (entry) => (entry.leaguemembers as any)?.user_id === userId,
+    );
 
     // -----------------------------------------------------------------------
-    // Compute missed days and rest days from my-submissions
+    // Compute missed days and rest days
     // -----------------------------------------------------------------------
     let missedDays = 0;
     let restDaysUsed = 0;
     let consecutiveDaysActive = 0;
 
-    // Fetch user's summary stats
-    const { data: myEntries } = await supabase
-      .from('effortentry')
-      .select('date, type, status')
-      .eq('league_member_id', member.league_member_id)
-      .in('status', ['approved', 'pending'])
-      .order('date', { ascending: false })
-      .limit(500);
-
-    if (myEntries && myEntries.length > 0) {
+    const myEntries = myEntriesRes.data || [];
+    if (myEntries.length > 0) {
       restDaysUsed = myEntries.filter((e: any) => e.type === 'rest').length;
 
-      // Count consecutive active days from today backwards
       const entryDates = new Set(myEntries.map((e: any) => e.date));
       const todayDate = new Date(today);
       for (let i = 0; i < 365; i++) {
@@ -233,9 +205,8 @@ export async function GET(
         }
       }
 
-      // Missed days = league days so far - entries - rest days
-      const startDate = (league.start_date || '').slice(0, 10);
-      const leagueDaysSoFar = Math.max(0, daysBetween(startDate, today) + 1);
+      const startDateStr = (league.start_date || '').slice(0, 10);
+      const leagueDaysSoFar = Math.max(0, daysBetween(startDateStr, today) + 1);
       const totalEntryDays = new Set(myEntries.map((e: any) => e.date)).size;
       missedDays = Math.max(0, leagueDaysSoFar - totalEntryDays);
     }
@@ -243,13 +214,16 @@ export async function GET(
     // -----------------------------------------------------------------------
     // League timeline
     // -----------------------------------------------------------------------
-    const startDate = (league.start_date || '').slice(0, 10);
-    const endDate = (league.end_date || '').slice(0, 10);
-    const leagueDay = Math.max(1, daysBetween(startDate, today) + 1);
-    const totalLeagueDays = Math.max(1, daysBetween(startDate, endDate) + 1);
-    const daysRemaining = Math.max(0, daysBetween(today, endDate));
+    const startDateStr = (league.start_date || '').slice(0, 10);
+    const endDateStr = (league.end_date || '').slice(0, 10);
+    const leagueDay = Math.max(1, daysBetween(startDateStr, today) + 1);
+    const totalLeagueDays = Math.max(
+      1,
+      daysBetween(startDateStr, endDateStr) + 1,
+    );
+    const daysRemaining = Math.max(0, daysBetween(today, endDateStr));
     const isFinalWeek = daysRemaining <= 7 && daysRemaining > 0;
-    const isLastDay = daysRemaining === 0 && today <= endDate;
+    const isLastDay = daysRemaining === 0 && today <= endDateStr;
 
     // -----------------------------------------------------------------------
     // Check measurement activities
@@ -263,16 +237,12 @@ export async function GET(
       return mt !== 'none';
     });
 
-    // -----------------------------------------------------------------------
-    // Build context
-    // -----------------------------------------------------------------------
     const context: PlayerInsightContext = {
       playerId: userId,
       playerName: session.user.name || 'Player',
       teamId,
       teamName,
       leagueId,
-
       playerPoints,
       playerAvgRR,
       playerRank,
@@ -281,7 +251,6 @@ export async function GET(
       restDaysAllowed: league.rest_days || 0,
       consecutiveDaysActive,
       hasLoggedToday,
-
       teamPoints,
       teamAvgRR,
       teamRank,
@@ -289,17 +258,14 @@ export async function GET(
       teamMembersLogged,
       teamTotalMembers,
       teamMembersRemaining: Math.max(0, teamTotalMembers - teamMembersLogged),
-
       rankDelta,
       pointsBehindLeader,
       isLeading,
-
       leagueDay,
       totalLeagueDays,
       isFinalWeek,
       isLastDay,
       leagueStatus: league.status,
-
       hasAnyMeasurementActivity,
     };
 
@@ -309,13 +275,13 @@ export async function GET(
         headers: {
           'Cache-Control': 'private, max-age=300', // 5 min cache
         },
-      }
+      },
     );
   } catch (error) {
     console.error('Error computing AI context:', error);
     return NextResponse.json(
       { error: 'Failed to compute AI context' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
