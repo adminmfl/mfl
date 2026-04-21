@@ -33,23 +33,23 @@ export interface BondingMessageTemplate {
 // ============================================================================
 
 const BONDING_TEMPLATES: BondingMessageTemplate = {
-    welcome_new_member: `🎉 **Welcome to the team, {member_name}!**
+    welcome_new_member: `???? **Welcome to the team, {member_name}!**
 
 We're excited to have you join us! Here's what you need to know:
 
-• **Team Goal**: Work together to achieve our fitness targets
-• **Support**: Your teammates are here to motivate and encourage you
-• **Communication**: Use this chat to share progress, ask questions, and celebrate wins
+??? **Team Goal**: Work together to achieve our fitness targets
+??? **Support**: Your teammates are here to motivate and encourage you
+??? **Communication**: Use this chat to share progress, ask questions, and celebrate wins
 
-Let's make this league amazing together! 💪`,
+Let's make this league amazing together! ????`,
 
-    team_announcement: `👋 **Team Update**
+    team_announcement: `???? **Team Update**
 
 {member_name} has joined our squad! Let's give them a warm welcome.
 
-Our team now has **{member_count} members** ready to crush this league together! 🔥`,
+Our team now has **{member_count} members** ready to crush this league together! ????`,
 
-    team_identity_reveal: `🏆 **Meet Your Team: {team_name}**
+    team_identity_reveal: `???? **Meet Your Team: {team_name}**
 
 Your team is officially formed and ready for action! Here's your squad:
 
@@ -59,54 +59,54 @@ Your team is officially formed and ready for action! Here's your squad:
 
 Time to bond, support each other, and show everyone what {team_name} can do! 
 
-Good luck, team! 🚀`,
+Good luck, team! ????`,
 
-    captain_guidance: `👑 **Captain Guidelines - Week 1 Focus**
+    captain_guidance: `???? **Captain Guidelines - Week 1 Focus**
 
 As team captain, here are your key responsibilities to build team spirit:
 
-**🤝 Team Bonding (Days 1-3)**
-• Welcome each new member personally
-• Share your fitness goals and encourage others to do the same
-• Create a positive, supportive team culture
+**???? Team Bonding (Days 1-3)**
+??? Welcome each new member personally
+??? Share your fitness goals and encourage others to do the same
+??? Create a positive, supportive team culture
 
-**📋 Organization (Days 4-7)**
-• Help teammates understand league rules and scoring
-• Validate workout submissions promptly
-• Encourage consistent participation
+**???? Organization (Days 4-7)**
+??? Help teammates understand league rules and scoring
+??? Validate workout submissions promptly
+??? Encourage consistent participation
 
-**💬 Communication Tips**
-• Check in with quiet team members
-• Celebrate small wins and progress
-• Address any concerns quickly and positively
+**???? Communication Tips**
+??? Check in with quiet team members
+??? Celebrate small wins and progress
+??? Address any concerns quickly and positively
 
-Your leadership sets the tone for the entire team's experience! 🌟`,
+Your leadership sets the tone for the entire team's experience! ????`,
 
-    captain_intro_prompt: `👑 **Captain, It's Time to Lead!**
+    captain_intro_prompt: `???? **Captain, It's Time to Lead!**
 
 Hey Captain! Your team is counting on you to set the tone. Here's your first mission:
 
 **Introduce yourself to your team!** Share:
-• Your fitness background or goals
-• What excites you about this league
-• How you'll support the team
+??? Your fitness background or goals
+??? What excites you about this league
+??? How you'll support the team
 
-A strong start builds team energy and trust. Your teammates are waiting to hear from you! 💪
+A strong start builds team energy and trust. Your teammates are waiting to hear from you! ????
 
-Drop your intro message below 👇`,
+Drop your intro message below ????`,
 
-    first_day_motivation: `🎯 **Day 1: Let's Do This!**
+    first_day_motivation: `???? **Day 1: Let's Do This!**
 
 Welcome to the first day of the league! This is where champions are made.
 
 **Today's Focus:**
-• Log your first workout and set the momentum
-• Connect with your teammates in the chat
-• Review the league rules and scoring system
+??? Log your first workout and set the momentum
+??? Connect with your teammates in the chat
+??? Review the league rules and scoring system
 
 **Remember:** Every journey starts with a single step. Your team is here to support you, and together you'll achieve amazing things.
 
-Let's make today count! 🔥💪`
+Let's make today count! ????????`
 };
 
 // ============================================================================
@@ -229,7 +229,7 @@ export async function sendTeamIdentityReveal(
 
         // Build member list
         const memberList = members
-            .map(m => `• ${m.username}${m.is_captain ? ' (Captain)' : ''}`)
+            .map(m => `??? ${m.username}${m.is_captain ? ' (Captain)' : ''}`)
             .join('\n');
 
         const message = BONDING_TEMPLATES.team_identity_reveal
