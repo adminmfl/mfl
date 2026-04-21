@@ -52,7 +52,7 @@ export async function GET(
     // Get the user's league_member_id for this league
     const { data: leagueMember, error: memberError } = await supabase
       .from('leaguemembers')
-      .select('league_member_id, team_id')
+      .select('league_member_id, team_id, suspicious_proof_strikes, suspicious_proof_last_strike_at')
       .eq('user_id', userId)
       .eq('league_id', leagueId)
       .maybeSingle();
@@ -71,6 +71,12 @@ export async function GET(
         { status: 403 }
       );
     }
+
+    const { data: leagueConfig } = await supabase
+      .from('leagues')
+      .select('suspicious_proof_warning_threshold, suspicious_proof_rejection_threshold')
+      .eq('league_id', leagueId)
+      .maybeSingle();
 
     // Get optional query params for filtering
     const { searchParams } = new URL(request.url);
@@ -212,6 +218,10 @@ export async function GET(
         stats,
         leagueMemberId: leagueMember.league_member_id,
         teamId: leagueMember.team_id,
+        suspiciousProofStrikes: leagueMember.suspicious_proof_strikes || 0,
+        suspiciousProofLastStrikeAt: leagueMember.suspicious_proof_last_strike_at || null,
+        suspiciousProofWarningThreshold: Number(leagueConfig?.suspicious_proof_warning_threshold ?? 2),
+        suspiciousProofRejectionThreshold: Number(leagueConfig?.suspicious_proof_rejection_threshold ?? 3),
       },
     });
   } catch (error) {

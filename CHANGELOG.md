@@ -22,6 +22,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Captain Guidelines document/tooltip accessible in-app with Week 1 focus
   - System-generated team identity reveal message (team name + logo) on league launch
   - Messages use team collective language (not individual)
+- **Auto-trigger pre-launch bonding messages at key lifecycle moments (#154)**
+  - Team reveal celebration message when league launches
+  - Captain intro prompt (nudge captain to introduce themselves) on league launch
+  - First day of league motivational message to all teams (automated via cron)
+  - Messages are configurable per league (host can enable/disable via bonding_automations_enabled)
+- Add suspicious-proof strike tracking system with warning UI and 3-strike logic (#157)
 
 ### Changed
 
@@ -57,6 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix rest day donation sync, availability, and donor balance logic (#152)
 - Fix auto-assignment inconsistencies and submission conflicts (#152)
 - Optimize major API endpoints to reduce TTFB and achieve sub-2s response times (#127)
+- Fix chat workout links to display readable labels (#132)
 
 ## [2.0.0] — 2026-04-01
 

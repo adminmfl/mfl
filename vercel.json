@@ -23,6 +23,10 @@
     {
       "path": "/api/cron/ai-nudges",
       "schedule": "30 4 * * *"
+    },
+    {
+      "path": "/api/cron/first-day-motivation",
+      "schedule": "0 0 * * *"
     }
   ],
   "rewrites": [

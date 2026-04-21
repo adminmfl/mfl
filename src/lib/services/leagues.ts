@@ -50,6 +50,7 @@ export interface League extends LeagueInput {
   modified_date: string;
   max_team_capacity?: number; // Configurable limit (default 10)
   league_capacity?: number; // Derived from tier
+  bonding_automations_enabled?: boolean; // Enable/disable automated team bonding messages
 }
 
 function mapDbLeagueToLeague(dbLeague: any): League {
