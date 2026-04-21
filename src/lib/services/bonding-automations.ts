@@ -24,6 +24,8 @@ export interface BondingMessageTemplate {
     team_announcement: string;
     team_identity_reveal: string;
     captain_guidance: string;
+    captain_intro_prompt: string;
+    first_day_motivation: string;
 }
 
 // ============================================================================
@@ -78,7 +80,33 @@ As team captain, here are your key responsibilities to build team spirit:
 • Celebrate small wins and progress
 • Address any concerns quickly and positively
 
-Your leadership sets the tone for the entire team's experience! 🌟`
+Your leadership sets the tone for the entire team's experience! 🌟`,
+
+    captain_intro_prompt: `👑 **Captain, It's Time to Lead!**
+
+Hey Captain! Your team is counting on you to set the tone. Here's your first mission:
+
+**Introduce yourself to your team!** Share:
+• Your fitness background or goals
+• What excites you about this league
+• How you'll support the team
+
+A strong start builds team energy and trust. Your teammates are waiting to hear from you! 💪
+
+Drop your intro message below 👇`,
+
+    first_day_motivation: `🎯 **Day 1: Let's Do This!**
+
+Welcome to the first day of the league! This is where champions are made.
+
+**Today's Focus:**
+• Log your first workout and set the momentum
+• Connect with your teammates in the chat
+• Review the league rules and scoring system
+
+**Remember:** Every journey starts with a single step. Your team is here to support you, and together you'll achieve amazing things.
+
+Let's make today count! 🔥💪`
 };
 
 // ============================================================================
@@ -284,6 +312,18 @@ export async function sendAllTeamIdentityReveals(leagueId: string): Promise<void
     try {
         const supabase = getSupabaseServiceRole();
 
+        // Check if bonding automations are enabled
+        const { data: league } = await supabase
+            .from('leagues')
+            .select('bonding_automations_enabled')
+            .eq('league_id', leagueId)
+            .single();
+
+        if (!league?.bonding_automations_enabled) {
+            console.log('[Bonding] Automations disabled for league:', leagueId);
+            return;
+        }
+
         // Get all teams in the league
         const { data: teams } = await supabase
             .from('teams')
@@ -312,4 +352,104 @@ export async function sendAllTeamIdentityReveals(leagueId: string): Promise<void
  */
 export function getCaptainGuidelines(): string {
     return BONDING_TEMPLATES.captain_guidance;
+}
+
+/**
+ * Send captain intro prompt to all captains when league launches
+ */
+export async function sendCaptainIntroPrompts(leagueId: string): Promise<void> {
+    try {
+        const supabase = getSupabaseServiceRole();
+
+        // Check if bonding automations are enabled
+        const { data: league } = await supabase
+            .from('leagues')
+            .select('bonding_automations_enabled, created_by')
+            .eq('league_id', leagueId)
+            .single();
+
+        if (!league?.bonding_automations_enabled) {
+            console.log('[Bonding] Automations disabled for league:', leagueId);
+            return;
+        }
+
+        // Get all teams in the league
+        const { data: teams } = await supabase
+            .from('teams')
+            .select('team_id')
+            .eq('league_id', leagueId);
+
+        if (!teams || teams.length === 0) {
+            console.log('[Bonding] No teams found for league:', leagueId);
+            return;
+        }
+
+        const message = BONDING_TEMPLATES.captain_intro_prompt;
+
+        // Send intro prompt to each team (captains will see it)
+        const promises = teams.map(team =>
+            sendMessage(leagueId, league.created_by, {
+                content: message,
+                teamId: team.team_id,
+                messageType: 'announcement',
+                visibility: 'captains_only',
+                isImportant: true,
+            })
+        );
+
+        await Promise.all(promises);
+        console.log(`[Bonding] Captain intro prompts sent for ${teams.length} teams`);
+    } catch (error) {
+        console.error('[Bonding] Error sending captain intro prompts:', error);
+    }
+}
+
+/**
+ * Send first day motivation message to all teams
+ */
+export async function sendFirstDayMotivation(leagueId: string): Promise<void> {
+    try {
+        const supabase = getSupabaseServiceRole();
+
+        // Check if bonding automations are enabled
+        const { data: league } = await supabase
+            .from('leagues')
+            .select('bonding_automations_enabled, created_by')
+            .eq('league_id', leagueId)
+            .single();
+
+        if (!league?.bonding_automations_enabled) {
+            console.log('[Bonding] Automations disabled for league:', leagueId);
+            return;
+        }
+
+        // Get all teams in the league
+        const { data: teams } = await supabase
+            .from('teams')
+            .select('team_id')
+            .eq('league_id', leagueId);
+
+        if (!teams || teams.length === 0) {
+            console.log('[Bonding] No teams found for league:', leagueId);
+            return;
+        }
+
+        const message = BONDING_TEMPLATES.first_day_motivation;
+
+        // Send motivation message to each team
+        const promises = teams.map(team =>
+            sendMessage(leagueId, league.created_by, {
+                content: message,
+                teamId: team.team_id,
+                messageType: 'announcement',
+                visibility: 'all',
+                isImportant: true,
+            })
+        );
+
+        await Promise.all(promises);
+        console.log(`[Bonding] First day motivation sent for ${teams.length} teams`);
+    } catch (error) {
+        console.error('[Bonding] Error sending first day motivation:', error);
+    }
 }
