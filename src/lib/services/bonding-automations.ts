@@ -384,13 +384,28 @@ export async function sendCaptainIntroPrompts(leagueId: string): Promise<void> {
             return;
         }
 
+        // Filter teams that have captains assigned
+        const teamsWithCaptains = [];
+        for (const team of teams) {
+            const members = await getTeamMembers(team.team_id, leagueId);
+            const hasCaptain = members.some(m => m.is_captain);
+            if (hasCaptain) {
+                teamsWithCaptains.push(team.team_id);
+            }
+        }
+
+        if (teamsWithCaptains.length === 0) {
+            console.log('[Bonding] No teams with captains found for league:', leagueId);
+            return;
+        }
+
         const message = BONDING_TEMPLATES.captain_intro_prompt;
 
-        // Send intro prompt to each team (captains will see it)
-        const promises = teams.map(team =>
+        // Send intro prompt only to teams with captains
+        const promises = teamsWithCaptains.map(teamId =>
             sendMessage(leagueId, league.created_by, {
                 content: message,
-                teamId: team.team_id,
+                teamId: teamId,
                 messageType: 'announcement',
                 visibility: 'captains_only',
                 isImportant: true,
@@ -398,7 +413,7 @@ export async function sendCaptainIntroPrompts(leagueId: string): Promise<void> {
         );
 
         await Promise.all(promises);
-        console.log(`[Bonding] Captain intro prompts sent for ${teams.length} teams`);
+        console.log(`[Bonding] Captain intro prompts sent for ${teamsWithCaptains.length} teams with captains`);
     } catch (error) {
         console.error('[Bonding] Error sending captain intro prompts:', error);
     }
@@ -420,6 +435,24 @@ export async function sendFirstDayMotivation(leagueId: string): Promise<void> {
 
         if (!league?.bonding_automations_enabled) {
             console.log('[Bonding] Automations disabled for league:', leagueId);
+            return;
+        }
+
+        // Idempotency guard: Check if first-day messages already sent today
+        const today = new Date().toISOString().split('T')[0];
+        const { data: existingMessages } = await supabase
+            .from('messages')
+            .select('message_id')
+            .eq('league_id', leagueId)
+            .eq('sender_id', league.created_by)
+            .eq('message_type', 'announcement')
+            .ilike('content', '%Day 1: Let\'s Do This!%')
+            .gte('created_at', `${today}T00:00:00.000Z`)
+            .lt('created_at', `${today}T23:59:59.999Z`)
+            .limit(1);
+
+        if (existingMessages && existingMessages.length > 0) {
+            console.log('[Bonding] First day motivation already sent today for league:', leagueId);
             return;
         }
 
@@ -453,3 +486,5 @@ export async function sendFirstDayMotivation(leagueId: string): Promise<void> {
         console.error('[Bonding] Error sending first day motivation:', error);
     }
 }
+ 
+ 
