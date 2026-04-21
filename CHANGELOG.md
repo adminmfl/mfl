@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Client feedback: filter dropdown, instant messaging UX, left-aligned dropdowns, mobile nav, league info title, and tour flow improvements
 - AI Coach v2.5: inline intelligence replaces standalone AI components
 - Disable submission actions and enforce read-only mode for ended leagues (#150)
+- Improve Lighthouse mobile performance with server component migration and dynamic imports on leaderboard page (#129)
 
 ### Fixed
 
