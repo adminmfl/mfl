@@ -111,6 +111,9 @@ export default function SubmitActivityPage({
 
   // Fetch user profile for age calculation
   const [userAge, setUserAge] = React.useState<number | null>(null);
+  const [suspiciousProofStrikes, setSuspiciousProofStrikes] = React.useState<number>(0);
+  const [suspiciousProofWarningThreshold, setSuspiciousProofWarningThreshold] = React.useState<number>(2);
+  const [suspiciousProofRejectionThreshold, setSuspiciousProofRejectionThreshold] = React.useState<number>(3);
 
   React.useEffect(() => {
     async function fetchUserAge() {
@@ -130,6 +133,26 @@ export default function SubmitActivityPage({
     }
     fetchUserAge();
   }, []);
+
+  React.useEffect(() => {
+    const fetchStrikeCount = async () => {
+      if (!leagueId) return;
+
+      try {
+        const response = await fetch(`/api/leagues/${leagueId}/my-submissions`);
+        const json = await response.json();
+        if (response.ok && json.success) {
+          setSuspiciousProofStrikes(Number(json.data.suspiciousProofStrikes ?? 0));
+          setSuspiciousProofWarningThreshold(Number(json.data.suspiciousProofWarningThreshold ?? 2));
+          setSuspiciousProofRejectionThreshold(Number(json.data.suspiciousProofRejectionThreshold ?? 3));
+        }
+      } catch (error) {
+        console.error('Failed to fetch suspicious proof strikes:', error);
+      }
+    };
+
+    fetchStrikeCount();
+  }, [leagueId]);
 
   // Check if this is a resubmission
   const resubmitId = searchParams.get('resubmit');
@@ -1355,6 +1378,21 @@ export default function SubmitActivityPage({
 
       <TrialBanner />
 
+      {suspiciousProofStrikes >= suspiciousProofWarningThreshold && (
+        <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950/20">
+          <ShieldAlert className="size-4 text-amber-600" />
+          <AlertTitle className="text-amber-800 dark:text-amber-400">
+            Suspicious proof strike{suspiciousProofStrikes === 1 ? '' : 's'} on record
+          </AlertTitle>
+          <AlertDescription className="text-amber-700 dark:text-amber-300">
+            You currently have {suspiciousProofStrikes} suspicious proof strike{suspiciousProofStrikes === 1 ? '' : 's'}.
+            {suspiciousProofStrikes >= suspiciousProofRejectionThreshold - 1
+              ? ` One more suspicious-proof rejection can trigger permanent rejection at ${suspiciousProofRejectionThreshold} strikes.`
+              : ' Keep your proof clear and accurate to avoid escalation.'}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Team Assignment Required Check */}
       {activeLeague && !activeLeague.team_id && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 flex gap-3">
@@ -1374,15 +1412,15 @@ export default function SubmitActivityPage({
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="rounded-lg border bg-card/70 shadow-sm p-4 space-y-4 max-w-2xl">
               <TabsList className={`grid w-full ${showRestDays ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                <TabsTrigger value="workout" className="flex items-center gap-2">
+                <TabsTrigger value="workout" className="flex items-center gap-2" disabled={Boolean(activeLeague && !activeLeague.team_id)}>
                   <Dumbbell className="size-4" />
                   Activity
                 </TabsTrigger>
                 {showRestDays && (
-                  <TabsTrigger value="rest" className="flex items-center gap-2">
-                    <Moon className="size-4" />
-                    Rest Day
-                  </TabsTrigger>
+                <TabsTrigger value="rest" className="flex items-center gap-2" disabled={Boolean(activeLeague && !activeLeague.team_id)}>
+                  <Moon className="size-4" />
+                  Rest Day
+                </TabsTrigger>
                 )}
               </TabsList>
 
