@@ -36,7 +36,7 @@
 
 ### Database Migrations
 
-- No new database migrations required for v2.6 deliverables.
+- New migration for suspicious-proof strike tracking and related configuration
 
 ### Environment Setup
 
