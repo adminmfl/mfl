@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth/config';
 import { launchLeague } from '@/lib/services/leagues';
-import { sendAllTeamIdentityReveals, sendCaptainIntroPrompts } from '@/lib/services/bonding-automations';
+import { sendLaunchBondingMessages } from '@/lib/services/bonding-automations';
 
 export async function POST(
   request: NextRequest,
@@ -28,14 +28,9 @@ export async function POST(
       );
     }
 
-    // Send team identity reveals for all teams (don't block response)
-    sendAllTeamIdentityReveals(id).catch(error => {
-      console.error('[Bonding] Error sending team identity reveals:', error);
-    });
-
-    // Send captain intro prompts (don't block response)
-    sendCaptainIntroPrompts(id).catch(error => {
-      console.error('[Bonding] Error sending captain intro prompts:', error);
+    // Send launch bonding messages (team reveals + captain prompts) - optimized with consolidated queries
+    sendLaunchBondingMessages(id).catch(error => {
+      console.error('[Bonding] Error sending launch bonding messages:', error);
     });
 
     return NextResponse.json({ data: league, success: true });

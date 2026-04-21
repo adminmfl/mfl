@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Bonding Automations Service - Automated team bonding messages and captain guidance
  * Handles welcome messages, member announcements, and team identity reveals
  */
@@ -33,23 +33,23 @@ export interface BondingMessageTemplate {
 // ============================================================================
 
 const BONDING_TEMPLATES: BondingMessageTemplate = {
-    welcome_new_member: `🎉 **Welcome to the team, {member_name}!**
+    welcome_new_member: `ðŸŽ‰ **Welcome to the team, {member_name}!**
 
 We're excited to have you join us! Here's what you need to know:
 
-• **Team Goal**: Work together to achieve our fitness targets
-• **Support**: Your teammates are here to motivate and encourage you
-• **Communication**: Use this chat to share progress, ask questions, and celebrate wins
+â€¢ **Team Goal**: Work together to achieve our fitness targets
+â€¢ **Support**: Your teammates are here to motivate and encourage you
+â€¢ **Communication**: Use this chat to share progress, ask questions, and celebrate wins
 
-Let's make this league amazing together! 💪`,
+Let's make this league amazing together! ðŸ’ª`,
 
-    team_announcement: `👋 **Team Update**
+    team_announcement: `ðŸ‘‹ **Team Update**
 
 {member_name} has joined our squad! Let's give them a warm welcome.
 
-Our team now has **{member_count} members** ready to crush this league together! 🔥`,
+Our team now has **{member_count} members** ready to crush this league together! ðŸ”¥`,
 
-    team_identity_reveal: `🏆 **Meet Your Team: {team_name}**
+    team_identity_reveal: `ðŸ† **Meet Your Team: {team_name}**
 
 Your team is officially formed and ready for action! Here's your squad:
 
@@ -59,54 +59,54 @@ Your team is officially formed and ready for action! Here's your squad:
 
 Time to bond, support each other, and show everyone what {team_name} can do! 
 
-Good luck, team! 🚀`,
+Good luck, team! ðŸš€`,
 
-    captain_guidance: `👑 **Captain Guidelines - Week 1 Focus**
+    captain_guidance: `ðŸ‘‘ **Captain Guidelines - Week 1 Focus**
 
 As team captain, here are your key responsibilities to build team spirit:
 
-**🤝 Team Bonding (Days 1-3)**
-• Welcome each new member personally
-• Share your fitness goals and encourage others to do the same
-• Create a positive, supportive team culture
+**ðŸ¤ Team Bonding (Days 1-3)**
+â€¢ Welcome each new member personally
+â€¢ Share your fitness goals and encourage others to do the same
+â€¢ Create a positive, supportive team culture
 
-**📋 Organization (Days 4-7)**
-• Help teammates understand league rules and scoring
-• Validate workout submissions promptly
-• Encourage consistent participation
+**ðŸ“‹ Organization (Days 4-7)**
+â€¢ Help teammates understand league rules and scoring
+â€¢ Validate workout submissions promptly
+â€¢ Encourage consistent participation
 
-**💬 Communication Tips**
-• Check in with quiet team members
-• Celebrate small wins and progress
-• Address any concerns quickly and positively
+**ðŸ’¬ Communication Tips**
+â€¢ Check in with quiet team members
+â€¢ Celebrate small wins and progress
+â€¢ Address any concerns quickly and positively
 
-Your leadership sets the tone for the entire team's experience! 🌟`,
+Your leadership sets the tone for the entire team's experience! ðŸŒŸ`,
 
-    captain_intro_prompt: `👑 **Captain, It's Time to Lead!**
+    captain_intro_prompt: `ðŸ‘‘ **Captain, It's Time to Lead!**
 
 Hey Captain! Your team is counting on you to set the tone. Here's your first mission:
 
 **Introduce yourself to your team!** Share:
-• Your fitness background or goals
-• What excites you about this league
-• How you'll support the team
+â€¢ Your fitness background or goals
+â€¢ What excites you about this league
+â€¢ How you'll support the team
 
-A strong start builds team energy and trust. Your teammates are waiting to hear from you! 💪
+A strong start builds team energy and trust. Your teammates are waiting to hear from you! ðŸ’ª
 
-Drop your intro message below 👇`,
+Drop your intro message below ðŸ‘‡`,
 
-    first_day_motivation: `🎯 **Day 1: Let's Do This!**
+    first_day_motivation: `ðŸŽ¯ **Day 1: Let's Do This!**
 
 Welcome to the first day of the league! This is where champions are made.
 
 **Today's Focus:**
-• Log your first workout and set the momentum
-• Connect with your teammates in the chat
-• Review the league rules and scoring system
+â€¢ Log your first workout and set the momentum
+â€¢ Connect with your teammates in the chat
+â€¢ Review the league rules and scoring system
 
 **Remember:** Every journey starts with a single step. Your team is here to support you, and together you'll achieve amazing things.
 
-Let's make today count! 🔥💪`
+Let's make today count! ðŸ”¥ðŸ’ª`
 };
 
 // ============================================================================
@@ -229,7 +229,7 @@ export async function sendTeamIdentityReveal(
 
         // Build member list
         const memberList = members
-            .map(m => `• ${m.username}${m.is_captain ? ' (Captain)' : ''}`)
+            .map(m => `â€¢ ${m.username}${m.is_captain ? ' (Captain)' : ''}`)
             .join('\n');
 
         const message = BONDING_TEMPLATES.team_identity_reveal
@@ -416,6 +416,78 @@ export async function sendCaptainIntroPrompts(leagueId: string): Promise<void> {
         console.log(`[Bonding] Captain intro prompts sent for ${teamsWithCaptains.length} teams with captains`);
     } catch (error) {
         console.error('[Bonding] Error sending captain intro prompts:', error);
+    }
+}
+
+/**
+ * Optimized function to send both team reveals and captain prompts with consolidated queries
+ */
+export async function sendLaunchBondingMessages(leagueId: string): Promise<void> {
+    try {
+        const supabase = getSupabaseServiceRole();
+
+        // Single query to get league settings and teams
+        const [leagueResult, teamsResult] = await Promise.all([
+            supabase
+                .from('leagues')
+                .select('bonding_automations_enabled, created_by')
+                .eq('league_id', leagueId)
+                .single(),
+            supabase
+                .from('teams')
+                .select('team_id')
+                .eq('league_id', leagueId)
+        ]);
+
+        const { data: league } = leagueResult;
+        const { data: teams } = teamsResult;
+
+        if (!league?.bonding_automations_enabled) {
+            console.log('[Bonding] Automations disabled for league:', leagueId);
+            return;
+        }
+
+        if (!teams || teams.length === 0) {
+            console.log('[Bonding] No teams found for league:', leagueId);
+            return;
+        }
+
+        // Get team members for all teams in parallel to check for captains
+        const teamMembersPromises = teams.map(team =>
+            getTeamMembers(team.team_id, leagueId).then(members => ({
+                teamId: team.team_id,
+                members,
+                hasCaptain: members.some(m => m.is_captain)
+            }))
+        );
+
+        const teamMembersData = await Promise.all(teamMembersPromises);
+
+        // Prepare messages
+        const identityRevealPromises = teams.map(team =>
+            sendTeamIdentityReveal(leagueId, team.team_id)
+        );
+
+        const teamsWithCaptains = teamMembersData
+            .filter(data => data.hasCaptain)
+            .map(data => data.teamId);
+
+        const captainIntroPromises = teamsWithCaptains.map(teamId =>
+            sendMessage(leagueId, league.created_by, {
+                content: BONDING_TEMPLATES.captain_intro_prompt,
+                teamId: teamId,
+                messageType: 'announcement',
+                visibility: 'captains_only',
+                isImportant: true,
+            })
+        );
+
+        // Send all messages in parallel
+        await Promise.all([...identityRevealPromises, ...captainIntroPromises]);
+
+        console.log(`[Bonding] Launch messages sent: ${teams.length} team reveals, ${teamsWithCaptains.length} captain prompts`);
+    } catch (error) {
+        console.error('[Bonding] Error sending launch bonding messages:', error);
     }
 }
 
