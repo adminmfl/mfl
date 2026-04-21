@@ -59,6 +59,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Table,
   TableBody,
@@ -120,6 +121,7 @@ interface LeagueSubmission {
     email: string;
     team_id: string | null;
     team_name: string | null;
+    suspicious_proof_strikes?: number;
   };
 }
 
@@ -250,17 +252,19 @@ function RejectDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (type: 'rejected_resubmit' | 'rejected_permanent', reason: string) => void;
+  onConfirm: (type: 'rejected_resubmit' | 'rejected_permanent', reason: string, suspiciousProof: boolean) => void;
   isValidating: boolean;
 }) {
   const [reason, setReason] = useState('');
   const [type, setType] = useState<'rejected_resubmit' | 'rejected_permanent'>('rejected_resubmit');
+  const [suspiciousProof, setSuspiciousProof] = useState(false);
 
   // Reset state when dialog opens
   useEffect(() => {
     if (open) {
       setReason('');
       setType('rejected_resubmit');
+      setSuspiciousProof(false);
     }
   }, [open]);
 
@@ -327,6 +331,20 @@ function RejectDialog({
             />
           </div>
 
+          <div className="flex items-start gap-2 rounded-lg border border-muted p-4">
+            <Checkbox
+              checked={suspiciousProof}
+              onCheckedChange={(checked) => setSuspiciousProof(Boolean(checked))}
+              id="suspicious-proof"
+            />
+            <div>
+              <Label htmlFor="suspicious-proof">Flag as suspicious proof</Label>
+              <p className="text-sm text-muted-foreground">
+                If this proof looks fraudulent or inconsistent, mark it as suspicious. This will add a strike to the player's record and may escalate the next rejection.
+              </p>
+            </div>
+          </div>
+
           {type === 'rejected_permanent' && (
             <Alert variant="destructive">
               <AlertTriangle className="size-4" />
@@ -344,7 +362,7 @@ function RejectDialog({
           </Button>
           <Button
             variant={type === 'rejected_permanent' ? 'destructive' : 'default'}
-            onClick={() => onConfirm(type, reason)}
+            onClick={() => onConfirm(type, reason, suspiciousProof)}
             disabled={!reason.trim() || isValidating}
           >
             {isValidating && <Loader2 className="mr-2 size-4 animate-spin" />}
@@ -433,7 +451,8 @@ export default function AllSubmissionsPage({
     submissionId: string,
     newStatus: 'approved' | 'rejected_resubmit' | 'rejected_permanent',
     awardedPoints?: number | null,
-    rejectionReason?: string
+    rejectionReason?: string,
+    suspiciousProof?: boolean
   ) => {
     // Find the submission to get its current status
     const submission = submissions.find((s) => s.id === submissionId);
@@ -450,6 +469,7 @@ export default function AllSubmissionsPage({
       const body: any = { status: newStatus };
       if (awardedPoints !== undefined) body.awarded_points = awardedPoints;
       if (rejectionReason) body.rejection_reason = rejectionReason;
+      if (suspiciousProof !== undefined) body.suspicious_proof = suspiciousProof;
 
       const response = await fetch(`/api/submissions/${submissionId}/validate`, {
         method: 'POST',
@@ -983,6 +1003,11 @@ export default function AllSubmissionsPage({
                       <div className="min-w-0">
                         <p className="font-semibold text-sm leading-none truncate">{submission.member.username}</p>
                         <p className="text-xs text-muted-foreground">{submission.member.team_name || 'Unassigned'}</p>
+                        {submission.member.suspicious_proof_strikes ? (
+                          <Badge variant="outline" className="mt-1 text-[10px] px-2 py-1">
+                            {submission.member.suspicious_proof_strikes} strike{submission.member.suspicious_proof_strikes === 1 ? '' : 's'}
+                          </Badge>
+                        ) : null}
                       </div>
                     </div>
                     <div className="text-right shrink-0 ml-2">
@@ -1051,9 +1076,9 @@ export default function AllSubmissionsPage({
       <RejectDialog
         open={rejectDialogOpen}
         onOpenChange={setRejectDialogOpen}
-        onConfirm={(type, reason) => {
+        onConfirm={(type, reason, suspiciousProof) => {
           if (selectedSubmission) {
-            handleValidate(selectedSubmission.id, type, undefined, reason);
+            handleValidate(selectedSubmission.id, type, undefined, reason, suspiciousProof);
           }
         }}
         isValidating={!!validatingId}
