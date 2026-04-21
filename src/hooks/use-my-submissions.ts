@@ -50,6 +50,10 @@ export interface MySubmissionsData {
   stats: SubmissionStats;
   leagueMemberId: string;
   teamId: string | null;
+  suspiciousProofStrikes: number;
+  suspiciousProofLastStrikeAt: string | null;
+  suspiciousProofWarningThreshold: number;
+  suspiciousProofRejectionThreshold: number;
 }
 
 export interface UseMySubmissionsReturn {

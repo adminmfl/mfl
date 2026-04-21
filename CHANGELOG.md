@@ -22,10 +22,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Captain Guidelines document/tooltip accessible in-app with Week 1 focus
   - System-generated team identity reveal message (team name + logo) on league launch
   - Messages use team collective language (not individual)
+- **Auto-trigger pre-launch bonding messages at key lifecycle moments (#154)**
+  - Team reveal celebration message when league launches
+  - Captain intro prompt (nudge captain to introduce themselves) on league launch
+  - First day of league motivational message to all teams (automated via cron)
+  - Messages are configurable per league (host can enable/disable via bonding_automations_enabled)
+- Add suspicious-proof strike tracking system with warning UI and 3-strike logic (#157)
 
 ### Changed
 
-- Improve Lighthouse mobile performance with server component migration and dynamic imports on leaderboard page (#129)
 - Client feedback: filter dropdown, instant messaging UX, left-aligned dropdowns, mobile nav, league info title, and tour flow improvements
 - AI Coach v2.5: inline intelligence replaces standalone AI components
 - Disable submission actions and enforce read-only mode for ended leagues (#150)
@@ -57,6 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add Log In and Sign Up buttons to corporate landing page nav bar
 - Fix rest day donation sync, availability, and donor balance logic (#152)
 - Fix auto-assignment inconsistencies and submission conflicts (#152)
+- Fix chat workout links to display readable labels (#132)
 
 ## [2.0.0] — 2026-04-01
 

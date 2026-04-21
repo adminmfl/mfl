@@ -45,6 +45,24 @@ interface RecentWorkout {
   custom_activity_name?: string | null;
 }
 
+function isUuidLike(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    value,
+  );
+}
+
+function formatWorkoutTypeLabel(type: string | null): string {
+  if (!type || isUuidLike(type)) return 'Workout';
+  return type
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+function toPossessive(name: string): string {
+  return name.endsWith('s') ? `${name}'` : `${name}'s`;
+}
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -89,8 +107,7 @@ export function MessageInput({
   const [mentionQuery, setMentionQuery] = useState('');
   const [mentionStartIdx, setMentionStartIdx] = useState(-1);
 
-  const isHostOrGovernor =
-    currentRole === 'host' || currentRole === 'governor';
+  const isHostOrGovernor = currentRole === 'host' || currentRole === 'governor';
   // All roles can toggle captains_only (players use it as DM to captain)
   const canSetVisibility = true;
   const canMarkImportant = isHostOrGovernor;
@@ -176,7 +193,7 @@ export function MessageInput({
     // Replace @query with @[username]
     const before = content.slice(0, mentionStartIdx);
     const after = content.slice(
-      mentionStartIdx + 1 + mentionQuery.length // +1 for '@'
+      mentionStartIdx + 1 + mentionQuery.length, // +1 for '@'
     );
     const mention = `@[${member.username}] `;
     const newContent = before + mention + after;
@@ -222,7 +239,13 @@ export function MessageInput({
         is_read: true,
         deep_link: deepLink || null,
         parent_message_id: replyTo?.message_id || null,
-        parent_message: replyTo ? { sender_username: replyTo.sender_username || replyTo.sender_name || '', content: replyTo.content } : null,
+        parent_message: replyTo
+          ? {
+              sender_username:
+                replyTo.sender_username || replyTo.sender_name || '',
+              content: replyTo.content,
+            }
+          : null,
         created_at: new Date().toISOString(),
         edited_at: null,
         sender_role: currentRole || 'player',
@@ -261,12 +284,23 @@ export function MessageInput({
       textareaRef.current?.focus();
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : 'Failed to send message'
+        err instanceof Error ? err.message : 'Failed to send message',
       );
     } finally {
       setSending(false);
     }
-  }, [content, sending, visibility, isImportant, isAnnouncement, deepLink, teamId, leagueId, replyTo, onMessageSent]);
+  }, [
+    content,
+    sending,
+    visibility,
+    isImportant,
+    isAnnouncement,
+    deepLink,
+    teamId,
+    leagueId,
+    replyTo,
+    onMessageSent,
+  ]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // If mention dropdown is visible, let it handle Enter/Tab/Arrow keys
@@ -288,13 +322,17 @@ export function MessageInput({
   };
 
   const handleWorkoutSelect = (workout: RecentWorkout) => {
-    const workoutLabel = workout.custom_activity_name || (workout.workout_type
-      ? workout.workout_type
-        .split('_')
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ')
-      : 'Workout');
-    const label = `${workoutLabel} • ${format(parseISO(workout.date), 'MMM d')}`;
+    const baseWorkoutLabel =
+      workout.custom_activity_name ||
+      formatWorkoutTypeLabel(workout.workout_type);
+    const workoutLabel = /session$/i.test(baseWorkoutLabel)
+      ? baseWorkoutLabel
+      : `${baseWorkoutLabel} Session`;
+    const senderFirstName = session?.user?.name?.trim().split(/\s+/)[0];
+    const senderPrefix = senderFirstName
+      ? `${toPossessive(senderFirstName)} `
+      : '';
+    const label = `${senderPrefix}${workoutLabel} - ${format(parseISO(workout.date), 'MMM d')}`;
     const params = new URLSearchParams({
       submissionId: workout.id,
       label,
@@ -381,16 +419,25 @@ export function MessageInput({
                 size="sm"
                 className={cn(
                   'h-8 shrink-0 gap-1 text-xs',
-                  (isAnnouncement || isImportant || visibility === 'captains_only') &&
-                  'border-amber-400 text-amber-600 dark:text-amber-400'
+                  (isAnnouncement ||
+                    isImportant ||
+                    visibility === 'captains_only') &&
+                    'border-amber-400 text-amber-600 dark:text-amber-400',
                 )}
               >
                 {isAnnouncement ? (
-                  <><Megaphone className="size-3" /> Announcement</>
+                  <>
+                    <Megaphone className="size-3" /> Announcement
+                  </>
                 ) : visibility === 'captains_only' ? (
-                  <><Shield className="size-3" /> {currentRole === 'player' ? 'DM Captain' : 'Captains'}</>
+                  <>
+                    <Shield className="size-3" />{' '}
+                    {currentRole === 'player' ? 'DM Captain' : 'Captains'}
+                  </>
                 ) : (
-                  <><Globe className="size-3" /> All</>
+                  <>
+                    <Globe className="size-3" /> All
+                  </>
                 )}
                 <ChevronDown className="size-3" />
               </Button>
@@ -416,10 +463,14 @@ export function MessageInput({
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => setVisibility('captains_only')}
-                    className={cn(visibility === 'captains_only' && 'bg-accent')}
+                    className={cn(
+                      visibility === 'captains_only' && 'bg-accent',
+                    )}
                   >
                     <Shield className="size-4 mr-2" />
-                    {currentRole === 'player' ? 'DM to Captain' : 'Captains Only'}
+                    {currentRole === 'player'
+                      ? 'DM to Captain'
+                      : 'Captains Only'}
                   </DropdownMenuItem>
                 </>
               )}
@@ -438,7 +489,10 @@ export function MessageInput({
 
         {/* Canned messages */}
         {canSetVisibility && (
-          <CannedMessagePicker leagueId={leagueId} onSelect={handleCannedSelect} />
+          <CannedMessagePicker
+            leagueId={leagueId}
+            onSelect={handleCannedSelect}
+          />
         )}
 
         {/* AI Motivate Team — captain only */}
@@ -452,7 +506,11 @@ export function MessageInput({
             onClick={handleMotivateTeam}
             title="AI-generated team motivation message"
           >
-            {motivating ? <Loader2 className="size-3.5 animate-spin" /> : <Zap className="size-3.5" />}
+            {motivating ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <Zap className="size-3.5" />
+            )}
             <span className="hidden sm:inline">Motivate</span>
           </Button>
         )}
@@ -464,14 +522,19 @@ export function MessageInput({
               type="button"
               variant="ghost"
               size="icon"
-              className={cn('size-8 shrink-0', deepLink && 'text-green-600 dark:text-green-400')}
+              className={cn(
+                'size-8 shrink-0',
+                deepLink && 'text-green-600 dark:text-green-400',
+              )}
               title="Attach a workout"
             >
               <Dumbbell className="size-4" />
             </Button>
           </PopoverTrigger>
           <PopoverContent align="start" side="top" className="w-56 p-1">
-            <p className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Attach a workout</p>
+            <p className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+              Attach a workout
+            </p>
             {deepLink && (
               <button
                 type="button"
@@ -482,14 +545,21 @@ export function MessageInput({
                 Remove attached link
               </button>
             )}
-            <RecentWorkoutPicker leagueId={leagueId} onSelect={handleWorkoutSelect} />
+            <RecentWorkoutPicker
+              leagueId={leagueId}
+              onSelect={handleWorkoutSelect}
+            />
             <button
               type="button"
               className={cn(
                 'w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent',
-                deepLink === `/leagues/${leagueId}/challenges` && 'bg-accent font-medium'
+                deepLink === `/leagues/${leagueId}/challenges` &&
+                  'bg-accent font-medium',
               )}
-              onClick={() => { setDeepLink(`/leagues/${leagueId}/challenges`); setAttachMenuOpen(false); }}
+              onClick={() => {
+                setDeepLink(`/leagues/${leagueId}/challenges`);
+                setAttachMenuOpen(false);
+              }}
             >
               <Link2 className="size-3.5" />
               Challenges
@@ -498,9 +568,13 @@ export function MessageInput({
               type="button"
               className={cn(
                 'w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent',
-                deepLink === `/leagues/${leagueId}/leaderboard` && 'bg-accent font-medium'
+                deepLink === `/leagues/${leagueId}/leaderboard` &&
+                  'bg-accent font-medium',
               )}
-              onClick={() => { setDeepLink(`/leagues/${leagueId}/leaderboard`); setAttachMenuOpen(false); }}
+              onClick={() => {
+                setDeepLink(`/leagues/${leagueId}/leaderboard`);
+                setAttachMenuOpen(false);
+              }}
             >
               <Link2 className="size-3.5" />
               Leaderboard
@@ -509,9 +583,13 @@ export function MessageInput({
               type="button"
               className={cn(
                 'w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent',
-                deepLink === `/leagues/${leagueId}/activities` && 'bg-accent font-medium'
+                deepLink === `/leagues/${leagueId}/activities` &&
+                  'bg-accent font-medium',
               )}
-              onClick={() => { setDeepLink(`/leagues/${leagueId}/activities`); setAttachMenuOpen(false); }}
+              onClick={() => {
+                setDeepLink(`/leagues/${leagueId}/activities`);
+                setAttachMenuOpen(false);
+              }}
             >
               <Link2 className="size-3.5" />
               Activities
