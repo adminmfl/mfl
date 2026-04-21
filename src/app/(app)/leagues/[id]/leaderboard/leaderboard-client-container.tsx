@@ -18,7 +18,10 @@ import { useAiInsights } from '@/hooks/use-ai-insights';
 
 // Dynamically import heavy components
 const LeagueTeamsTable = dynamic(
-  () => import('@/components/leaderboard').then((mod) => mod.LeagueTeamsTable),
+  () =>
+    import('@/components/leaderboard/league-teams-table').then(
+      (mod) => mod.LeagueTeamsTable,
+    ),
   {
     loading: () => (
       <div className="h-40 animate-pulse bg-muted/20 rounded-lg" />
@@ -27,7 +30,7 @@ const LeagueTeamsTable = dynamic(
 );
 const LeagueIndividualsTable = dynamic(
   () =>
-    import('@/components/leaderboard').then(
+    import('@/components/leaderboard/league-individuals-table').then(
       (mod) => mod.LeagueIndividualsTable,
     ),
   {
@@ -38,7 +41,7 @@ const LeagueIndividualsTable = dynamic(
 );
 const ChallengeSpecificLeaderboard = dynamic(
   () =>
-    import('@/components/leaderboard').then(
+    import('@/components/leaderboard/challenge-specific-leaderboard').then(
       (mod) => mod.ChallengeSpecificLeaderboard,
     ),
   {
@@ -49,7 +52,7 @@ const ChallengeSpecificLeaderboard = dynamic(
 );
 const RealTimeScoreboardTable = dynamic(
   () =>
-    import('@/components/leaderboard').then(
+    import('@/components/leaderboard/realtime-scoreboard-table').then(
       (mod) => mod.RealTimeScoreboardTable,
     ),
   {
