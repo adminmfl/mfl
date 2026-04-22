@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Crown } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { generateInitials, generateGradientColors } from "@/lib/services/profile-pictures";
+import { generateInitials, generateGradientColors } from "@/lib/utils/profile-picture-utils";
 import { cn } from "@/lib/utils";
 
 // ============================================================================

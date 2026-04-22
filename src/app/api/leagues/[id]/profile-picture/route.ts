@@ -6,6 +6,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth/get-auth-user';
+import { getSupabaseServiceRole } from '@/lib/supabase/client';
 import { removeLeagueProfilePicture } from '@/lib/services/profile-pictures';
 
 // ============================================================================
@@ -14,7 +15,7 @@ import { removeLeagueProfilePicture } from '@/lib/services/profile-pictures';
 
 export async function DELETE(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const authUser = await getAuthUser(req);
@@ -22,11 +23,24 @@ export async function DELETE(
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const leagueId = params.id;
+        const { id: leagueId } = await params;
         const userId = authUser.id;
 
         if (!leagueId) {
             return NextResponse.json({ error: 'League ID is required' }, { status: 400 });
+        }
+
+        // Verify league membership
+        const supabase = getSupabaseServiceRole();
+        const { data: membership } = await supabase
+            .from('leaguemembers')
+            .select('league_member_id')
+            .eq('user_id', userId)
+            .eq('league_id', leagueId)
+            .maybeSingle();
+
+        if (!membership) {
+            return NextResponse.json({ error: 'User is not a member of this league' }, { status: 403 });
         }
 
         // Remove league-specific profile picture

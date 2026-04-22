@@ -532,7 +532,7 @@ export default function ProfilePage() {
               <div className="flex items-start gap-6">
                 <ProfilePicture
                   username={user?.name || 'User'}
-                  profilePictureUrl={profilePictureUrl || user?.image}
+                  profilePictureUrl={profilePictureUrl || user?.profile_picture_url}
                   size={200}
                 />
                 <div className="flex-1 min-w-0">
@@ -560,7 +560,7 @@ export default function ProfilePage() {
                   <div className="mt-4">
                     <ProfilePictureUpload
                       username={user?.name || 'User'}
-                      currentProfilePictureUrl={profilePictureUrl || user?.image}
+                      currentProfilePictureUrl={profilePictureUrl || user?.profile_picture_url}
                       uploadType="standard"
                       onUploadSuccess={(url) => {
                         setProfilePictureUrl(url);

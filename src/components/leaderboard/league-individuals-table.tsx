@@ -5,9 +5,7 @@
 'use client';
 
 import * as React from 'react';
-import Trophy from 'lucide-react/dist/esm/icons/trophy';
-import Star from 'lucide-react/dist/esm/icons/star';
-import Medal from 'lucide-react/dist/esm/icons/medal';
+import { Trophy, Star, Medal } from 'lucide-react';
 
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';

@@ -5,7 +5,7 @@ import { Upload, X, Loader2, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ProfilePicture } from "@/components/ui/profile-picture";
-import { validateProfilePictureFile } from "@/lib/services/profile-pictures";
+import { validateProfilePictureFile } from "@/lib/utils/profile-picture-utils";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 

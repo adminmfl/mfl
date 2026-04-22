@@ -8,7 +8,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth/get-auth-user';
 import { getSupabaseServiceRole } from '@/lib/supabase/client';
-import { validateProfilePictureFile, updateStandardProfilePicture, updateLeagueProfilePicture } from '@/lib/services/profile-pictures';
+import { validateProfilePictureFile } from '@/lib/utils/profile-picture-utils';
+import { updateStandardProfilePicture, updateLeagueProfilePicture } from '@/lib/services/profile-pictures';
 
 // ============================================================================
 // POST Handler
@@ -28,17 +29,55 @@ export async function POST(req: NextRequest) {
 
         // Get file and optional league ID from form data
         const formData = await req.formData();
-        const file = formData.get('file') as File;
-        const leagueId = formData.get('leagueId') as string | null;
+        const file = (formData as any).get('file') as File;
+        const leagueId = ((formData as any).get('leagueId') as string) || null;
 
         if (!file) {
             return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+        }
+
+        // Validate leagueId format if provided (UUID validation)
+        if (leagueId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(leagueId)) {
+            return NextResponse.json({ error: 'Invalid league ID format' }, { status: 400 });
+        }
+
+        // Verify league membership if leagueId provided
+        if (leagueId) {
+            const { data: membership } = await supabase
+                .from('leaguemembers')
+                .select('league_member_id')
+                .eq('user_id', userId)
+                .eq('league_id', leagueId)
+                .maybeSingle();
+
+            if (!membership) {
+                return NextResponse.json({ error: 'User is not a member of this league' }, { status: 403 });
+            }
         }
 
         // Validate file
         const validation = validateProfilePictureFile(file);
         if (!validation.valid) {
             return NextResponse.json({ error: validation.error }, { status: 400 });
+        }
+
+        // Get current profile picture URL to clean up old file
+        let oldFileUrl: string | null = null;
+        if (leagueId) {
+            const { data: leagueMember } = await supabase
+                .from('leaguemembers')
+                .select('league_profile_picture_url')
+                .eq('user_id', userId)
+                .eq('league_id', leagueId)
+                .maybeSingle();
+            oldFileUrl = leagueMember?.league_profile_picture_url || null;
+        } else {
+            const { data: user } = await supabase
+                .from('users')
+                .select('profile_picture_url')
+                .eq('user_id', userId)
+                .maybeSingle();
+            oldFileUrl = user?.profile_picture_url || null;
         }
 
         // Generate unique filename
@@ -94,6 +133,24 @@ export async function POST(req: NextRequest) {
                 { error: 'Failed to update profile picture in database' },
                 { status: 500 }
             );
+        }
+
+        // Clean up old file if it exists and is in our storage
+        if (oldFileUrl && oldFileUrl.includes(PROFILE_PICTURE_BUCKET)) {
+            try {
+                const oldFileName = oldFileUrl.split('/').pop();
+                if (oldFileName) {
+                    const oldFilePath = leagueId
+                        ? `${userId}/leagues/${leagueId}/${oldFileName}`
+                        : `${userId}/standard/${oldFileName}`;
+                    await supabase.storage
+                        .from(PROFILE_PICTURE_BUCKET)
+                        .remove([oldFilePath]);
+                }
+            } catch (error) {
+                console.warn('Failed to clean up old profile picture:', error);
+                // Don't fail the request if cleanup fails
+            }
         }
 
         return NextResponse.json({
