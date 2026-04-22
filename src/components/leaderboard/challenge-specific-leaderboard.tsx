@@ -102,7 +102,12 @@ export function ChallengeSpecificLeaderboard({ leagueId, renderViewSwitcher }: C
   React.useEffect(() => {
     const fetchChallenges = async () => {
       try {
-        const res = await fetch(`/api/leagues/${leagueId}/challenges`);
+        // Fetch standard challenges and special challenges in parallel
+        const [res, scRes] = await Promise.all([
+          fetch(`/api/leagues/${leagueId}/challenges`),
+          fetch(`/api/leagues/${leagueId}/special-challenge-scores`)
+        ]);
+
         const json = await res.json();
         const visible: Challenge[] = [];
         if (json.success && json.data?.active) {
@@ -113,8 +118,7 @@ export function ChallengeSpecificLeaderboard({ leagueId, renderViewSwitcher }: C
           visible.push(...fromLeague);
         }
 
-        // Also fetch special challenges that have team scores but aren't in leagueschallenges
-        const scRes = await fetch(`/api/leagues/${leagueId}/special-challenge-scores`);
+        // Also process special challenges that have team scores but aren't in leagueschallenges
         if (scRes.ok) {
           const scJson = await scRes.json();
           if (scJson.success && scJson.data) {

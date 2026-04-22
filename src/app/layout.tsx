@@ -8,7 +8,7 @@ import {
 } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next";
-import { Toaster } from "sonner";
+import { ToasterProvider } from "@/components/providers/toaster-provider";
 import AuthProvider from "@/components/auth/auth-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ColorThemeProvider } from "@/components/providers/color-theme-provider";
@@ -96,19 +96,14 @@ export default async function RootLayout({
         <meta name="theme-color" content="#0F1E46" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-
+        <link rel="preload" href="/img/mfl-logo.jpg?width=100&quality=80" as="image" />
       </head>
       <body className="antialiased">
         <ThemeProvider>
           <ColorThemeProvider>
             <FontProvider>
               <AuthProvider session={session}>{children}</AuthProvider>
-              <Toaster
-                position="top-center"
-                richColors
-                closeButton
-                duration={4000}
-              />
+              <ToasterProvider />
             </FontProvider>
           </ColorThemeProvider>
         </ThemeProvider>
