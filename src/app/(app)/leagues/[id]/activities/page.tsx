@@ -50,10 +50,13 @@ function TrialPeriodAlert({ daysLeft }: { daysLeft: number }) {
   return (
     <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
       <Info className="size-4 text-blue-600 dark:text-blue-400" />
-      <AlertTitle className="text-blue-800 dark:text-blue-300">Trial Period</AlertTitle>
+      <AlertTitle className="text-blue-800 dark:text-blue-300">
+        Trial Period
+      </AlertTitle>
       <AlertDescription className="text-blue-700 dark:text-blue-400">
-        This league is in trial mode for {daysLeft} day{daysLeft === 1 ? '' : 's'}.
-        Submissions won’t count toward the official leaderboard until the league starts.
+        This league is in trial mode for {daysLeft} day
+        {daysLeft === 1 ? '' : 's'}. Submissions won’t count toward the official
+        leaderboard until the league starts.
       </AlertDescription>
     </Alert>
   );
@@ -85,14 +88,40 @@ export default function LeagueActivitiesPage({
 
   const [selectedCategory, setSelectedCategory] = React.useState<string>('all');
   const [searchTerm, setSearchTerm] = React.useState('');
-  const [frequencyDrafts, setFrequencyDrafts] = React.useState<Record<string, string>>({});
-  const [frequencyTypeDrafts, setFrequencyTypeDrafts] = React.useState<Record<string, 'daily' | 'weekly' | 'monthly'>>({});
+  const [frequencyDrafts, setFrequencyDrafts] = React.useState<
+    Record<string, string>
+  >({});
+  const [frequencyTypeDrafts, setFrequencyTypeDrafts] = React.useState<
+    Record<string, 'daily' | 'weekly' | 'monthly'>
+  >({});
   const [isSaving, setIsSaving] = React.useState(false);
   const [resetKey, setResetKey] = React.useState(0);
-  const [openDescriptionId, setOpenDescriptionId] = React.useState<string | null>(null);
+  const [openDescriptionId, setOpenDescriptionId] = React.useState<
+    string | null
+  >(null);
 
   // Track pending changes before saving
-  const [pendingChanges, setPendingChanges] = React.useState<Map<string, { enabled?: boolean; frequency?: number | null; frequency_type?: 'daily' | 'weekly' | 'monthly' | null; minimums?: { min_value: number | null; age_group_overrides: Record<string, any> }; proof_requirement?: 'not_required' | 'optional' | 'mandatory'; notes_requirement?: 'not_required' | 'optional' | 'mandatory'; points_per_session?: number; outcome_config?: { label: string; points: number }[] | null }>>(new Map());
+  const [pendingChanges, setPendingChanges] = React.useState<
+    Map<
+      string,
+      {
+        enabled?: boolean;
+        frequency?: number | null;
+        frequency_type?: 'daily' | 'weekly' | 'monthly' | null;
+        minimums?: {
+          min_value: number | null;
+          age_group_overrides: Record<string, any>;
+        };
+        proof_requirement?: 'not_required' | 'optional' | 'mandatory';
+        notes_requirement?: 'not_required' | 'optional' | 'mandatory';
+        points_per_session?: number;
+        outcome_config?: { label: string; points: number }[] | null;
+        custom_field_placeholder?: string | null;
+        custom_field_label_2?: string | null;
+        custom_field_placeholder_2?: string | null;
+      }
+    >
+  >(new Map());
 
   const hasChanges = pendingChanges.size > 0;
   const toggleLoading = null;
@@ -128,7 +157,12 @@ export default function LeagueActivitiesPage({
         typeof activity.frequency === 'number' && activity.frequency > 0
           ? String(activity.frequency)
           : '';
-      nextTypes[activity.activity_id] = activity.frequency_type === 'monthly' ? 'monthly' : activity.frequency_type === 'daily' ? 'daily' : 'weekly';
+      nextTypes[activity.activity_id] =
+        activity.frequency_type === 'monthly'
+          ? 'monthly'
+          : activity.frequency_type === 'daily'
+            ? 'daily'
+            : 'weekly';
     }
     setFrequencyDrafts(next);
     setFrequencyTypeDrafts(nextTypes);
@@ -147,7 +181,7 @@ export default function LeagueActivitiesPage({
     });
 
     return Array.from(categoryMap.values()).sort((a, b) =>
-      a.display_name.localeCompare(b.display_name)
+      a.display_name.localeCompare(b.display_name),
     );
   }, [data, isAdmin]);
 
@@ -158,7 +192,9 @@ export default function LeagueActivitiesPage({
     const search = searchTerm.trim().toLowerCase();
 
     return activities.filter((a) => {
-      const matchesCategory = selectedCategory === 'all' || a.category?.category_id === selectedCategory;
+      const matchesCategory =
+        selectedCategory === 'all' ||
+        a.category?.category_id === selectedCategory;
       const matchesSearch =
         !search ||
         a.activity_name.toLowerCase().includes(search) ||
@@ -212,10 +248,12 @@ export default function LeagueActivitiesPage({
   const handleFrequencyBlur = (activityId: string) => {
     const raw = (frequencyDrafts[activityId] ?? '').trim();
     const current = enabledActivityMap.get(activityId)?.frequency ?? null;
-    const currentType = frequencyTypeDrafts[activityId]
-      ?? enabledActivityMap.get(activityId)?.frequency_type
-      ?? 'weekly';
-    const maxAllowed = currentType === 'monthly' ? 10 : 7;
+    const currentType =
+      frequencyTypeDrafts[activityId] ??
+      enabledActivityMap.get(activityId)?.frequency_type ??
+      'weekly';
+    const maxAllowed =
+      currentType === 'monthly' ? 28 : currentType === 'daily' ? 10 : 7;
 
     if (raw === '') {
       if (current === null) return;
@@ -260,9 +298,10 @@ export default function LeagueActivitiesPage({
     // Mark as pending immediately when user starts typing
     const trimmed = value.trim();
     const current = enabledActivityMap.get(activityId)?.frequency ?? null;
-    const currentType = frequencyTypeDrafts[activityId]
-      ?? enabledActivityMap.get(activityId)?.frequency_type
-      ?? 'weekly';
+    const currentType =
+      frequencyTypeDrafts[activityId] ??
+      enabledActivityMap.get(activityId)?.frequency_type ??
+      'weekly';
     const maxAllowed = currentType === 'monthly' ? 10 : 7;
 
     if (trimmed === '') {
@@ -290,16 +329,21 @@ export default function LeagueActivitiesPage({
     }
   };
 
-  const handleFrequencyTypeChange = (activityId: string, value: 'daily' | 'weekly' | 'monthly') => {
+  const handleFrequencyTypeChange = (
+    activityId: string,
+    value: 'daily' | 'weekly' | 'monthly',
+  ) => {
     setFrequencyTypeDrafts((prev) => ({
       ...prev,
       [activityId]: value,
     }));
 
-    const currentType = enabledActivityMap.get(activityId)?.frequency_type ?? 'weekly';
+    const currentType =
+      enabledActivityMap.get(activityId)?.frequency_type ?? 'weekly';
     const draftFrequencyRaw = (frequencyDrafts[activityId] ?? '').trim();
-    const draftFrequency = draftFrequencyRaw === '' ? null : Number(draftFrequencyRaw);
-    const maxAllowed = value === 'monthly' ? 10 : 7;
+    const draftFrequency =
+      draftFrequencyRaw === '' ? null : Number(draftFrequencyRaw);
+    const maxAllowed = value === 'monthly' ? 28 : value === 'daily' ? 10 : 7;
 
     setPendingChanges((prev) => {
       const next = new Map(prev);
@@ -317,7 +361,11 @@ export default function LeagueActivitiesPage({
       return next;
     });
 
-    if (typeof draftFrequency === 'number' && Number.isFinite(draftFrequency) && draftFrequency > maxAllowed) {
+    if (
+      typeof draftFrequency === 'number' &&
+      Number.isFinite(draftFrequency) &&
+      draftFrequency > maxAllowed
+    ) {
       const clamped = String(maxAllowed);
       setFrequencyDrafts((prev) => ({
         ...prev,
@@ -332,7 +380,18 @@ export default function LeagueActivitiesPage({
     }
   };
 
-  const handleActivityConfigChange = (config: { activity_id: string; proof_requirement: 'not_required' | 'optional' | 'mandatory'; notes_requirement: 'not_required' | 'optional' | 'mandatory'; points_per_session: number; outcome_config?: { label: string; points: number }[] | null; max_images?: number; custom_field_label?: string | null }) => {
+  const handleActivityConfigChange = (config: {
+    activity_id: string;
+    proof_requirement: 'not_required' | 'optional' | 'mandatory';
+    notes_requirement: 'not_required' | 'optional' | 'mandatory';
+    points_per_session: number;
+    outcome_config?: { label: string; points: number }[] | null;
+    max_images?: number;
+    custom_field_label?: string | null;
+    custom_field_placeholder?: string | null;
+    custom_field_label_2?: string | null;
+    custom_field_placeholder_2?: string | null;
+  }) => {
     setPendingChanges((prev) => {
       const next = new Map(prev);
       const change = next.get(config.activity_id) || {};
@@ -344,12 +403,19 @@ export default function LeagueActivitiesPage({
         outcome_config: config.outcome_config,
         max_images: config.max_images,
         custom_field_label: config.custom_field_label,
+        custom_field_placeholder: config.custom_field_placeholder,
+        custom_field_label_2: config.custom_field_label_2,
+        custom_field_placeholder_2: config.custom_field_placeholder_2,
       });
       return next;
     });
   };
 
-  const handleMinimumChange = (config: { activity_id: string; min_value: number | null; age_group_overrides: Record<string, any> }) => {
+  const handleMinimumChange = (config: {
+    activity_id: string;
+    min_value: number | null;
+    age_group_overrides: Record<string, any>;
+  }) => {
     setPendingChanges((prev) => {
       const next = new Map(prev);
       const change = next.get(config.activity_id) || {};
@@ -378,7 +444,9 @@ export default function LeagueActivitiesPage({
         // But different activities can run in parallel.
         const activityPromise = (async (): Promise<{ ok: boolean }> => {
           const results: boolean[] = [];
-          const activityInfo = data?.allActivities?.find((a) => a.activity_id === activityId);
+          const activityInfo = data?.allActivities?.find(
+            (a) => a.activity_id === activityId,
+          );
           const isCustom = !!activityInfo?.is_custom;
 
           if (change.enabled !== undefined) {
@@ -392,36 +460,66 @@ export default function LeagueActivitiesPage({
           // Fire PATCH and minimums in parallel for this activity
           const subPromises: Promise<boolean>[] = [];
 
-          if (change.frequency !== undefined || change.frequency_type !== undefined
-              || change.proof_requirement !== undefined || change.notes_requirement !== undefined
-              || change.points_per_session !== undefined || change.outcome_config !== undefined
-              || change.max_images !== undefined || change.custom_field_label !== undefined) {
+          if (
+            change.frequency !== undefined ||
+            change.frequency_type !== undefined ||
+            change.proof_requirement !== undefined ||
+            change.notes_requirement !== undefined ||
+            change.points_per_session !== undefined ||
+            change.outcome_config !== undefined ||
+            change.max_images !== undefined ||
+            change.custom_field_label !== undefined ||
+            change.custom_field_placeholder !== undefined ||
+            change.custom_field_label_2 !== undefined ||
+            change.custom_field_placeholder_2 !== undefined
+          ) {
             const patchBody: Record<string, any> = { activity_id: activityId };
 
-            if (change.frequency !== undefined || change.frequency_type !== undefined) {
-              patchBody.frequency = change.frequency !== undefined
-                ? change.frequency
-                : enabledActivityMap.get(activityId)?.frequency ?? null;
-              patchBody.frequency_type = change.frequency_type !== undefined
-                ? change.frequency_type
-                : frequencyTypeDrafts[activityId]
-                ?? enabledActivityMap.get(activityId)?.frequency_type
-                ?? 'weekly';
+            if (
+              change.frequency !== undefined ||
+              change.frequency_type !== undefined
+            ) {
+              patchBody.frequency =
+                change.frequency !== undefined
+                  ? change.frequency
+                  : (enabledActivityMap.get(activityId)?.frequency ?? null);
+              patchBody.frequency_type =
+                change.frequency_type !== undefined
+                  ? change.frequency_type
+                  : (frequencyTypeDrafts[activityId] ??
+                    enabledActivityMap.get(activityId)?.frequency_type ??
+                    'weekly');
             }
 
-            if (change.proof_requirement !== undefined) patchBody.proof_requirement = change.proof_requirement;
-            if (change.notes_requirement !== undefined) patchBody.notes_requirement = change.notes_requirement;
-            if (change.points_per_session !== undefined) patchBody.points_per_session = change.points_per_session;
-            if (change.outcome_config !== undefined) patchBody.outcome_config = change.outcome_config;
-            if (change.max_images !== undefined) patchBody.max_images = change.max_images;
-            if (change.custom_field_label !== undefined) patchBody.custom_field_label = change.custom_field_label;
+            if (change.proof_requirement !== undefined)
+              patchBody.proof_requirement = change.proof_requirement;
+            if (change.notes_requirement !== undefined)
+              patchBody.notes_requirement = change.notes_requirement;
+            if (change.points_per_session !== undefined)
+              patchBody.points_per_session = change.points_per_session;
+            if (change.outcome_config !== undefined)
+              patchBody.outcome_config = change.outcome_config;
+            if (change.max_images !== undefined)
+              patchBody.max_images = change.max_images;
+            if (change.custom_field_label !== undefined)
+              patchBody.custom_field_label = change.custom_field_label;
+            if (change.custom_field_placeholder !== undefined)
+              patchBody.custom_field_placeholder =
+                change.custom_field_placeholder;
+            if (change.custom_field_label_2 !== undefined)
+              patchBody.custom_field_label_2 = change.custom_field_label_2;
+            if (change.custom_field_placeholder_2 !== undefined)
+              patchBody.custom_field_placeholder_2 =
+                change.custom_field_placeholder_2;
 
             subPromises.push(
               fetch(`/api/leagues/${leagueId}/activities`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(patchBody),
-              }).then(r => r.ok).catch(() => false)
+              })
+                .then((r) => r.ok)
+                .catch(() => false),
             );
           }
 
@@ -433,11 +531,15 @@ export default function LeagueActivitiesPage({
                 body: JSON.stringify({
                   league_id: leagueId,
                   activity_id: activityId,
-                  symbol: enabledActivityMap.get(activityId)?.activity_name || 'Activity',
+                  symbol:
+                    enabledActivityMap.get(activityId)?.activity_name ||
+                    'Activity',
                   min_value: change.minimums.min_value,
                   age_group_overrides: change.minimums.age_group_overrides,
                 }),
-              }).then(r => r.ok).catch(() => false)
+              })
+                .then((r) => r.ok)
+                .catch(() => false),
             );
           }
 
@@ -450,11 +552,15 @@ export default function LeagueActivitiesPage({
       }
 
       const results = await Promise.all(promises);
-      const successCount = results.filter(r => r.ok).length;
-      const errorCount = results.filter(r => !r.ok).length;
+      const successCount = results.filter((r) => r.ok).length;
+      const errorCount = results.filter((r) => !r.ok).length;
 
       if (errorCount === 0) {
-        toast.success(successCount === 1 ? 'Changes saved' : `All ${successCount} activities updated`);
+        toast.success(
+          successCount === 1
+            ? 'Changes saved'
+            : `All ${successCount} activities updated`,
+        );
         setPendingChanges(new Map());
       } else if (successCount > 0) {
         toast.error(`Saved ${successCount} changes, but ${errorCount} failed`);
@@ -477,13 +583,18 @@ export default function LeagueActivitiesPage({
           typeof activity.frequency === 'number' && activity.frequency > 0
             ? String(activity.frequency)
             : '';
-        nextTypes[activity.activity_id] = activity.frequency_type === 'monthly' ? 'monthly' : activity.frequency_type === 'daily' ? 'daily' : 'weekly';
+        nextTypes[activity.activity_id] =
+          activity.frequency_type === 'monthly'
+            ? 'monthly'
+            : activity.frequency_type === 'daily'
+              ? 'daily'
+              : 'weekly';
       }
       setFrequencyDrafts(next);
       setFrequencyTypeDrafts(nextTypes);
     }
     // Force dropdown components to remount with fresh data
-    setResetKey(prev => prev + 1);
+    setResetKey((prev) => prev + 1);
   };
 
   // no-op bulk handlers (removed UI); using original per-item toggle UX
@@ -568,7 +679,7 @@ export default function LeagueActivitiesPage({
                     </h2>
                     <p className="text-muted-foreground max-w-md mx-auto">
                       {selectedCategory === 'all'
-                        ? 'The league host hasn\'t configured any activities yet. Contact your league host to enable activities.'
+                        ? "The league host hasn't configured any activities yet. Contact your league host to enable activities."
                         : 'No activities found in the selected category.'}
                     </p>
                   </CardContent>
@@ -576,7 +687,10 @@ export default function LeagueActivitiesPage({
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {filteredActivities.map((activity) => (
-                    <Card key={activity.activity_id} className="border-primary/50 bg-primary/5">
+                    <Card
+                      key={activity.activity_id}
+                      className="border-primary/50 bg-primary/5"
+                    >
                       <CardHeader>
                         <CardTitle className="text-base flex items-center gap-2">
                           <Check className="size-4 text-primary" />
@@ -658,13 +772,23 @@ export default function LeagueActivitiesPage({
               <Badge variant="outline">
                 {data?.activities.length || 0} Active
               </Badge>
-              <Button variant="ghost" size="icon" onClick={refetch} disabled={isSaving} title="Refresh activities">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={refetch}
+                disabled={isSaving}
+                title="Refresh activities"
+              >
                 <RefreshCw className="size-4" />
               </Button>
             </div>
             {hasChanges && (
               <div className="flex items-center gap-2 sm:ml-auto">
-                <Button onClick={handleSaveChanges} disabled={isSaving} size="sm">
+                <Button
+                  onClick={handleSaveChanges}
+                  disabled={isSaving}
+                  size="sm"
+                >
                   {isSaving ? (
                     <>
                       <Loader2 className="size-4 mr-2 animate-spin" />
@@ -677,7 +801,12 @@ export default function LeagueActivitiesPage({
                     </>
                   )}
                 </Button>
-                <Button variant="outline" onClick={handleDiscardChanges} disabled={isSaving} size="sm">
+                <Button
+                  variant="outline"
+                  onClick={handleDiscardChanges}
+                  disabled={isSaving}
+                  size="sm"
+                >
                   Discard
                 </Button>
               </div>
@@ -691,9 +820,13 @@ export default function LeagueActivitiesPage({
         <div className="px-4 lg:px-6">
           <Alert className="border-amber-200 bg-amber-50 dark:border-primary/20 dark:bg-primary/10">
             <AlertCircle className="size-4 text-amber-600 dark:text-primary" />
-            <AlertTitle className="text-amber-900 dark:text-primary">Unsaved Changes</AlertTitle>
+            <AlertTitle className="text-amber-900 dark:text-primary">
+              Unsaved Changes
+            </AlertTitle>
             <AlertDescription className="text-amber-800 dark:text-primary/80">
-              You have {pendingChanges.size} pending change{pendingChanges.size !== 1 ? 's' : ''}. Click "Confirm" to save or "Discard" to cancel.
+              You have {pendingChanges.size} pending change
+              {pendingChanges.size !== 1 ? 's' : ''}. Click "Confirm" to save or
+              "Discard" to cancel.
             </AlertDescription>
           </Alert>
         </div>
@@ -723,13 +856,14 @@ export default function LeagueActivitiesPage({
                 activity type.
                 {data.activities.length === 0 && (
                   <span className="block mt-2 font-medium text-amber-600">
-                    ⚠️ No activities are currently enabled. Players cannot submit
-                    workouts.
+                    ⚠️ No activities are currently enabled. Players cannot
+                    submit workouts.
                   </span>
                 )}
                 {!supportsFrequency && isHost && (
                   <span className="block mt-2 text-xs text-muted-foreground">
-                    Weekly limits are unavailable because the frequency field is not enabled in this environment.
+                    Weekly limits are unavailable because the frequency field is
+                    not enabled in this environment.
                   </span>
                 )}
               </AlertDescription>
@@ -741,17 +875,24 @@ export default function LeagueActivitiesPage({
                 {sortedActivities.map((activity) => {
                   const isEnabled = getCheckboxState(activity.activity_id);
                   const isProcessing = toggleLoading === activity.activity_id;
-                  const hasPendingChange = pendingChanges.has(activity.activity_id);
+                  const hasPendingChange = pendingChanges.has(
+                    activity.activity_id,
+                  );
 
                   return (
                     <div
                       key={activity.activity_id}
                       className={cn(
                         'flex items-start gap-3 p-4 rounded-lg border transition-all',
-                        hasPendingChange && 'ring-2 ring-amber-400 bg-amber-50/50 dark:ring-primary/60 dark:bg-primary/10',
-                        !hasPendingChange && isEnabled && 'border-primary bg-primary/5 ring-1 ring-primary',
-                        !hasPendingChange && !isEnabled && 'border-border bg-card hover:border-primary/50',
-                        isProcessing && 'opacity-50 pointer-events-none'
+                        hasPendingChange &&
+                          'ring-2 ring-amber-400 bg-amber-50/50 dark:ring-primary/60 dark:bg-primary/10',
+                        !hasPendingChange &&
+                          isEnabled &&
+                          'border-primary bg-primary/5 ring-1 ring-primary',
+                        !hasPendingChange &&
+                          !isEnabled &&
+                          'border-border bg-card hover:border-primary/50',
+                        isProcessing && 'opacity-50 pointer-events-none',
                       )}
                     >
                       <div className="pt-0.5">
@@ -761,7 +902,9 @@ export default function LeagueActivitiesPage({
                           <Checkbox
                             checked={isEnabled}
                             disabled={isProcessing}
-                            onClick={() => handleToggle(activity.activity_id, !isEnabled)}
+                            onClick={() =>
+                              handleToggle(activity.activity_id, !isEnabled)
+                            }
                           />
                         )}
                       </div>
@@ -771,7 +914,10 @@ export default function LeagueActivitiesPage({
                             {activity.activity_name}
                           </p>
                           {activity.is_custom && (
-                            <Badge variant="secondary" className="text-xs bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-500/20 dark:text-violet-300 dark:border-violet-500/30">
+                            <Badge
+                              variant="secondary"
+                              className="text-xs bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-500/20 dark:text-violet-300 dark:border-violet-500/30"
+                            >
                               <Sparkles className="size-3 mr-1" />
                               Custom
                             </Badge>
@@ -787,7 +933,11 @@ export default function LeagueActivitiesPage({
                                 className="size-3.5 text-muted-foreground cursor-pointer hover:text-primary transition-colors"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setOpenDescriptionId(openDescriptionId === activity.activity_id ? null : activity.activity_id);
+                                  setOpenDescriptionId(
+                                    openDescriptionId === activity.activity_id
+                                      ? null
+                                      : activity.activity_id,
+                                  );
                                 }}
                               />
                               {openDescriptionId === activity.activity_id && (
@@ -797,14 +947,19 @@ export default function LeagueActivitiesPage({
                                     onClick={() => setOpenDescriptionId(null)}
                                   />
                                   <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-50 w-64 max-w-[calc(100vw-2rem)] rounded-lg border border-border bg-card p-3 text-xs text-card-foreground shadow-lg">
-                                    <p className="leading-relaxed break-words">{activity.description}</p>
+                                    <p className="leading-relaxed break-words">
+                                      {activity.description}
+                                    </p>
                                   </div>
                                 </>
                               )}
                             </div>
                           )}
                           {hasPendingChange && (
-                            <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200 dark:bg-primary/10 dark:text-primary dark:border-primary/20">
+                            <Badge
+                              variant="outline"
+                              className="text-xs bg-amber-50 text-amber-700 border-amber-200 dark:bg-primary/10 dark:text-primary dark:border-primary/20"
+                            >
                               Pending
                             </Badge>
                           )}
@@ -818,25 +973,71 @@ export default function LeagueActivitiesPage({
                               activityId={activity.activity_id}
                               symbol={activity.activity_name}
                               measurementType={activity.measurement_type}
-                              frequency={frequencyDrafts[activity.activity_id] ? parseInt(frequencyDrafts[activity.activity_id]) : null}
-                              frequencyType={frequencyTypeDrafts[activity.activity_id] ?? activity.frequency_type ?? 'weekly'}
+                              frequency={
+                                frequencyDrafts[activity.activity_id]
+                                  ? parseInt(
+                                      frequencyDrafts[activity.activity_id],
+                                    )
+                                  : null
+                              }
+                              frequencyType={
+                                frequencyTypeDrafts[activity.activity_id] ??
+                                activity.frequency_type ??
+                                'weekly'
+                              }
                               supportsFrequency={supportsFrequency}
                               initialConfig={{
-                                min_value: enabledActivityMap.get(activity.activity_id)?.min_value ?? null,
+                                min_value:
+                                  enabledActivityMap.get(activity.activity_id)
+                                    ?.min_value ?? null,
                                 max_value: null,
-                                age_group_overrides: enabledActivityMap.get(activity.activity_id)?.age_group_overrides ?? {},
+                                age_group_overrides:
+                                  enabledActivityMap.get(activity.activity_id)
+                                    ?.age_group_overrides ?? {},
                               }}
                               onMinimumChange={handleMinimumChange}
                               onFrequencyChange={handleFrequencyChange}
                               onFrequencyTypeChange={handleFrequencyTypeChange}
                               onFrequencyBlur={handleFrequencyBlur}
-                              proofRequirement={enabledActivityMap.get(activity.activity_id)?.proof_requirement ?? 'mandatory'}
-                              notesRequirement={enabledActivityMap.get(activity.activity_id)?.notes_requirement ?? 'optional'}
-                              pointsPerSession={enabledActivityMap.get(activity.activity_id)?.points_per_session ?? 1}
-                              outcomeConfig={enabledActivityMap.get(activity.activity_id)?.outcome_config ?? null}
-                              maxImages={enabledActivityMap.get(activity.activity_id)?.max_images ?? 1}
-                              customFieldLabel={enabledActivityMap.get(activity.activity_id)?.custom_field_label ?? null}
-                              onActivityConfigChange={handleActivityConfigChange}
+                              proofRequirement={
+                                enabledActivityMap.get(activity.activity_id)
+                                  ?.proof_requirement ?? 'mandatory'
+                              }
+                              notesRequirement={
+                                enabledActivityMap.get(activity.activity_id)
+                                  ?.notes_requirement ?? 'optional'
+                              }
+                              pointsPerSession={
+                                enabledActivityMap.get(activity.activity_id)
+                                  ?.points_per_session ?? 1
+                              }
+                              outcomeConfig={
+                                enabledActivityMap.get(activity.activity_id)
+                                  ?.outcome_config ?? null
+                              }
+                              maxImages={
+                                enabledActivityMap.get(activity.activity_id)
+                                  ?.max_images ?? 1
+                              }
+                              customFieldLabel={
+                                enabledActivityMap.get(activity.activity_id)
+                                  ?.custom_field_label ?? null
+                              }
+                              customFieldPlaceholder={
+                                enabledActivityMap.get(activity.activity_id)
+                                  ?.custom_field_placeholder ?? null
+                              }
+                              customFieldLabel2={
+                                enabledActivityMap.get(activity.activity_id)
+                                  ?.custom_field_label_2 ?? null
+                              }
+                              customFieldPlaceholder2={
+                                enabledActivityMap.get(activity.activity_id)
+                                  ?.custom_field_placeholder_2 ?? null
+                              }
+                              onActivityConfigChange={
+                                handleActivityConfigChange
+                              }
                             />
                           </div>
                         )}
@@ -853,7 +1054,10 @@ export default function LeagueActivitiesPage({
                 {filteredActivities
                   .filter((a) => enabledActivityIds.has(a.activity_id))
                   .map((activity) => (
-                    <Card key={activity.activity_id} className="border-primary/50 bg-primary/5">
+                    <Card
+                      key={activity.activity_id}
+                      className="border-primary/50 bg-primary/5"
+                    >
                       <CardHeader>
                         <CardTitle className="text-base flex items-center gap-2">
                           <Check className="size-4 text-primary" />
@@ -876,17 +1080,20 @@ export default function LeagueActivitiesPage({
             )}
 
             {/* Warning if no activities enabled */}
-            {isHost && data.activities.length === 0 && data.allActivities && data.allActivities.length > 0 && (
-              <Alert variant="destructive">
-                <AlertCircle className="size-4" />
-                <AlertTitle>Action Required</AlertTitle>
-                <AlertDescription>
-                  Players will not be able to submit workouts until you enable
-                  at least one activity type. Click on any activity above to
-                  enable it.
-                </AlertDescription>
-              </Alert>
-            )}
+            {isHost &&
+              data.activities.length === 0 &&
+              data.allActivities &&
+              data.allActivities.length > 0 && (
+                <Alert variant="destructive">
+                  <AlertCircle className="size-4" />
+                  <AlertTitle>Action Required</AlertTitle>
+                  <AlertDescription>
+                    Players will not be able to submit workouts until you enable
+                    at least one activity type. Click on any activity above to
+                    enable it.
+                  </AlertDescription>
+                </Alert>
+              )}
           </>
         )}
       </div>

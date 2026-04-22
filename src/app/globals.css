@@ -1,5 +1,5 @@
-@import "tailwindcss";
-@import "tw-animate-css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -15,7 +15,7 @@
   --font-mono: var(--font-geist-mono);
 
   /* MFL Brand Colors */
-  --color-mfl-dark: #2E3C16;
+  --color-mfl-dark: #2e3c16;
   --color-mfl-navy: #488617;
   --color-mfl-coral: #e56b00;
   --color-mfl-teal: #bbda6e;
@@ -71,37 +71,37 @@
   --radius: 0.75rem;
 
   /* Backgrounds */
-  --background: #F1F5FB;
-  --foreground: #0F172A;
+  --background: #f1f5fb;
+  --foreground: #0f172a;
 
   /* Cards & Popovers */
-  --card: #FFFFFF;
-  --card-foreground: #0F172A;
-  --popover: #FFFFFF;
-  --popover-foreground: #0F172A;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
 
   /* Primary - Dark Green (Logo) */
   --primary: #488617;
-  --primary-foreground: #FFFFFF;
+  --primary-foreground: #ffffff;
 
   /* Secondary - Light green tint (Logo) */
-  --secondary: #EAF4D1;
-  --secondary-foreground: #2C3E12;
+  --secondary: #eaf4d1;
+  --secondary-foreground: #2c3e12;
 
   /* Muted */
-  --muted: #F4F9E7;
-  --muted-foreground: #5B6B4A;
+  --muted: #f4f9e7;
+  --muted-foreground: #5b6b4a;
 
   /* Accent - Orange (Logo) */
   --accent: #e56b00;
-  --accent-foreground: #FFFFFF;
+  --accent-foreground: #ffffff;
 
   /* Destructive */
-  --destructive: #EF4444;
+  --destructive: #ef4444;
 
   /* Borders & Inputs */
-  --border: #D9E7B8;
-  --input: #D9E7B8;
+  --border: #d9e7b8;
+  --input: #d9e7b8;
   --ring: #488617;
 
   /* Charts - Logo palette */
@@ -112,13 +112,13 @@
   --chart-5: #488617;
 
   /* Sidebar */
-  --sidebar: #FFFFFF;
-  --sidebar-foreground: #0F172A;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #0f172a;
   --sidebar-primary: #488617;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #F4F9E7;
-  --sidebar-accent-foreground: #2C3E12;
-  --sidebar-border: #E2E8F0;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f4f9e7;
+  --sidebar-accent-foreground: #2c3e12;
+  --sidebar-border: #e2e8f0;
   --sidebar-ring: #488617;
 }
 
@@ -128,54 +128,54 @@
 .dark {
   /* Backgrounds - Deep immersive dark */
   --background: #081326;
-  --foreground: #F8FAFC;
+  --foreground: #f8fafc;
 
   /* Cards & Popovers */
-  --card: #111D32;
-  --card-foreground: #F8FAFC;
-  --popover: #111D32;
-  --popover-foreground: #F8FAFC;
+  --card: #111d32;
+  --card-foreground: #f8fafc;
+  --popover: #111d32;
+  --popover-foreground: #f8fafc;
 
   /* Primary - Bright for dark mode visibility */
-  --primary: #3B82F6;
-  --primary-foreground: #FFFFFF;
+  --primary: #3b82f6;
+  --primary-foreground: #ffffff;
 
   /* Secondary */
-  --secondary: #1E293B;
-  --secondary-foreground: #F1F5F9;
+  --secondary: #1e293b;
+  --secondary-foreground: #f1f5f9;
 
   /* Muted */
-  --muted: #1E293B;
-  --muted-foreground: #94A3B8;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
 
   /* Accent - Vibrant Coral */
-  --accent: #FF6B35;
-  --accent-foreground: #FFFFFF;
+  --accent: #ff6b35;
+  --accent-foreground: #ffffff;
 
   /* Destructive */
-  --destructive: #F87171;
+  --destructive: #f87171;
 
   /* Borders & Inputs */
-  --border: #1E3A5F;
-  --input: #1E3A5F;
-  --ring: #3B82F6;
+  --border: #1e3a5f;
+  --input: #1e3a5f;
+  --ring: #3b82f6;
 
   /* Charts */
-  --chart-1: #FF6B35;
-  --chart-2: #00D9B5;
-  --chart-3: #A78BFA;
-  --chart-4: #FBBF24;
-  --chart-5: #60A5FA;
+  --chart-1: #ff6b35;
+  --chart-2: #00d9b5;
+  --chart-3: #a78bfa;
+  --chart-4: #fbbf24;
+  --chart-5: #60a5fa;
 
   /* Sidebar - Darker than main */
-  --sidebar: #070E1A;
-  --sidebar-foreground: #F8FAFC;
-  --sidebar-primary: #3B82F6;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #1E293B;
-  --sidebar-accent-foreground: #F1F5F9;
-  --sidebar-border: #1E3A5F;
-  --sidebar-ring: #3B82F6;
+  --sidebar: #070e1a;
+  --sidebar-foreground: #f8fafc;
+  --sidebar-primary: #3b82f6;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1e293b;
+  --sidebar-accent-foreground: #f1f5f9;
+  --sidebar-border: #1e3a5f;
+  --sidebar-ring: #3b82f6;
 }
 
 /* ============================================================================
@@ -188,19 +188,29 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-feature-settings: "cv11", "ss01";
-    font-variation-settings: "opsz" 32;
+    font-feature-settings: 'cv11', 'ss01';
+    font-variation-settings: 'opsz' 32;
   }
 
   /* Light mode subtle gradient */
   :root body {
-    background: linear-gradient(135deg, var(--background) 0%, var(--muted) 50%, var(--background) 100%);
+    background: linear-gradient(
+      135deg,
+      var(--background) 0%,
+      var(--muted) 50%,
+      var(--background) 100%
+    );
     background-attachment: fixed;
   }
 
   /* Dark mode gradient - premium fitness feel */
   .dark body {
-    background: linear-gradient(135deg, var(--background) 0%, var(--muted) 50%, var(--background) 100%);
+    background: linear-gradient(
+      135deg,
+      var(--background) 0%,
+      var(--muted) 50%,
+      var(--background) 100%
+    );
     background-attachment: fixed;
   }
 }
@@ -211,15 +221,27 @@
 
 /* Gradient backgrounds for cards/sections */
 .gradient-primary {
-  background: linear-gradient(135deg, var(--primary) 0%, color-mix(in srgb, var(--primary) 85%, black) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--primary) 0%,
+    color-mix(in srgb, var(--primary) 85%, black) 100%
+  );
 }
 
 .gradient-accent {
-  background: linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 85%, black) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--accent) 0%,
+    color-mix(in srgb, var(--accent) 85%, black) 100%
+  );
 }
 
 .gradient-success {
-  background: linear-gradient(135deg, var(--secondary) 0%, color-mix(in srgb, var(--secondary) 85%, black) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--secondary) 0%,
+    color-mix(in srgb, var(--secondary) 85%, black) 100%
+  );
 }
 
 .gradient-premium {
@@ -227,7 +249,11 @@
 }
 
 .gradient-gold {
-  background: linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 70%, white) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--accent) 0%,
+    color-mix(in srgb, var(--accent) 70%, white) 100%
+  );
 }
 
 /* Soft tinted stat tile background (used in league dashboard summary cards) */
@@ -243,7 +269,12 @@
 
 /* Dark mode hero gradient */
 .dark .gradient-hero {
-  background: linear-gradient(135deg, var(--background) 0%, var(--muted) 50%, var(--background) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--background) 0%,
+    var(--muted) 50%,
+    var(--background) 100%
+  );
 }
 
 /* Glass effect */
@@ -268,7 +299,6 @@
 
 /* Energy pulse animation for active states */
 @keyframes energy-pulse {
-
   0%,
   100% {
     box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 40%, transparent);
@@ -372,7 +402,11 @@
 }
 
 .text-gradient-accent {
-  background: linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 70%, white) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--accent) 0%,
+    color-mix(in srgb, var(--accent) 70%, white) 100%
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -407,4 +441,30 @@
 .font-outfit {
   --font-family: var(--font-outfit);
   font-family: var(--font-outfit), system-ui, sans-serif !important;
+}
+
+/* ============================================================================
+   Residential Landing Page Animations
+   ============================================================================ */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Landing page font utility classes */
+.corp-font-bebas {
+  font-family: var(--font-bebas-neue), 'Bebas Neue', sans-serif;
+}
+.corp-font-sans {
+  font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
+}
+.corp-font-mono {
+  font-family: var(--font-dm-mono), 'DM Mono', monospace;
 }
