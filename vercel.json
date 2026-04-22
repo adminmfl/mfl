@@ -28,15 +28,5 @@
       "path": "/api/cron/first-day-motivation",
       "schedule": "0 0 * * *"
     }
-  ],
-  "rewrites": [
-    {
-      "source": "/corporate",
-      "destination": "/mfl-landing-wired.html"
-    },
-    {
-      "source": "/communities",
-      "destination": "/mfl-residential-wired.html"
-    }
   ]
 }

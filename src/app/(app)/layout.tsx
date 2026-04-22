@@ -11,11 +11,10 @@ import { AppSidebar } from '@/components/app/app-sidebar';
 import { AppHeader } from '@/components/app/app-header';
 import { MobileBottomTabs } from '@/components/app/mobile-bottom-tabs';
 import { GuidedTour } from '@/components/onboarding/guided-tour';
+import { PwaInstallPrompt } from '@/components/pwa-install-prompt';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ShieldAlert, LogOut } from 'lucide-react';
-
-
 
 // ============================================================================
 // AppLayout Component
@@ -32,11 +31,7 @@ import { ArrowLeft, ShieldAlert, LogOut } from 'lucide-react';
  * - Mobile bottom tabs navigation
  * - Loading state while checking auth
  */
-export default function AppLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
   const router = useRouter();
   const pathname = usePathname();
@@ -94,7 +89,9 @@ export default function AppLayout({
     if (!isAdmin || !pathname) return;
     // If admin is no longer on a league page, run cleanup for any lingering roles
     if (!pathname.startsWith('/leagues/')) {
-      fetch('/api/admin/impersonate/cleanup', { method: 'POST' }).catch(() => {});
+      fetch('/api/admin/impersonate/cleanup', { method: 'POST' }).catch(
+        () => {},
+      );
     }
   }, [isAdmin, pathname]);
 
@@ -128,68 +125,77 @@ export default function AppLayout({
   const user = {
     name: session?.user?.name || 'User',
     email: session?.user?.email || 'user@example.com',
-    avatar: (session?.user as any)?.profile_picture_url || session?.user?.image || '',
+    avatar:
+      (session?.user as any)?.profile_picture_url || session?.user?.image || '',
   };
 
   return (
     <LeagueProvider>
       <RoleProvider>
         <LeagueBrandingProvider>
-        <SidebarProvider>
-          {/* Sidebar - Hidden on mobile */}
-          <AppSidebar user={user} className="hidden md:flex" />
+          <SidebarProvider>
+            {/* Sidebar - Hidden on mobile */}
+            <AppSidebar user={user} className="hidden md:flex" />
 
-          {/* Main Content Area */}
-          <SidebarInset>
-            {/* Header */}
-            <AppHeader />
+            {/* Main Content Area */}
+            <SidebarInset>
+              {/* Header */}
+              <AppHeader />
 
-            {/* Page Content */}
-            <main className="flex-1 overflow-auto pb-20 md:pb-0">
-              <div className="p-4 lg:p-6">
-                {impersonatingLeagueId && (
-                  <div className="mb-4 flex items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 px-4 py-3">
-                    <ShieldAlert className="size-5 text-amber-600 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
-                        Admin Mode — You are viewing this league as Host
-                      </p>
-                      <p className="text-xs text-amber-600 dark:text-amber-400">
-                        Your access will be removed when you leave this page.
-                      </p>
+              {/* Page Content */}
+              <main className="flex-1 overflow-auto pb-20 md:pb-0">
+                <div className="p-4 lg:p-6">
+                  {impersonatingLeagueId && (
+                    <div className="mb-4 flex items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 px-4 py-3">
+                      <ShieldAlert className="size-5 text-amber-600 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
+                          Admin Mode — You are viewing this league as Host
+                        </p>
+                        <p className="text-xs text-amber-600 dark:text-amber-400">
+                          Your access will be removed when you leave this page.
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="shrink-0 border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-600 dark:text-amber-300 dark:hover:bg-amber-900/40"
+                        onClick={handleExitAdminMode}
+                        disabled={isExiting}
+                      >
+                        <LogOut className="size-4 mr-1" />
+                        {isExiting ? 'Exiting...' : 'Exit Admin Mode'}
+                      </Button>
                     </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="shrink-0 border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-600 dark:text-amber-300 dark:hover:bg-amber-900/40"
-                      onClick={handleExitAdminMode}
-                      disabled={isExiting}
-                    >
-                      <LogOut className="size-4 mr-1" />
-                      {isExiting ? 'Exiting...' : 'Exit Admin Mode'}
-                    </Button>
-                  </div>
-                )}
-                {pathname !== '/dashboard'
-                  && !/^\/leagues\/[^/]+$/.test(pathname || '')
-                  && !/^\/leagues\/[^/]+\/submit$/.test(pathname || '')
-                  && !/^\/leagues\/[^/]+\/settings$/.test(pathname || '') && (
-                  <Button variant="outline" size="sm" className="mb-4 gap-2" onClick={handleBackClick}>
-                    <ArrowLeft className="size-4" />
-                    Back
-                  </Button>
-                )}
-                {children}
-              </div>
-            </main>
-          </SidebarInset>
+                  )}
+                  {pathname !== '/dashboard' &&
+                    !/^\/leagues\/[^/]+$/.test(pathname || '') &&
+                    !/^\/leagues\/[^/]+\/submit$/.test(pathname || '') &&
+                    !/^\/leagues\/[^/]+\/settings$/.test(pathname || '') && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mb-4 gap-2"
+                        onClick={handleBackClick}
+                      >
+                        <ArrowLeft className="size-4" />
+                        Back
+                      </Button>
+                    )}
+                  {children}
+                </div>
+              </main>
+            </SidebarInset>
 
-          {/* Mobile Bottom Tabs */}
-          <MobileBottomTabs />
+            {/* Mobile Bottom Tabs */}
+            <MobileBottomTabs />
 
-          {/* Guided Tour (first-time users) */}
-          <GuidedTour />
-        </SidebarProvider>
+            {/* Guided Tour (first-time users) */}
+            <GuidedTour />
+
+            {/* PWA Install Prompt (mobile only) */}
+            <PwaInstallPrompt />
+          </SidebarProvider>
         </LeagueBrandingProvider>
       </RoleProvider>
     </LeagueProvider>
