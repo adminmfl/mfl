@@ -1,8 +1,10 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth/config';
+import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServiceRole } from '@/lib/supabase/client';
-import { deriveLeagueStatus, persistLeagueStatusIfNeeded } from '@/lib/services/leagues';
+import {
+  deriveLeagueStatus,
+  persistLeagueStatusIfNeeded,
+} from '@/lib/services/leagues';
+import { getAuthUser } from '@/lib/auth/get-auth-user';
 
 // ============================================================================
 // GET /api/user/leagues
@@ -17,14 +19,13 @@ import { deriveLeagueStatus, persistLeagueStatusIfNeeded } from '@/lib/services/
  * - team_id, team_name: The user's team in this league (if any)
  * - is_host: Boolean indicating if user is the league host
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const session = (await getServerSession(authOptions as any)) as import('next-auth').Session | null;
-    const userId = (session?.user as any)?.id || (session?.user as any)?.user_id;
-
-    if (!userId) {
+    const authUser = await getAuthUser(req);
+    if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const userId = authUser.id;
 
     const supabase = getSupabaseServiceRole();
 
@@ -38,14 +39,17 @@ export async function GET() {
 
     if (membershipError) {
       console.error('Error fetching memberships:', membershipError);
-      return NextResponse.json({ error: 'Failed to fetch leagues' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to fetch leagues' },
+        { status: 500 },
+      );
     }
 
     const leagueIds = Array.from(
-      new Set((memberships || []).map((m: any) => m.league_id).filter(Boolean))
+      new Set((memberships || []).map((m: any) => m.league_id).filter(Boolean)),
     );
     const teamIds = Array.from(
-      new Set((memberships || []).map((m: any) => m.team_id).filter(Boolean))
+      new Set((memberships || []).map((m: any) => m.team_id).filter(Boolean)),
     );
 
     // Early return if no memberships
@@ -57,18 +61,23 @@ export async function GET() {
     const { data: leaguesData, error: leaguesError } = await supabase
       .from('leagues')
       .select(
-        'league_id, league_name, description, status, start_date, end_date, num_teams, tier_id, is_public, is_exclusive, invite_code, created_by, logo_url, branding, rr_config, rest_days'
+        'league_id, league_name, description, status, start_date, end_date, num_teams, tier_id, is_public, is_exclusive, invite_code, created_by, logo_url, branding, rr_config, rest_days, league_mode',
       )
       .in('league_id', leagueIds);
 
     if (leaguesError) {
       console.error('Error fetching leagues:', leaguesError);
-      return NextResponse.json({ error: 'Failed to fetch leagues' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to fetch leagues' },
+        { status: 500 },
+      );
     }
 
     // Fetch creator usernames for each league
     const creatorIds = Array.from(
-      new Set((leaguesData || []).map((l: any) => l.created_by).filter(Boolean))
+      new Set(
+        (leaguesData || []).map((l: any) => l.created_by).filter(Boolean),
+      ),
     );
 
     let creatorNameMap = new Map<string, string>();
@@ -85,7 +94,7 @@ export async function GET() {
 
     // Fetch tier capacities separately
     const tierIds = Array.from(
-      new Set((leaguesData || []).map((l: any) => l.tier_id).filter(Boolean))
+      new Set((leaguesData || []).map((l: any) => l.tier_id).filter(Boolean)),
     );
 
     let tierCapacityMap = new Map<string, number>();
@@ -110,7 +119,10 @@ export async function GET() {
 
       if (teamsError) {
         console.error('Error fetching teams:', teamsError);
-        return NextResponse.json({ error: 'Failed to fetch leagues' }, { status: 500 });
+        return NextResponse.json(
+          { error: 'Failed to fetch leagues' },
+          { status: 500 },
+        );
       }
       teamsData = data || [];
 
@@ -121,30 +133,38 @@ export async function GET() {
         .in('team_id', teamIds)
         .in('league_id', leagueIds);
 
-      for (const tl of (teamLeaguesData || [])) {
+      for (const tl of teamLeaguesData || []) {
         // Key by team_id + league_id for per-league logos
         teamLogoMap.set(`${tl.team_id}_${tl.league_id}`, tl.logo_url || null);
       }
     }
 
-
-    const leagueById = new Map((leaguesData || []).map((l: any) => [l.league_id, l] as const));
-    const teamById = new Map(teamsData.map((t: any) => [t.team_id, t] as const));
+    const leagueById = new Map(
+      (leaguesData || []).map((l: any) => [l.league_id, l] as const),
+    );
+    const teamById = new Map(
+      teamsData.map((t: any) => [t.team_id, t] as const),
+    );
 
     // Get all role assignments for the user
     const { data: roleAssignments, error: roleError } = await supabase
       .from('assignedrolesforleague')
-      .select(`
+      .select(
+        `
         league_id,
         roles (
           role_name
         )
-      `)
+      `,
+      )
       .eq('user_id', userId);
 
     if (roleError) {
       console.error('Error fetching roles:', roleError);
-      return NextResponse.json({ error: 'Failed to fetch roles' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to fetch roles' },
+        { status: 500 },
+      );
     }
 
     // Build a map of league_id -> roles[]
@@ -178,7 +198,9 @@ export async function GET() {
       }
 
       // Get league_capacity from tier map
-      const leagueCapacity = league?.tier_id ? (tierCapacityMap.get(league.tier_id) || 20) : 20;
+      const leagueCapacity = league?.tier_id
+        ? tierCapacityMap.get(league.tier_id) || 20
+        : 20;
 
       let derivedStatus = 'draft';
       let shouldPersist = false;
@@ -192,7 +214,11 @@ export async function GET() {
 
       if (shouldPersist && leagueId) {
         pendingStatusUpdates.push(
-          persistLeagueStatusIfNeeded(leagueId, league?.status || null, derivedStatus)
+          persistLeagueStatusIfNeeded(
+            leagueId,
+            league?.status || null,
+            derivedStatus,
+          ),
         );
       }
 
@@ -212,19 +238,23 @@ export async function GET() {
         roles: Array.isArray(roles) ? roles : [],
         team_id: team?.team_id || membership.team_id || null,
         team_name: team?.team_name || null,
-        team_logo_url: membership.team_id ? teamLogoMap.get(`${membership.team_id}_${leagueId}`) || null : null,
+        team_logo_url: membership.team_id
+          ? teamLogoMap.get(`${membership.team_id}_${leagueId}`) || null
+          : null,
         is_host: isHost,
-        creator_name: league?.created_by ? creatorNameMap.get(league.created_by) || null : null,
+        creator_name: league?.created_by
+          ? creatorNameMap.get(league.created_by) || null
+          : null,
         branding: (league as any)?.branding || null,
         rr_config: (league as any)?.rr_config || null,
         rest_days: (league as any)?.rest_days ?? 1,
+        league_mode: (league as any)?.league_mode || 'standard',
       };
-
     });
 
     // Remove duplicates (user might have multiple entries)
     const uniqueLeagues = Array.from(
-      new Map(leagues.map((l: any) => [l.league_id, l])).values()
+      new Map(leagues.map((l: any) => [l.league_id, l])).values(),
     );
 
     if (pendingStatusUpdates.length > 0) {
@@ -234,6 +264,9 @@ export async function GET() {
     return NextResponse.json({ leagues: uniqueLeagues });
   } catch (err) {
     console.error('Error in /api/user/leagues:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 },
+    );
   }
 }

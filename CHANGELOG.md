@@ -8,19 +8,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] — v2.6.0
 
 ### Added
+
 - Team messaging engine with realtime chat, @mentions, read receipts, and guided onboarding tour
 - AI Coach powered by Mistral: motivation nudges, captain insights, Q&A chatbot, and AI-assisted league creation wizard
 - AI League Manager: end-to-end AI-powered league setup and management
 - Workout link button in chat message input
 - Landing page revamp with corporate imagery, orange accent theme, and wearable integration copy
 - V2.5 P0/P1/P2 feature implementation across the platform
+- Add League Ended status badge based on end_date (#150)
+- **Captain Guidelines and pre-launch bonding automations (#153)**
+  - Auto-send welcome message from captain when player joins team
+  - Auto-send team announcement when new member is added
+  - Captain Guidelines document/tooltip accessible in-app with Week 1 focus
+  - System-generated team identity reveal message (team name + logo) on league launch
+  - Messages use team collective language (not individual)
+- **Auto-trigger pre-launch bonding messages at key lifecycle moments (#154)**
+  - Team reveal celebration message when league launches
+  - Captain intro prompt (nudge captain to introduce themselves) on league launch
+  - First day of league motivational message to all teams (automated via cron)
+  - Messages are configurable per league (host can enable/disable via bonding_automations_enabled)
+- Add suspicious-proof strike tracking system with warning UI and 3-strike logic (#157)
 
 ### Changed
+
 - Client feedback: filter dropdown, instant messaging UX, left-aligned dropdowns, mobile nav, league info title, and tour flow improvements
 - AI Coach v2.5: inline intelligence replaces standalone AI components
-- Add inputMode="numeric" to activity input fields for improved mobile input experience (#133)
+- Disable submission actions and enforce read-only mode for ended leagues (#150)
 
 ### Fixed
+
 - Captain restricted to own team only; removed ability to switch between teams (#1)
 - Add-member API returns proper response for captain on own team instead of 403 (#2)
 - Chat attach workout: replaced auto-action with explicit popover menu (#3)
@@ -44,10 +60,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Guided tour only shows once per login session instead of on every navigation
 - Root URL `/` now serves the corporate landing page; old landing preserved at `/landing`
 - Add Log In and Sign Up buttons to corporate landing page nav bar
+- Fix rest day donation sync, availability, and donor balance logic (#152)
+- Fix auto-assignment inconsistencies and submission conflicts (#152)
+- Fix chat workout links to display readable labels (#132)
 
 ## [2.0.0] — 2026-04-01
 
 ### Added
+
 - League feedback banner on My Activity page
 - Admin dashboard: host info column and "Login as Host" impersonation button (#90, #91)
 - MyTeam stats: activity/challenge statistics cards, welcome message with first name (#89)
@@ -58,12 +78,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Date picker for workout submission date selection (#98)
 
 ### Changed
+
 - Text and CTA copy updates across the app (#84)
 - League home: removed search/pagination, added RR column, improved UX (#88)
 - Simplified team members view on individual leaderboard (#87)
 - Player/team count cards added to configure dialogs (#94)
 
 ### Fixed
+
 - Cron timezone handling for auto rest day, captain validation window, submit date (#85)
 - Leaderboard RR tiebreaker logic, team name editing (#86)
 - UI bugs, leaderboard deduplication, rest day count accuracy, league settings editability (#92)
@@ -84,6 +106,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] — 2026-02-11
 
 ### Added
+
 - **Core platform**: Next.js application with Supabase backend and NextAuth (Google + Credentials)
 - **League management**: Multi-step creation form with tier selection, pricing preview, Razorpay payment integration
 - **Role-based access**: Host, Governor, Captain, Player roles with permission-gated pages and role context
@@ -113,6 +136,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **SEO & branding**: Updated icons, manifest, metadata
 
 ### Changed
+
 - Renamed "Workout" to "Activity" across all UI surfaces
 - Renamed "Avg RR" to "RR" for consistency
 - Renamed "Challenge Bonus" to "Challenge Points"
@@ -121,6 +145,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replaced hardcoded colors with semantic CSS variables
 
 ### Fixed
+
 - Realtime leaderboard accumulation on league completion
 - Submission deadline extended to 9:00 AM UTC next day for league end day
 - Timezone handling with IANA support and `date-fns-tz` v3.2.0
@@ -131,6 +156,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Auto rest day league query filtering
 
 ### Infrastructure
+
 - Complete Supabase database schema (28 tables, enums, indexes)
 - Row-level security policies for all tables
 - Cron jobs: auto-approve old submissions, auto-assign rest days

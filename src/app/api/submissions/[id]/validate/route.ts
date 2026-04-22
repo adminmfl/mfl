@@ -15,9 +15,15 @@ import { z } from 'zod';
 // ============================================================================
 
 const validateSchema = z.object({
-  status: z.enum(['approved', 'rejected', 'rejected_resubmit', 'rejected_permanent']),
+  status: z.enum([
+    'approved',
+    'rejected',
+    'rejected_resubmit',
+    'rejected_permanent',
+  ]),
   rejection_reason: z.string().optional(),
   awarded_points: z.number().optional(),
+  suspicious_proof: z.boolean().optional(),
 });
 
 // ============================================================================
@@ -26,18 +32,21 @@ const validateSchema = z.object({
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id: submissionId } = await params;
-    const session = (await getServerSession(authOptions as any)) as import('next-auth').Session | null;
+    const session = (await getServerSession(authOptions as any)) as
+      | import('next-auth').Session
+      | null;
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await request.json();
-    let { status, rejection_reason, awarded_points } = validateSchema.parse(body);
+    let { status, rejection_reason, awarded_points, suspicious_proof } =
+      validateSchema.parse(body);
 
     // Map legacy 'rejected' to 'rejected_resubmit'
     if (status === 'rejected') {
@@ -50,7 +59,8 @@ export async function POST(
     // Get the submission with league info
     const { data: submission, error: submissionError } = await supabase
       .from('effortentry')
-      .select(`
+      .select(
+        `
         id,
         league_member_id,
         modified_by,
@@ -60,28 +70,64 @@ export async function POST(
         leaguemembers!inner(
           league_id,
           team_id,
-          user_id
+          user_id,
+          suspicious_proof_strikes
         )
-      `)
+      `,
+      )
       .eq('id', submissionId)
       .single();
 
     if (submissionError || !submission) {
       return NextResponse.json(
         { error: 'Submission not found' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     const leagueMember = submission.leaguemembers as any;
     const leagueId = leagueMember.league_id;
     const submissionTeamId = leagueMember.team_id;
+    const submissionLeagueMemberId = submission.league_member_id as string;
+    const currentStrikeCount = Number(
+      leagueMember.suspicious_proof_strikes ?? 0,
+    );
+
+    let finalStatus = status;
+    let shouldCountSuspiciousProof = false;
+
+    if (
+      suspicious_proof &&
+      ['rejected_resubmit', 'rejected_permanent'].includes(status)
+    ) {
+      shouldCountSuspiciousProof = true;
+      const { data: leagueRow, error: leagueFetchError } = await supabase
+        .from('leagues')
+        .select('suspicious_proof_rejection_threshold')
+        .eq('league_id', leagueId)
+        .single();
+
+      const escalationThreshold =
+        !leagueFetchError && leagueRow?.suspicious_proof_rejection_threshold
+          ? Number(leagueRow.suspicious_proof_rejection_threshold)
+          : 3;
+
+      if (
+        currentStrikeCount + 1 >= escalationThreshold &&
+        status === 'rejected_resubmit'
+      ) {
+        finalStatus = 'rejected_permanent';
+      }
+    }
 
     // Check user's permissions to validate this submission
     // 1) Host/Governor override
     // NOTE: Do not use maybeSingle() for role checks: users often have multiple roles,
     // which causes maybeSingle() to fail and incorrectly deny permissions.
-    const canOverride = await userHasAnyRole(userId, leagueId, ['host', 'governor']);
+    const canOverride = await userHasAnyRole(userId, leagueId, [
+      'host',
+      'governor',
+    ]);
 
     // 3. Check if user is captain of the submission's team (via assignedrolesforleague)
     let isCaptainOfTeam = false;
@@ -131,15 +177,21 @@ export async function POST(
     if (!canOverride && !isCaptainOfTeam) {
       return NextResponse.json(
         { error: 'You do not have permission to validate this submission' },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
     // Role-specific restrictions
-    if (status === 'rejected_permanent' && !canOverride) {
+    if (
+      (status === 'rejected_permanent' ||
+        finalStatus === 'rejected_permanent') &&
+      !canOverride
+    ) {
       return NextResponse.json(
-        { error: 'Only Hosts and Governors can permanently reject submissions' },
-        { status: 403 }
+        {
+          error: 'Only Hosts and Governors can permanently reject submissions',
+        },
+        { status: 403 },
       );
     }
 
@@ -151,19 +203,22 @@ export async function POST(
     if (!canOverride && !isCaptainOfTeam && leagueMember.user_id === userId) {
       return NextResponse.json(
         { error: 'You cannot validate your own submission' },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
     // Update the submission status
     const updateData: Record<string, any> = {
-      status,
+      status: finalStatus,
       modified_by: userId,
       modified_date: new Date().toISOString(),
     };
 
     // Store rejection reason if provided
-    if ((status === 'rejected' || status === 'rejected_resubmit' || status === 'rejected_permanent') && rejection_reason) {
+    if (
+      (status === 'rejected_resubmit' || status === 'rejected_permanent') &&
+      rejection_reason
+    ) {
       updateData.rejection_reason = rejection_reason;
     }
 
@@ -182,8 +237,31 @@ export async function POST(
       console.error('Error updating submission:', updateError);
       return NextResponse.json(
         { error: 'Failed to update submission' },
-        { status: 500 }
+        { status: 500 },
       );
+    }
+
+    if (shouldCountSuspiciousProof) {
+      const { error: strikeUpdateError } = await supabase.rpc(
+        'increment_suspicious_proof_strike',
+        {
+          p_league_member_id: submissionLeagueMemberId,
+        },
+      );
+
+      if (strikeUpdateError) {
+        console.error(
+          'Error updating suspicious proof strikes:',
+          strikeUpdateError,
+        );
+        return NextResponse.json(
+          {
+            error:
+              'Submission was updated, but strike increment failed. Please retry or contact support.',
+          },
+          { status: 500 },
+        );
+      }
     }
 
     return NextResponse.json({
@@ -195,12 +273,12 @@ export async function POST(
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Validation failed', details: error.errors },
-        { status: 400 }
+        { status: 400 },
       );
     }
     return NextResponse.json(
       { error: 'Failed to validate submission' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

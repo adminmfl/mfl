@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getToken } from 'next-auth/jwt'
 import bcrypt from 'bcryptjs'
 import { getSupabaseServiceRole } from '@/lib/supabase/client'
 import { isRateLimited } from '@/lib/rateLimiter'
 import { getUserById, updateUserProfile } from '@/lib/services/users'
-
-const SECRET = process.env.NEXTAUTH_SECRET
+import { getAuthUser } from '@/lib/auth/get-auth-user'
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,8 +18,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
     }
 
-    const token = await getToken({ req, secret: SECRET })
-    if (!token || !token.id) {
+    const authUser = await getAuthUser(req)
+    if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -33,7 +31,7 @@ export async function POST(req: NextRequest) {
       .from('users')
       .select('user_id')
       .eq('username', String(username).toLowerCase())
-      .neq('user_id', token.id)
+      .neq('user_id', authUser.id)
       .maybeSingle()
 
     if (existing) {
@@ -44,7 +42,7 @@ export async function POST(req: NextRequest) {
 
     // Update user profile using service layer with service role (bypasses RLS during onboarding)
     const updatedUser = await updateUserProfile(
-      token.id as string,
+      authUser.id as string,
       {
         username: String(username).toLowerCase(),
         password_hash: hashed,
@@ -59,7 +57,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 })
     }
 
-    console.log('complete-profile updated user via service:', token.id)
+    console.log('complete-profile updated user via service:', authUser.id)
 
     return NextResponse.json({ ok: true })
   } catch (err) {

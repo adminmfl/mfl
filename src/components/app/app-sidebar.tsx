@@ -9,6 +9,8 @@ import {
   MoreVertical,
 } from 'lucide-react';
 
+import { CaptainGuidelinesDialog } from '@/components/captain/captain-guidelines-dialog';
+
 import { useLeague } from '@/contexts/league-context';
 import { useRole } from '@/contexts/role-context';
 import { getSidebarNavItems, NavSection } from '@/lib/navigation/sidebar-config';
@@ -211,6 +213,7 @@ function NavSectionGroup({
   leagueId: string | null;
 }) {
   const { setOpenMobile } = useSidebar();
+  const [captainGuidelinesOpen, setCaptainGuidelinesOpen] = React.useState(false);
 
   return (
     <SidebarGroup>
@@ -228,6 +231,31 @@ function NavSectionGroup({
             ? pathname === item.url
             : pathname === item.url ||
             (!isLeagueRoot && item.url !== '/dashboard' && pathname?.startsWith(item.url));
+
+          // Special handling for Captain Guidelines
+          if (item.url === '#captain-guidelines') {
+            return (
+              <SidebarMenuItem key={item.url}>
+                <CaptainGuidelinesDialog
+                  open={captainGuidelinesOpen}
+                  onOpenChange={setCaptainGuidelinesOpen}
+                  leagueId={leagueId}
+                  trigger={
+                    <SidebarMenuButton
+                      tooltip={item.title}
+                      onClick={() => {
+                        setCaptainGuidelinesOpen(true);
+                        setOpenMobile(false);
+                      }}
+                    >
+                      <item.icon className="size-4" />
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                  }
+                />
+              </SidebarMenuItem>
+            );
+          }
 
           return (
             <SidebarMenuItem key={item.url}>

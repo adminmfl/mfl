@@ -4,8 +4,7 @@
  * GET /api/leagues/[id]/roles - List all available roles for league
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth/config';
+import { getAuthUser } from '@/lib/auth/get-auth-user';
 import {
   assignRoleToUser,
   removeRoleFromUser,
@@ -26,13 +25,13 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const session = (await getServerSession(authOptions as any)) as import('next-auth').Session | null;
-    if (!session?.user?.id) {
+    const authUser = await getAuthUser(request);
+    if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Return roles for the current user in THIS league (league-scoped)
-    const rolesForUser = await getUserRoleInLeague(session.user.id, id);
+    const rolesForUser = await getUserRoleInLeague(authUser.id, id);
     if (!rolesForUser) {
       return NextResponse.json({ error: 'You are not a member of this league' }, { status: 403 });
     }
@@ -50,13 +49,13 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const session = (await getServerSession(authOptions as any)) as import('next-auth').Session | null;
-    if (!session?.user?.id) {
+    const authUser = await getAuthUser(request);
+    if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Check permission (must be host)
-    const isHost = await userHasRole(session.user.id, id, 'host');
+    const isHost = await userHasRole(authUser.id, id, 'host');
     if (!isHost) {
       return NextResponse.json(
         { error: 'Only host can assign roles' },
@@ -76,7 +75,7 @@ export async function POST(
       );
     }
 
-    const result = await assignRoleToUser(validated.user_id, id, validated.role_name, session.user.id);
+    const result = await assignRoleToUser(validated.user_id, id, validated.role_name, authUser.id);
     if (!result) {
       return NextResponse.json(
         { error: 'Failed to assign role' },

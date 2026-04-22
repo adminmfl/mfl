@@ -12,9 +12,10 @@ import { useRouter } from 'next/navigation';
 interface ActivityTimelineProps {
   id: string;
   leagueStartDate: string;
+  isLeagueEnded: boolean;
 }
 
-export function ActivityTimeline({ id, leagueStartDate }: ActivityTimelineProps) {
+export function ActivityTimeline({ id, leagueStartDate, isLeagueEnded }: ActivityTimelineProps) {
   const [weekOffset, setWeekOffset] = useState(0);
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -152,7 +153,7 @@ export function ActivityTimeline({ id, leagueStartDate }: ActivityTimelineProps)
         onOpenChange={setDetailDialogOpen}
         submission={selectedSubmission}
         isOwner
-        onReupload={(id) => handleReupload(selectedSubmission)}
+        onReupload={isLeagueEnded ? undefined : (id) => handleReupload(selectedSubmission)}
       />
     </div>
   );

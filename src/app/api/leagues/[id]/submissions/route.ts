@@ -83,6 +83,7 @@ export async function GET(
         league_member_id,
         user_id,
         team_id,
+        suspicious_proof_strikes,
         users!leaguemembers_user_id_fkey(username, email),
         teams(team_name)
       `)
@@ -114,6 +115,7 @@ export async function GET(
       email: string;
       team_id: string | null;
       team_name: string | null;
+      suspicious_proof_strikes: number;
     }>();
 
     const teamSet = new Set<string>();
@@ -127,6 +129,7 @@ export async function GET(
         email: user?.email || '',
         team_id: m.team_id,
         team_name: team?.team_name || null,
+        suspicious_proof_strikes: Number(m.suspicious_proof_strikes ?? 0),
       });
       if (m.team_id && team?.team_name) {
         teamSet.add(JSON.stringify({ team_id: m.team_id, team_name: team.team_name }));

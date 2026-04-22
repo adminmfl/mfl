@@ -5,14 +5,13 @@
  * DELETE /api/leagues/[id]/members - Remove member from league (Host only)
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth/config';
 import {
   addLeagueMember,
 } from '@/lib/services/memberships';
 import { getUserRolesInLeague } from '@/lib/services/leagues';
 import { userHasAnyRole } from '@/lib/services/roles';
 import { getLeagueMembersWithTeams, assignMemberToTeam } from '@/lib/services/teams';
+import { getAuthUser } from '@/lib/auth/get-auth-user';
 import { z } from 'zod';
 import { getSupabaseServiceRole } from '@/lib/supabase/client';
 
@@ -32,8 +31,8 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const session = (await getServerSession(authOptions as any)) as import('next-auth').Session | null;
-    if (!session?.user?.id) {
+    const authUser = await getAuthUser(request);
+    if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -52,7 +51,7 @@ export async function GET(
     const members = membersRaw || [];
 
     // Check if user is member of league
-    const isUserMember = members.some((m: any) => m.user_id === session.user.id);
+    const isUserMember = members.some((m: any) => m.user_id === authUser.id);
     if (!isUserMember) {
       return NextResponse.json(
         { error: 'You are not a member of this league' },
@@ -95,13 +94,13 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const session = (await getServerSession(authOptions as any)) as import('next-auth').Session | null;
-    if (!session?.user?.id) {
+    const authUser = await getAuthUser(request);
+    if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Check permissions (must be host or governor)
-    const canAdd = await userHasAnyRole(session.user.id, id, [
+    const canAdd = await userHasAnyRole(authUser.id, id, [
       'host',
       'governor',
     ]);
@@ -119,7 +118,7 @@ export async function POST(
       validated.user_id,
       id,
       validated.team_id,
-      session.user.id
+      authUser.id
     );
 
     if (!member) {
@@ -158,14 +157,13 @@ export async function PATCH(
 ) {
   try {
     const { id: leagueId } = await params;
-    const session = (await getServerSession(authOptions as any)) as import('next-auth').Session | null;
-
-    if (!session?.user?.id) {
+    const authUser = await getAuthUser(request);
+    if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Host only
-    const isHost = await userHasAnyRole(session.user.id, leagueId, ['host']);
+    const isHost = await userHasAnyRole(authUser.id, leagueId, ['host']);
     if (!isHost) {
       return NextResponse.json(
         { error: 'Only league host can move members' },
@@ -209,7 +207,7 @@ export async function PATCH(
     }
 
     // Move member to team
-    const success = await assignMemberToTeam(memberId, teamId, session.user.id);
+    const success = await assignMemberToTeam(memberId, teamId, authUser.id);
 
     if (!success) {
       return NextResponse.json(
@@ -269,15 +267,14 @@ export async function DELETE(
 ) {
   try {
     const { id: leagueId } = await params;
-    const session = (await getServerSession(authOptions as any)) as import('next-auth').Session | null;
-
-    if (!session?.user?.id) {
+    const authUser = await getAuthUser(request);
+    if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Host only
-    const isHost = await userHasAnyRole(session.user.id, leagueId, ['host']);
-    if (!isHost) {
+    const isHost2 = await userHasAnyRole(authUser.id, leagueId, ['host']);
+    if (!isHost2) {
       return NextResponse.json(
         { error: 'Only league host can remove members' },
         { status: 403 }
@@ -311,7 +308,7 @@ export async function DELETE(
     }
 
     // Prevent host from removing themselves
-    if (member.user_id === session.user.id) {
+    if (member.user_id === authUser.id) {
       return NextResponse.json(
         { error: 'You cannot remove yourself from the league' },
         { status: 400 }

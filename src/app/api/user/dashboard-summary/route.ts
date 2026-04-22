@@ -1,18 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth/config";
 import { getSupabaseServiceRole } from "@/lib/supabase/client";
+import { getAuthUser } from "@/lib/auth/get-auth-user";
 
 export async function GET(req: NextRequest) {
   try {
-    const session = (await getServerSession(authOptions as any)) as
-      | import("next-auth").Session
-      | null;
-    if (!session?.user?.id) {
+    const authUser = await getAuthUser(req);
+    if (!authUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const userId = session.user.id;
+    const userId = authUser.id;
     const supabase = getSupabaseServiceRole();
 
     // 1. Get all league memberships for user

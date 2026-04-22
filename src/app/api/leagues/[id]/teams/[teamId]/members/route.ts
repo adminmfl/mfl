@@ -4,8 +4,7 @@
  * DELETE /api/leagues/[id]/teams/[teamId]/members - Remove member from team
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth/config';
+import { getAuthUser } from '@/lib/auth/get-auth-user';
 import { z } from 'zod';
 import {
   getTeamMembers,
@@ -15,6 +14,7 @@ import {
 import { getLeagueById } from '@/lib/services/leagues';
 import { userHasAnyRole } from '@/lib/services/roles';
 import { getSupabaseServiceRole } from '@/lib/supabase/client';
+import { sendWelcomeMessage, sendTeamAnnouncement } from '@/lib/services/bonding-automations';
 
 // Helper to check if user is league member
 async function isLeagueMember(userId: string, leagueId: string): Promise<boolean> {
@@ -42,16 +42,17 @@ export async function GET(
 ) {
   try {
     const { id: leagueId, teamId } = await params;
-    const session = (await getServerSession(authOptions as any)) as import('next-auth').Session | null;
-
-    if (!session?.user?.id) {
+    const authUser = await getAuthUser(request);
+    if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const userId = authUser.id;
+
     // Check if user is a member of this league and fetch team members in parallel
     const [isMember, hasRole, members] = await Promise.all([
-      isLeagueMember(session.user.id, leagueId),
-      userHasAnyRole(session.user.id, leagueId, [
+      isLeagueMember(userId, leagueId),
+      userHasAnyRole(userId, leagueId, [
         'host',
         'governor',
         'captain',
@@ -87,14 +88,15 @@ export async function POST(
 ) {
   try {
     const { id: leagueId, teamId } = await params;
-    const session = (await getServerSession(authOptions as any)) as import('next-auth').Session | null;
-
-    if (!session?.user?.id) {
+    const authUser = await getAuthUser(request);
+    if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const userId = authUser.id;
+
     // Check permissions (host, governor, or captain of this specific team)
-    const isHostOrGovernor = await userHasAnyRole(session.user.id, leagueId, [
+    const isHostOrGovernor = await userHasAnyRole(userId, leagueId, [
       'host',
       'governor',
     ]);
@@ -103,14 +105,14 @@ export async function POST(
 
     // Captains can only add members to their own team
     if (!canAssign) {
-      const isCaptain = await userHasAnyRole(session.user.id, leagueId, ['captain']);
+      const isCaptain = await userHasAnyRole(userId, leagueId, ['captain']);
       if (isCaptain) {
         // Verify the captain is on this specific team
         const supabaseCheck = getSupabaseServiceRole();
         const { data: captainMembership } = await supabaseCheck
           .from('leaguemembers')
           .select('team_id')
-          .eq('user_id', session.user.id)
+          .eq('user_id', userId)
           .eq('league_id', leagueId)
           .maybeSingle();
 
@@ -172,7 +174,7 @@ export async function POST(
     const success = await assignMemberToTeam(
       validated.league_member_id,
       teamId,
-      session.user.id
+      userId
     );
 
     if (!success) {
@@ -180,6 +182,28 @@ export async function POST(
         { error: 'Failed to assign member to team' },
         { status: 500 }
       );
+    }
+
+    // Get the newly added member's details for bonding messages
+    const { data: newMember } = await supabase
+      .from('leaguemembers')
+      .select(`
+        user_id,
+        users!leaguemembers_user_id_fkey(username)
+      `)
+      .eq('league_member_id', validated.league_member_id)
+      .single();
+
+    if (newMember?.users) {
+      const memberName = (newMember.users as any).username;
+
+      // Send automated bonding messages (don't block response on these)
+      Promise.all([
+        sendWelcomeMessage(leagueId, teamId, newMember.user_id, memberName),
+        sendTeamAnnouncement(leagueId, teamId, memberName)
+      ]).catch(error => {
+        console.error('[Bonding] Error sending automated messages:', error);
+      });
     }
 
     return NextResponse.json({
@@ -207,11 +231,12 @@ export async function DELETE(
 ) {
   try {
     const { id: leagueId, teamId } = await params;
-    const session = (await getServerSession(authOptions as any)) as import('next-auth').Session | null;
-
-    if (!session?.user?.id) {
+    const authUser = await getAuthUser(request);
+    if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const userId = authUser.id;
 
     const body = await request.json();
     const validated = removeMemberSchema.parse(body);
@@ -238,7 +263,7 @@ export async function DELETE(
       );
     }
 
-    const isHostOrGovernor = await userHasAnyRole(session.user.id, leagueId, [
+    const isHostOrGovernor = await userHasAnyRole(userId, leagueId, [
       'host',
       'governor',
     ]);
@@ -246,12 +271,12 @@ export async function DELETE(
     let canRemove = isHostOrGovernor;
 
     if (!canRemove) {
-      const isCaptain = await userHasAnyRole(session.user.id, leagueId, ['captain']);
+      const isCaptain = await userHasAnyRole(userId, leagueId, ['captain']);
       if (isCaptain) {
         const { data: captainMembership } = await supabase
           .from('leaguemembers')
           .select('team_id')
-          .eq('user_id', session.user.id)
+          .eq('user_id', userId)
           .eq('league_id', leagueId)
           .maybeSingle();
 
@@ -270,7 +295,7 @@ export async function DELETE(
 
     const removalResult = await removeMemberFromTeam(
       validated.league_member_id,
-      session.user.id
+      userId
     );
 
     if (!removalResult.success) {

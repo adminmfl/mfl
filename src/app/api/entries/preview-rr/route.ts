@@ -5,19 +5,18 @@
  * Useful to block submissions client-side before uploading proof.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth/config';
+import { getAuthUser } from '@/lib/auth/get-auth-user';
 import { getSupabaseServiceRole } from '@/lib/supabase/client';
 import { calculateRR, type RRConfig } from '@/lib/rr-calculator';
 
 export async function POST(req: NextRequest) {
   try {
-    const session = (await getServerSession(authOptions as any)) as import('next-auth').Session | null;
-    if (!session?.user?.id) {
+    const authUser = await getAuthUser(req);
+    if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userId = session.user.id;
+    const userId = authUser.id;
     const supabase = getSupabaseServiceRole();
 
     const body = await req.json();

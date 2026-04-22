@@ -15,9 +15,22 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { toast } from '@/lib/toast';
-import { CheckCircle2, Clock3, XCircle, FileText, Eye, Trophy } from 'lucide-react';
+import {
+  CheckCircle2,
+  Clock3,
+  XCircle,
+  FileText,
+  Eye,
+  Trophy,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { isReuploadWindowOpen } from '@/lib/utils/reupload-window';
 
@@ -28,7 +41,13 @@ type Challenge = {
   description: string | null;
   challenge_type: 'individual' | 'team' | 'sub_team' | 'tournament';
   total_points: number;
-  status: 'draft' | 'scheduled' | 'active' | 'submission_closed' | 'published' | 'closed';
+  status:
+    | 'draft'
+    | 'scheduled'
+    | 'active'
+    | 'submission_closed'
+    | 'published'
+    | 'closed';
   start_date: string | null;
   end_date: string | null;
   doc_url: string | null;
@@ -49,11 +68,23 @@ const statusBadge = (s: Challenge['status']) => {
   switch (s) {
     case 'draft':
     case 'scheduled':
-      return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100/80 border-blue-200">Coming Soon</Badge>;
+      return (
+        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100/80 border-blue-200">
+          Coming Soon
+        </Badge>
+      );
     case 'active':
-      return <Badge className="bg-green-100 text-green-800 hover:bg-green-100/80 border-green-200">Active</Badge>;
+      return (
+        <Badge className="bg-green-100 text-green-800 hover:bg-green-100/80 border-green-200">
+          Active
+        </Badge>
+      );
     case 'submission_closed':
-      return <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-100/80 border-orange-200">Submissions Closed</Badge>;
+      return (
+        <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-100/80 border-orange-200">
+          Submissions Closed
+        </Badge>
+      );
     case 'published':
     case 'closed':
       return <Badge variant="secondary">Completed</Badge>;
@@ -64,9 +95,21 @@ const statusBadge = (s: Challenge['status']) => {
 
 function submissionStatusBadge(status: ChallengeSubmission['status']) {
   const map = {
-    pending: { label: 'Pending Review', icon: Clock3, className: 'bg-yellow-100 text-yellow-800' },
-    approved: { label: 'Approved ✓', icon: CheckCircle2, className: 'bg-green-100 text-green-700' },
-    rejected: { label: 'Rejected', icon: XCircle, className: 'bg-red-100 text-red-700' },
+    pending: {
+      label: 'Pending Review',
+      icon: Clock3,
+      className: 'bg-yellow-100 text-yellow-800',
+    },
+    approved: {
+      label: 'Approved ✓',
+      icon: CheckCircle2,
+      className: 'bg-green-100 text-green-700',
+    },
+    rejected: {
+      label: 'Rejected',
+      icon: XCircle,
+      className: 'bg-red-100 text-red-700',
+    },
   } as const;
   const cfg = map[status];
   const Icon = cfg.icon;
@@ -99,28 +142,39 @@ import { useRole } from '@/contexts/role-context';
 
 // ... (other types and helpers remain same)
 
-export default function ChallengesPage({ params }: { params: Promise<{ id: string }> }) {
+export default function ChallengesPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id: leagueId } = use(params);
   const { isHost, isGovernor } = useRole();
   const isAdmin = isHost || isGovernor;
-  const tzOffsetMinutes = React.useMemo(() => new Date().getTimezoneOffset(), []);
+  const tzOffsetMinutes = React.useMemo(
+    () => new Date().getTimezoneOffset(),
+    [],
+  );
 
   const [loading, setLoading] = React.useState(true);
   const [challenges, setChallenges] = React.useState<Challenge[]>([]);
 
   // Submit dialog state
   const [submitOpen, setSubmitOpen] = React.useState(false);
-  const [submitChallenge, setSubmitChallenge] = React.useState<Challenge | null>(null);
+  const [submitChallenge, setSubmitChallenge] =
+    React.useState<Challenge | null>(null);
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = React.useState(false);
 
   // Unique workout dialog state
   const [uniqueWorkoutOpen, setUniqueWorkoutOpen] = React.useState(false);
-  const [uniqueWorkoutChallenge, setUniqueWorkoutChallenge] = React.useState<Challenge | null>(null);
+  const [uniqueWorkoutChallenge, setUniqueWorkoutChallenge] =
+    React.useState<Challenge | null>(null);
   const [approvedWorkouts, setApprovedWorkouts] = React.useState<any[]>([]);
   const [loadingWorkouts, setLoadingWorkouts] = React.useState(false);
-  const [selectedEntryId, setSelectedEntryId] = React.useState<string | null>(null);
+  const [selectedEntryId, setSelectedEntryId] = React.useState<string | null>(
+    null,
+  );
   const [submittingUnique, setSubmittingUnique] = React.useState(false);
 
   // View Proof dialog
@@ -139,7 +193,7 @@ export default function ChallengesPage({ params }: { params: Promise<{ id: strin
       const rejectionTime = submission.reviewed_at || submission.created_at;
       return isReuploadWindowOpen(rejectionTime, tzOffsetMinutes);
     },
-    [tzOffsetMinutes]
+    [tzOffsetMinutes],
   );
 
   const fetchChallenges = React.useCallback(async () => {
@@ -155,7 +209,7 @@ export default function ChallengesPage({ params }: { params: Promise<{ id: strin
       }
       // Filter to only show non-draft challenges to players
       const visibleChallenges = (json.data?.active || []).filter(
-        (c: Challenge) => c.status !== 'draft'
+        (c: Challenge) => c.status !== 'draft',
       );
       setChallenges(visibleChallenges);
     } catch (err) {
@@ -172,8 +226,9 @@ export default function ChallengesPage({ params }: { params: Promise<{ id: strin
   }, [fetchChallenges]);
 
   const approvedCount = React.useMemo(
-    () => challenges.filter((c) => c.my_submission?.status === 'approved').length,
-    [challenges]
+    () =>
+      challenges.filter((c) => c.my_submission?.status === 'approved').length,
+    [challenges],
   );
 
   const totalChallenges = challenges.length;
@@ -200,7 +255,8 @@ export default function ChallengesPage({ params }: { params: Promise<{ id: strin
       // 1. Approved workouts within the challenge period (candidates)
       // 2. ALL approved workouts for this player (to check uniqueness history)
       const periodParams = new URLSearchParams({ status: 'approved' });
-      if (challenge.start_date) periodParams.set('startDate', challenge.start_date);
+      if (challenge.start_date)
+        periodParams.set('startDate', challenge.start_date);
       if (challenge.end_date) periodParams.set('endDate', challenge.end_date);
 
       const allParams = new URLSearchParams({ status: 'approved' });
@@ -215,10 +271,10 @@ export default function ChallengesPage({ params }: { params: Promise<{ id: strin
 
       if (periodRes.ok && periodJson.success && allRes.ok && allJson.success) {
         const periodWorkouts = (periodJson.data?.submissions || []).filter(
-          (s: any) => s.type === 'workout'
+          (s: any) => s.type === 'workout',
         );
         const allWorkouts = (allJson.data?.submissions || []).filter(
-          (s: any) => s.type === 'workout'
+          (s: any) => s.type === 'workout',
         );
 
         // For each challenge-period workout, check if the workout_type was done before that date
@@ -228,7 +284,9 @@ export default function ChallengesPage({ params }: { params: Promise<{ id: strin
           if (!wType) return false;
           // Check if any earlier entry has the same workout_type
           const hasPrior = allWorkouts.some(
-            (other: any) => other.workout_type === wType && String(other.date).slice(0, 10) < wDate
+            (other: any) =>
+              other.workout_type === wType &&
+              String(other.date).slice(0, 10) < wDate,
           );
           return !hasPrior;
         });
@@ -255,7 +313,7 @@ export default function ChallengesPage({ params }: { params: Promise<{ id: strin
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ workoutEntryId: selectedEntryId }),
-        }
+        },
       );
 
       const json = await res.json();
@@ -304,7 +362,7 @@ export default function ChallengesPage({ params }: { params: Promise<{ id: strin
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ proofUrl }),
-        }
+        },
       );
 
       const submitJson = await submitRes.json();
@@ -322,10 +380,20 @@ export default function ChallengesPage({ params }: { params: Promise<{ id: strin
     }
   };
 
-  function ReadMoreText({ text, maxChars = 120 }: { text: string; maxChars?: number }) {
+  function ReadMoreText({
+    text,
+    maxChars = 120,
+  }: {
+    text: string;
+    maxChars?: number;
+  }) {
     const [expanded, setExpanded] = React.useState(false);
     if (!text || text.length <= maxChars) {
-      return <p className="text-sm text-muted-foreground">{text || 'No description'}</p>;
+      return (
+        <p className="text-sm text-muted-foreground">
+          {text || 'No description'}
+        </p>
+      );
     }
     return (
       <div className="space-y-1">
@@ -367,13 +435,19 @@ export default function ChallengesPage({ params }: { params: Promise<{ id: strin
       </div>
 
       <div className="px-4 lg:px-6 space-y-4">
-        {loading && <p className="text-muted-foreground">Loading challenges...</p>}
+        {loading && (
+          <p className="text-muted-foreground">Loading challenges...</p>
+        )}
 
         {!loading && challenges.length === 0 && (
           <div className="text-center py-12 border rounded-lg bg-muted/30">
             <Trophy className="mx-auto mb-3 text-muted-foreground size-8" />
-            <p className="font-medium text-muted-foreground">No challenges yet</p>
-            <p className="text-sm text-muted-foreground mt-1">Your captain will add one soon!</p>
+            <p className="font-medium text-muted-foreground">
+              No challenges yet
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Your Host may add one soon!
+            </p>
           </div>
         )}
 
@@ -382,16 +456,23 @@ export default function ChallengesPage({ params }: { params: Promise<{ id: strin
             const canSubmit =
               challenge.status === 'active' &&
               challenge.challenge_type !== 'tournament' &&
-              (
-                !challenge.my_submission ||
+              (!challenge.my_submission ||
                 challenge.my_submission.status === 'rejected' ||
-                (challenge.is_unique_workout && challenge.my_submission.status === 'approved')
-              ) &&
-              (challenge.my_submission?.status !== 'rejected' || canReuploadSubmission(challenge.my_submission));
+                (challenge.is_unique_workout &&
+                  challenge.my_submission.status === 'approved')) &&
+              (challenge.my_submission?.status !== 'rejected' ||
+                canReuploadSubmission(challenge.my_submission));
 
-            const startDate = challenge.start_date ? format(parseISO(challenge.start_date), 'MMM d') : '';
-            const endDate = challenge.end_date ? format(parseISO(challenge.end_date), 'MMM d') : '';
-            const duration = startDate && endDate ? `${startDate} - ${endDate}` : startDate || 'TBD';
+            const startDate = challenge.start_date
+              ? format(parseISO(challenge.start_date), 'MMM d')
+              : '';
+            const endDate = challenge.end_date
+              ? format(parseISO(challenge.end_date), 'MMM d')
+              : '';
+            const duration =
+              startDate && endDate
+                ? `${startDate} - ${endDate}`
+                : startDate || 'TBD';
 
             return (
               <Card
@@ -406,7 +487,9 @@ export default function ChallengesPage({ params }: { params: Promise<{ id: strin
                     {statusBadge(challenge.status)}
                   </div>
                   <CardDescription>
-                    <ReadMoreText text={challenge.description || 'No description'} />
+                    <ReadMoreText
+                      text={challenge.description || 'No description'}
+                    />
                   </CardDescription>
                 </CardHeader>
 
@@ -424,7 +507,7 @@ export default function ChallengesPage({ params }: { params: Promise<{ id: strin
                           challengeDetails={{
                             name: challenge.name,
                             duration: duration,
-                            docUrl: challenge.doc_url
+                            docUrl: challenge.doc_url,
                           }}
                           size="icon"
                           className="h-8 w-8 text-muted-foreground hover:text-foreground"
@@ -438,7 +521,9 @@ export default function ChallengesPage({ params }: { params: Promise<{ id: strin
                       variant="outline"
                       size="sm"
                       className="w-full gap-2"
-                      onClick={() => window.location.href = `/leagues/${leagueId}/challenges/${challenge.id}`}
+                      onClick={() =>
+                        (window.location.href = `/leagues/${leagueId}/challenges/${challenge.id}`)
+                      }
                     >
                       <Trophy className="size-4" />
                       View Fixtures & Standings
@@ -447,9 +532,18 @@ export default function ChallengesPage({ params }: { params: Promise<{ id: strin
 
                   {(challenge.start_date || challenge.end_date) && (
                     <div className="text-xs text-muted-foreground">
-                      {challenge.start_date && <>Start: {format(parseISO(challenge.start_date), 'MMM d')}</>}
+                      {challenge.start_date && (
+                        <>
+                          Start:{' '}
+                          {format(parseISO(challenge.start_date), 'MMM d')}
+                        </>
+                      )}
                       {challenge.start_date && challenge.end_date && ' • '}
-                      {challenge.end_date && <>End: {format(parseISO(challenge.end_date), 'MMM d')}</>}
+                      {challenge.end_date && (
+                        <>
+                          End: {format(parseISO(challenge.end_date), 'MMM d')}
+                        </>
+                      )}
                     </div>
                   )}
 
@@ -472,17 +566,27 @@ export default function ChallengesPage({ params }: { params: Promise<{ id: strin
                   {challenge.my_submission && (
                     <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-medium">Your Submission</span>
+                        <span className="text-xs font-medium">
+                          Your Submission
+                        </span>
                         {submissionStatusBadge(challenge.my_submission.status)}
                       </div>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>Submitted: {format(parseISO(challenge.my_submission.created_at), 'MMM d, h:mma')}</span>
+                        <span>
+                          Submitted:{' '}
+                          {format(
+                            parseISO(challenge.my_submission.created_at),
+                            'MMM d, h:mma',
+                          )}
+                        </span>
                         <Button
                           variant="link"
                           size="sm"
                           className="h-auto p-0 text-primary"
                           onClick={() => {
-                            setViewProofUrl(challenge.my_submission?.proof_url || null);
+                            setViewProofUrl(
+                              challenge.my_submission?.proof_url || null,
+                            );
                             setViewProofOpen(true);
                           }}
                         >
@@ -496,27 +600,38 @@ export default function ChallengesPage({ params }: { params: Promise<{ id: strin
 
                 <div className="mt-auto px-6 pb-5">
                   {canSubmit && (
-                    <Button size="sm" onClick={() => handleOpenSubmit(challenge)}>
+                    <Button
+                      size="sm"
+                      onClick={() => handleOpenSubmit(challenge)}
+                    >
                       {challenge.my_submission?.status === 'rejected'
                         ? 'Resubmit Proof'
-                        : challenge.is_unique_workout && challenge.my_submission?.status === 'approved'
+                        : challenge.is_unique_workout &&
+                            challenge.my_submission?.status === 'approved'
                           ? 'Change Selection'
                           : 'Submit Proof'}
                     </Button>
                   )}
 
-                  {challenge.my_submission?.status === 'rejected' && !canReuploadSubmission(challenge.my_submission) && (
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Resubmission window closed.
+                  {challenge.my_submission?.status === 'rejected' &&
+                    !canReuploadSubmission(challenge.my_submission) && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Resubmission window closed.
+                      </p>
+                    )}
+
+                  {challenge.status === 'submission_closed' &&
+                    !challenge.my_submission && (
+                      <p className="text-xs text-muted-foreground">
+                        Submissions are closed.
+                      </p>
+                    )}
+
+                  {(challenge.status === 'published' ||
+                    challenge.status === 'closed') && (
+                    <p className="text-xs text-muted-foreground">
+                      Challenge completed.
                     </p>
-                  )}
-
-                  {challenge.status === 'submission_closed' && !challenge.my_submission && (
-                    <p className="text-xs text-muted-foreground">Submissions are closed.</p>
-                  )}
-
-                  {(challenge.status === 'published' || challenge.status === 'closed') && (
-                    <p className="text-xs text-muted-foreground">Challenge completed.</p>
                   )}
                 </div>
               </Card>
@@ -567,7 +682,11 @@ export default function ChallengesPage({ params }: { params: Promise<{ id: strin
           </DialogHeader>
           {viewProofUrl && (
             <div className="flex items-center justify-center">
-              <img src={viewProofUrl} alt="Proof" className="max-h-[70vh] object-contain rounded-lg" />
+              <img
+                src={viewProofUrl}
+                alt="Proof"
+                className="max-h-[70vh] object-contain rounded-lg"
+              />
             </div>
           )}
         </DialogContent>
@@ -579,17 +698,25 @@ export default function ChallengesPage({ params }: { params: Promise<{ id: strin
           <DialogHeader>
             <DialogTitle>Select Your Unique Workout</DialogTitle>
             <DialogDescription>
-              Pick a workout you did for the FIRST TIME ever in this league.
-              The system will verify it's truly unique.
+              Pick a workout you did for the FIRST TIME ever in this league. The
+              system will verify it's truly unique.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 max-h-[50vh] overflow-y-auto">
-            {loadingWorkouts && <p className="text-sm text-muted-foreground">Loading workouts...</p>}
+            {loadingWorkouts && (
+              <p className="text-sm text-muted-foreground">
+                Loading workouts...
+              </p>
+            )}
             {!loadingWorkouts && approvedWorkouts.length === 0 && (
               <div className="text-center py-4 space-y-2">
-                <p className="text-sm font-medium">No unique activities found</p>
+                <p className="text-sm font-medium">
+                  No unique activities found
+                </p>
                 <p className="text-xs text-muted-foreground">
-                  You don&apos;t have any approved workouts with an activity you&apos;ve never done before during this challenge period. Try a new activity you haven&apos;t logged in this league yet.
+                  You don&apos;t have any approved workouts with an activity
+                  you&apos;ve never done before during this challenge period.
+                  Try a new activity you haven&apos;t logged in this league yet.
                 </p>
               </div>
             )}
@@ -601,13 +728,17 @@ export default function ChallengesPage({ params }: { params: Promise<{ id: strin
                   'flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all',
                   selectedEntryId === w.id
                     ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                    : 'hover:border-primary/50'
+                    : 'hover:border-primary/50',
                 )}
               >
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm">{w.workout_type || 'Workout'}</p>
+                  <p className="font-medium text-sm">
+                    {w.workout_type || 'Workout'}
+                  </p>
                   <p className="text-xs text-muted-foreground">
-                    {w.date ? format(parseISO(w.date), 'MMM d, yyyy') : 'Unknown date'}
+                    {w.date
+                      ? format(parseISO(w.date), 'MMM d, yyyy')
+                      : 'Unknown date'}
                     {w.duration ? ` · ${w.duration} min` : ''}
                     {w.distance ? ` · ${w.distance} km` : ''}
                   </p>
@@ -619,7 +750,10 @@ export default function ChallengesPage({ params }: { params: Promise<{ id: strin
             ))}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setUniqueWorkoutOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setUniqueWorkoutOpen(false)}
+            >
               Cancel
             </Button>
             <Button
@@ -646,7 +780,9 @@ export default function ChallengesPage({ params }: { params: Promise<{ id: strin
                 title="Challenge Rules"
               />
             ) : (
-              <div className="text-muted-foreground">No rules document available.</div>
+              <div className="text-muted-foreground">
+                No rules document available.
+              </div>
             )}
           </div>
         </DialogContent>

@@ -14,9 +14,11 @@ import {
   TrendingDown,
   MoreVertical,
   Eye,
+  Zap,
 } from 'lucide-react';
 
 import { useLeague, LeagueWithRoles } from '@/contexts/league-context';
+import { isLeagueEnded as isLeagueEndedByDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -74,21 +76,34 @@ export default function LeaguesPage() {
   // Filter leagues
   const filteredLeagues = React.useMemo(() => {
     const filtered = userLeagues.filter((league) => {
+      const leagueEnded = isLeagueEndedByDate(league.end_date);
+
       // Search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const matchesName = (league.name || '').toLowerCase().includes(query);
-        const matchesDescription = league.description?.toLowerCase().includes(query);
+        const matchesDescription = league.description
+          ?.toLowerCase()
+          .includes(query);
         if (!matchesName && !matchesDescription) return false;
       }
 
       // Status filter
-      if (statusFilter !== 'all' && league.status !== statusFilter) {
-        return false;
+      if (statusFilter !== 'all') {
+        if (statusFilter === 'active') {
+          return !leagueEnded && league.status === 'active';
+        }
+        if (statusFilter === 'completed') {
+          return leagueEnded || league.status === 'completed';
+        }
+        return league.status === statusFilter;
       }
 
       // Role filter
-      if (roleFilter !== 'all' && !(league.roles || []).includes(roleFilter as any)) {
+      if (
+        roleFilter !== 'all' &&
+        !(league.roles || []).includes(roleFilter as any)
+      ) {
         return false;
       }
 
@@ -96,8 +111,10 @@ export default function LeaguesPage() {
     });
 
     return [...filtered].sort((a, b) => {
-      const aCompleted = a.status === 'completed';
-      const bCompleted = b.status === 'completed';
+      const aCompleted =
+        a.status === 'completed' || isLeagueEndedByDate(a.end_date);
+      const bCompleted =
+        b.status === 'completed' || isLeagueEndedByDate(b.end_date);
       if (aCompleted === bCompleted) return 0;
       return aCompleted ? 1 : -1;
     });
@@ -105,9 +122,17 @@ export default function LeaguesPage() {
 
   // Calculate stats
   const stats = React.useMemo(() => {
-    const activeCount = userLeagues.filter((l) => l.status === 'active').length;
-    const hostCount = userLeagues.filter((l) => (l.roles || []).includes('host')).length;
-    return { total: userLeagues.length, active: activeCount, hosting: hostCount };
+    const activeCount = userLeagues.filter(
+      (l) => l.status === 'active' && !isLeagueEndedByDate(l.end_date),
+    ).length;
+    const hostCount = userLeagues.filter((l) =>
+      (l.roles || []).includes('host'),
+    ).length;
+    return {
+      total: userLeagues.length,
+      active: activeCount,
+      hosting: hostCount,
+    };
   }, [userLeagues]);
 
   return (
@@ -127,10 +152,16 @@ export default function LeaguesPage() {
               Join
             </Link>
           </Button>
-          <Button asChild>
+          <Button variant="outline" asChild>
             <Link href="/leagues/create">
               <Plus className="mr-2 size-4" />
               Create
+            </Link>
+          </Button>
+          <Button asChild>
+            <Link href="/leagues/quick-start">
+              <Zap className="mr-2 size-4" />
+              Quick Start
             </Link>
           </Button>
         </div>
@@ -149,7 +180,10 @@ export default function LeaguesPage() {
                 {stats.total}
               </CardTitle>
               <CardAction>
-                <Badge variant="outline" className="text-green-600 text-[10px] sm:text-xs whitespace-nowrap">
+                <Badge
+                  variant="outline"
+                  className="text-green-600 text-[10px] sm:text-xs whitespace-nowrap"
+                >
                   <TrendingUp className="size-3" />
                   Active
                 </Badge>
@@ -159,7 +193,9 @@ export default function LeaguesPage() {
               <div className="line-clamp-1 flex gap-2 font-medium">
                 All your leagues <Trophy className="size-4" />
               </div>
-              <div className="text-muted-foreground line-clamp-2">Across all roles and statuses</div>
+              <div className="text-muted-foreground line-clamp-2">
+                Across all roles and statuses
+              </div>
             </CardFooter>
           </Card>
 
@@ -177,7 +213,11 @@ export default function LeaguesPage() {
                   variant="outline"
                   className={`${stats.active > 0 ? 'text-green-600' : 'text-muted-foreground'} text-[10px] sm:text-xs whitespace-nowrap`}
                 >
-                  {stats.active > 0 ? <TrendingUp className="size-3" /> : <TrendingDown className="size-3" />}
+                  {stats.active > 0 ? (
+                    <TrendingUp className="size-3" />
+                  ) : (
+                    <TrendingDown className="size-3" />
+                  )}
                   {stats.active > 0 ? (
                     <>
                       <span className="sm:hidden">In Prog</span>
@@ -193,7 +233,9 @@ export default function LeaguesPage() {
               <div className="line-clamp-1 flex gap-2 font-medium">
                 Currently competing <Dumbbell className="size-4" />
               </div>
-              <div className="text-muted-foreground line-clamp-2">Leagues you're participating in</div>
+              <div className="text-muted-foreground line-clamp-2">
+                Leagues you're participating in
+              </div>
             </CardFooter>
           </Card>
 
@@ -220,7 +262,9 @@ export default function LeaguesPage() {
               <div className="line-clamp-1 flex gap-2 font-medium">
                 Leagues you manage <Crown className="size-4" />
               </div>
-              <div className="text-muted-foreground line-clamp-2">Full admin control</div>
+              <div className="text-muted-foreground line-clamp-2">
+                Full admin control
+              </div>
             </CardFooter>
           </Card>
         </div>
@@ -279,7 +323,11 @@ export default function LeaguesPage() {
         ) : filteredLeagues.length === 0 ? (
           <EmptyState
             hasLeagues={userLeagues.length > 0}
-            hasFilters={searchQuery !== '' || statusFilter !== 'all' || roleFilter !== 'all'}
+            hasFilters={
+              searchQuery !== '' ||
+              statusFilter !== 'all' ||
+              roleFilter !== 'all'
+            }
             onClearFilters={() => {
               setSearchQuery('');
               setStatusFilter('all');
@@ -312,11 +360,15 @@ function LeaguesTable({
     player: Dumbbell,
   };
 
-  const statusVariants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  const statusVariants: Record<
+    string,
+    'default' | 'secondary' | 'destructive' | 'outline'
+  > = {
     draft: 'secondary',
     launched: 'outline',
     active: 'default',
     completed: 'secondary',
+    ended: 'secondary',
   };
 
   return (
@@ -335,7 +387,8 @@ function LeaguesTable({
           {leagues.map((league) => {
             const roleHierarchy = ['host', 'governor', 'captain', 'player'];
             const highestRole =
-              roleHierarchy.find((r) => (league.roles || []).includes(r)) || 'player';
+              roleHierarchy.find((r) => (league.roles || []).includes(r)) ||
+              'player';
             const RoleIcon = roleIcons[highestRole];
 
             return (
@@ -364,9 +417,19 @@ function LeaguesTable({
                   </Link>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={statusVariants[league.status] || 'secondary'}>
-                    {league.status}
-                  </Badge>
+                  {(() => {
+                    const leagueEnded = isLeagueEndedByDate(league.end_date);
+                    const displayStatus = leagueEnded ? 'ended' : league.status;
+                    return (
+                      <Badge
+                        variant={statusVariants[displayStatus] || 'secondary'}
+                      >
+                        {displayStatus === 'ended'
+                          ? 'League Ended'
+                          : displayStatus}
+                      </Badge>
+                    );
+                  })()}
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
@@ -417,7 +480,9 @@ function LeaguesTable({
                         <>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem asChild>
-                            <Link href={`/leagues/${league.league_id}/settings`}>
+                            <Link
+                              href={`/leagues/${league.league_id}/settings`}
+                            >
                               Settings
                             </Link>
                           </DropdownMenuItem>
@@ -456,7 +521,8 @@ function EmptyState({
           </EmptyMedia>
           <EmptyTitle>No matches found</EmptyTitle>
           <EmptyDescription>
-            No leagues match your current filters. Try adjusting your search criteria.
+            No leagues match your current filters. Try adjusting your search
+            criteria.
           </EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
@@ -481,19 +547,27 @@ function EmptyState({
         </EmptyDescription>
       </EmptyHeader>
       <EmptyContent>
-        <div className="flex gap-2">
-          <Button asChild>
-            <Link href="/leagues/join">
-              <Search className="mr-2 size-4" />
-              Join a League
+        <div className="flex flex-col items-center gap-3">
+          <Button asChild size="lg">
+            <Link href="/leagues/quick-start">
+              <Zap className="mr-2 size-4" />
+              Quick Start a League
             </Link>
           </Button>
-          <Button variant="outline" asChild>
-            <Link href="/leagues/create">
-              <Plus className="mr-2 size-4" />
-              Create League
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" asChild>
+              <Link href="/leagues/join">
+                <Search className="mr-2 size-4" />
+                Join a League
+              </Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href="/leagues/create">
+                <Plus className="mr-2 size-4" />
+                Create League
+              </Link>
+            </Button>
+          </div>
         </div>
       </EmptyContent>
     </Empty>

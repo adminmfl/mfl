@@ -78,6 +78,7 @@ import { ViewUnallocatedDialog } from "./view-unallocated-dialog";
 import { ViewTeamMembersDialog } from "./view-team-members-dialog";
 import { TeamInviteDialog } from "./team-invite-dialog";
 import { InviteDialog } from "@/components/league/invite-dialog";
+import { CaptainGuidelinesTooltip } from "@/components/captain/captain-guidelines-tooltip";
 
 import {
   useLeagueTeams,
@@ -421,7 +422,12 @@ export function TeamsTable({ leagueId, isHost, isGovernor }: TeamsTableProps) {
     },
     {
       accessorKey: "captain",
-      header: "Captain",
+      header: () => (
+        <div className="flex items-center gap-1">
+          Captain
+          <CaptainGuidelinesTooltip />
+        </div>
+      ),
       cell: ({ row }) => {
         const captain = row.original.captain;
         if (!captain) {
@@ -619,7 +625,7 @@ export function TeamsTable({ leagueId, isHost, isGovernor }: TeamsTableProps) {
                 leagueId={leagueId}
                 leagueName={data.league.league_name}
                 inviteCode={data.league.invite_code || ''}
-                memberCount={data.meta.member_count}
+                memberCount={data.members.allocated.length + data.members.unallocated.length}
                 maxCapacity={data.league.league_capacity || 20}
                 buttonLabel="League Invite"
               />
