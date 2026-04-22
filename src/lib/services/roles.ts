@@ -151,6 +151,52 @@ export async function userHasRole(
 }
 
 /**
+ * Get all roles assigned to a user in a specific league
+ */
+export async function getUserRolesForLeague(
+  userId: string,
+  leagueId: string
+): Promise<string[]> {
+  try {
+    const supabase = getSupabaseServiceRole();
+    
+    // Check if user is the league creator (Host)
+    const { data: league } = await supabase
+      .from('leagues')
+      .select('created_by')
+      .eq('league_id', leagueId)
+      .single();
+
+    const roles: string[] = [];
+    if (league?.created_by === userId) {
+      roles.push('host');
+    }
+
+    // Get other assigned roles
+    const { data: assignedRoles } = await supabase
+      .from('assignedrolesforleague')
+      .select('roles(role_name)')
+      .eq('user_id', userId)
+      .eq('league_id', leagueId);
+
+    if (assignedRoles) {
+      assignedRoles.forEach((row: any) => {
+        const name = row.roles?.role_name;
+        if (name && !roles.includes(name)) {
+          roles.push(name);
+        }
+      });
+    }
+
+    return roles;
+  } catch (err) {
+    console.error('Error getting user roles for league:', err);
+    return [];
+  }
+}
+
+
+/**
  * Check if user has any of the specified roles in a league (OR logic)
  * @param userId - User ID
  * @param leagueId - League ID

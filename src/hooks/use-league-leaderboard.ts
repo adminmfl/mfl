@@ -128,8 +128,8 @@ export function useLeagueLeaderboard(
   leagueId: string | null,
   options?: UseLeagueLeaderboardOptions
 ): UseLeagueLeaderboardReturn {
-  const [data, setData] = useState<LeaderboardData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [data, setData] = useState<LeaderboardData | null>(options?.initialData || null);
+  const [isLoading, setIsLoading] = useState(!options?.initialData);
   const [error, setError] = useState<string | null>(null);
   const [dateRange, setDateRangeState] = useState<{
     startDate: string | null;
@@ -138,8 +138,12 @@ export function useLeagueLeaderboard(
     startDate: options?.startDate || null,
     endDate: options?.endDate || null,
   });
-  const [rawTeams, setRawTeams] = useState<TeamRanking[] | undefined>(undefined);
-  const [rawPendingWindow, setRawPendingWindow] = useState<PendingWindow | undefined>(undefined);
+  const [rawTeams, setRawTeams] = useState<TeamRanking[] | undefined>(
+    options?.initialData?.teams
+  );
+  const [rawPendingWindow, setRawPendingWindow] = useState<
+    PendingWindow | undefined
+  >(options?.initialData?.pendingWindow);
 
   const fetchLeaderboard = useCallback(async (force = false) => {
     if (!leagueId) {
@@ -149,11 +153,15 @@ export function useLeagueLeaderboard(
     }
 
     try {
-      setIsLoading(true);
+      // Only show full loading state if we don't have data yet or if it's a forced refetch
+      if (!data || force) {
+        setIsLoading(true);
+      }
       setError(null);
 
       // Build URL with query params
       const params = new URLSearchParams();
+
       params.set('tzOffsetMinutes', String(new Date().getTimezoneOffset()));
       // Also send IANA timezone for more accurate date calculation
       try {
@@ -194,7 +202,12 @@ export function useLeagueLeaderboard(
         invalidateClientCache(cacheKey);
       }
 
-      const response = await fetch(url);
+      // Fetch leaderboard data and team metadata in parallel
+      const [response, teamsResp] = await Promise.all([
+        fetch(url),
+        fetch(`/api/leagues/${leagueId}/teams`)
+      ]);
+
       const result = await response.json();
 
       if (!response.ok) {
@@ -211,8 +224,6 @@ export function useLeagueLeaderboard(
       setRawTeams(initialTeams);
       setRawPendingWindow(data?.pendingWindow);
 
-      // Fetch normalization flag and team size variance from teams endpoint
-      const teamsResp = await fetch(`/api/leagues/${leagueId}/teams`);
       if (teamsResp.ok) {
         const teamsJson = await teamsResp.json();
         const normalizeActive = Boolean(
@@ -334,10 +345,23 @@ export function useLeagueLeaderboard(
     setDateRangeState({ startDate, endDate });
   }, []);
 
+  // Seed initial cache if data is provided from server
+  useEffect(() => {
+    if (options?.initialData && leagueId) {
+      const cacheKey = `leaderboard:${leagueId}:${dateRange.startDate || ''}:${dateRange.endDate || ''}`;
+      setClientCache(cacheKey, {
+        data: options.initialData,
+        rawTeams: options.initialData.teams,
+        rawPendingWindow: options.initialData.pendingWindow,
+      });
+    }
+  }, [leagueId, options?.initialData]); // only runs when leagueId or initialData changes
+
   // Initial fetch and refetch on date range change
   useEffect(() => {
     fetchLeaderboard();
   }, [fetchLeaderboard]);
+
 
   return {
     data,

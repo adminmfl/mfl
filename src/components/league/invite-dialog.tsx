@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import * as React from 'react';
+import * as React from "react";
 import {
   Copy,
   Check,
@@ -11,10 +11,10 @@ import {
   Mail,
   MessageCircle,
   Download,
-} from 'lucide-react';
-import { QRCodeSVG } from 'qrcode.react';
+} from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -22,12 +22,12 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // ============================================================================
 // Types
@@ -62,35 +62,37 @@ export function InviteDialog({
   const qrRef = React.useRef<HTMLDivElement>(null);
 
   const inviteLink = inviteCode
-    ? `${typeof window !== 'undefined' ? window.location.origin : ''}/invite/${inviteCode}`
-    : '';
+    ? `${typeof window !== "undefined" ? window.location.origin : ""}/invite/${inviteCode}`
+    : "";
 
   // Convert QR SVG to PNG and download
   const downloadQR = async () => {
-    const svg = qrRef.current?.querySelector('svg');
+    const svg = qrRef.current?.querySelector("svg");
     if (!svg) return;
 
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
     const svgData = new XMLSerializer().serializeToString(svg);
     const img = new Image();
 
-    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const svgBlob = new Blob([svgData], {
+      type: "image/svg+xml;charset=utf-8",
+    });
     const url = URL.createObjectURL(svgBlob);
 
     img.onload = () => {
       canvas.width = 300;
       canvas.height = 300;
       ctx?.fillRect(0, 0, canvas.width, canvas.height);
-      ctx!.fillStyle = '#ffffff';
+      ctx!.fillStyle = "#ffffff";
       ctx?.fillRect(0, 0, canvas.width, canvas.height);
       ctx?.drawImage(img, 0, 0, 300, 300);
       URL.revokeObjectURL(url);
 
-      const pngUrl = canvas.toDataURL('image/png');
-      const downloadLink = document.createElement('a');
+      const pngUrl = canvas.toDataURL("image/png");
+      const downloadLink = document.createElement("a");
       downloadLink.href = pngUrl;
-      downloadLink.download = `${leagueName.replace(/\s+/g, '-')}-invite-qr.png`;
+      downloadLink.download = `${leagueName.replace(/\s+/g, "-")}-invite-qr.png`;
       downloadLink.click();
     };
     img.src = url;
@@ -98,28 +100,32 @@ export function InviteDialog({
 
   // Share QR code as image
   const shareQR = async () => {
-    const svg = qrRef.current?.querySelector('svg');
+    const svg = qrRef.current?.querySelector("svg");
     if (!svg || !navigator.share) return;
 
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
     const svgData = new XMLSerializer().serializeToString(svg);
     const img = new Image();
 
-    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const svgBlob = new Blob([svgData], {
+      type: "image/svg+xml;charset=utf-8",
+    });
     const url = URL.createObjectURL(svgBlob);
 
     img.onload = async () => {
       canvas.width = 300;
       canvas.height = 300;
-      ctx!.fillStyle = '#ffffff';
+      ctx!.fillStyle = "#ffffff";
       ctx?.fillRect(0, 0, canvas.width, canvas.height);
       ctx?.drawImage(img, 0, 0, 300, 300);
       URL.revokeObjectURL(url);
 
       canvas.toBlob(async (blob) => {
         if (!blob) return;
-        const file = new File([blob], `${leagueName}-invite.png`, { type: 'image/png' });
+        const file = new File([blob], `${leagueName}-invite.png`, {
+          type: "image/png",
+        });
         try {
           await navigator.share({
             title: `Join ${leagueName}`,
@@ -129,7 +135,7 @@ export function InviteDialog({
         } catch (err) {
           // User cancelled or share failed
         }
-      }, 'image/png');
+      }, "image/png");
     };
     img.src = url;
   };
@@ -151,7 +157,7 @@ export function InviteDialog({
   const shareViaWhatsApp = () => {
     const text = `Join my fitness league "${leagueName}" on MyFitnessLeague! 💪\n\nUse code: ${inviteCode}\nOr join directly: ${inviteLink}`;
     const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
-    window.open(url, '_blank');
+    window.open(url, "_blank");
   };
 
   const shareViaNative = async () => {
@@ -175,18 +181,17 @@ export function InviteDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        {trigger || (
-          buttonLabel ? (
+        {trigger ||
+          (buttonLabel ? (
             <Button variant="outline" size="sm" className="text-xs px-2 h-8">
               <Share2 className="mr-1 size-3" />
               {buttonLabel}
             </Button>
           ) : (
-            <Button variant="ghost" size="icon" className="h-9 w-9">
-              <Share2 className="size-4" />
+            <Button variant="ghost" size="icon" className="h-9 w-9" aria-label="Invite members">
+              <Share2 className="size-4" aria-hidden="true" />
             </Button>
-          )
-        )}
+          ))}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
@@ -202,7 +207,9 @@ export function InviteDialog({
         <div className="space-y-4 py-4">
           {/* Capacity indicator */}
           <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-            <span className="text-sm text-muted-foreground">Current members</span>
+            <span className="text-sm text-muted-foreground">
+              Current members
+            </span>
             <Badge variant="outline">
               {memberCount} / {maxCapacity}
             </Badge>
@@ -288,7 +295,7 @@ export function InviteDialog({
                     <MessageCircle className="mr-2 size-4 text-green-600" />
                     WhatsApp
                   </Button>
-                  {typeof navigator !== 'undefined' && navigator.share && (
+                  {typeof navigator !== "undefined" && navigator.share && (
                     <Button
                       variant="outline"
                       className="justify-start"
@@ -309,6 +316,8 @@ export function InviteDialog({
                 <div
                   ref={qrRef}
                   className="p-4 bg-white rounded-lg border shadow-sm"
+                  role="img"
+                  aria-label={`Invite QR Code for ${leagueName}`}
                 >
                   <QRCodeSVG
                     value={inviteLink}
@@ -328,12 +337,14 @@ export function InviteDialog({
                   <Download className="mr-2 size-4" />
                   Download
                 </Button>
-                {typeof navigator !== 'undefined' && navigator.share && navigator.canShare?.({ files: [new File([], '')] }) && (
-                  <Button variant="outline" onClick={shareQR}>
-                    <Share2 className="mr-2 size-4" />
-                    Share
-                  </Button>
-                )}
+                {typeof navigator !== "undefined" &&
+                  navigator.share &&
+                  navigator.canShare?.({ files: [new File([], "")] }) && (
+                    <Button variant="outline" onClick={shareQR}>
+                      <Share2 className="mr-2 size-4" />
+                      Share
+                    </Button>
+                  )}
               </div>
             </TabsContent>
           </Tabs>

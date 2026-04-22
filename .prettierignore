@@ -1,0 +1,29 @@
+# Ignore artifacts and build outputs
+.next/
+node_modules/
+dist/
+out/
+build/
+.cache/
+
+# Ignore lockfiles and sensitive files
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+.env*
+
+# Ignore specific large assets
+public/lottie/**
+
+# Ignore generated/binary files
+next-env.d.ts
+**/*.ico
+**/*.jpg
+**/*.jpeg
+**/*.png
+**/*.svg
+**/*.webp
+**/*.woff
+**/*.woff2
+**/*.ttf
+**/*.eot
