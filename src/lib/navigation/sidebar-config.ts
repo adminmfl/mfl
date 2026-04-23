@@ -103,7 +103,7 @@ export function getSidebarNavItems(
   options?: {
     /** Whether host/governor is also participating as a player */
     isAlsoPlayer?: boolean;
-  }
+  },
 ): NavSection[] {
   // No league selected - show base navigation
   if (!leagueId || !role) {
@@ -198,6 +198,11 @@ export function getSidebarNavItems(
         icon: ClipboardCheck,
       },
       {
+        title: 'Leaderboard',
+        url: leagueUrl('/leaderboard'),
+        icon: BarChart3,
+      },
+      {
         title: 'Configure Challenges',
         url: leagueUrl('/configure-challenges'),
         icon: Flag,
@@ -223,7 +228,6 @@ export function getSidebarNavItems(
         icon: Brain,
       },
     ];
-
 
     // Include league admin items here to keep all host/governor tools together
     sections.push({
@@ -284,7 +288,7 @@ export function getMobileTabItems(
   leagueId: string | null,
   options?: {
     isAlsoPlayer?: boolean;
-  }
+  },
 ): NavItem[] {
   // No league - basic tabs
   if (!leagueId || !role) {
@@ -304,7 +308,6 @@ export function getMobileTabItems(
         url: '/leagues/join',
         icon: Search,
       },
-
     ];
   }
 
@@ -338,7 +341,7 @@ export function getMobileTabItems(
         title: 'Team Chat',
         url: leagueUrl('/messages'),
         icon: MessageCircle,
-      }
+      },
     );
     if (role === 'captain') {
       tabs.push(
@@ -351,7 +354,7 @@ export function getMobileTabItems(
           title: 'Donations',
           url: leagueUrl('/rest-day-donations'),
           icon: HeartHandshake,
-        }
+        },
       );
     }
   } else if (role === 'host' || role === 'governor') {
@@ -367,6 +370,11 @@ export function getMobileTabItems(
         title: 'Rules',
         url: leagueUrl('/rules/manage'),
         icon: FileText,
+      },
+      {
+        title: 'Leaderboard',
+        url: leagueUrl('/leaderboard'),
+        icon: BarChart3,
       },
       {
         title: 'Validate',
@@ -387,7 +395,7 @@ export function getMobileTabItems(
         title: 'Donations',
         url: leagueUrl('/rest-day-donations'),
         icon: HeartHandshake,
-      }
+      },
     );
   }
 
@@ -435,7 +443,10 @@ export function getRoleDisplay(role: LeagueRole): {
   icon: LucideIcon;
   color: string;
 } {
-  const roleConfig: Record<LeagueRole, { label: string; icon: LucideIcon; color: string }> = {
+  const roleConfig: Record<
+    LeagueRole,
+    { label: string; icon: LucideIcon; color: string }
+  > = {
     host: {
       label: 'Host',
       icon: Crown,

@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Player-controlled uploads (Host/Admin cannot upload on behalf)
   - Storage in Supabase profile-pictures bucket with organized folder structure
 - Add Grande Finale awards view replacing leaderboard after league completion with Trophy Mode and Extended Archive states (#158)
+- Add host-only ceremony photo upload and gallery in Grande Finale using storage-backed API (#158)
 
 ### Changed
 

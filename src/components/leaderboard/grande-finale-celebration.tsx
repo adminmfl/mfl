@@ -2,10 +2,20 @@
 
 import React from 'react';
 import Confetti from 'react-confetti';
-import { Crown, Medal, Sparkles, Star, Trophy } from 'lucide-react';
+import {
+  Crown,
+  Loader2,
+  Medal,
+  Sparkles,
+  Star,
+  Trophy,
+  Upload,
+} from 'lucide-react';
 import { useSession } from 'next-auth/react';
+import { useRole } from '@/contexts/role-context';
 
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DownloadCertificateButton } from '@/components/leagues/download-report-button';
 import type {
@@ -27,6 +37,13 @@ type AwardCard = {
   recipient: string;
   fallback: string;
   pointsLabel?: string;
+};
+
+type CeremonyPhoto = {
+  path: string;
+  url: string;
+  name: string;
+  createdAt: string | null;
 };
 
 function getInitials(name: string): string {
@@ -69,7 +86,15 @@ export function GrandeFinaleCelebration({
   individuals,
 }: GrandeFinaleCelebrationProps) {
   const { data: session } = useSession();
+  const { activeRole } = useRole();
   const [windowSize, setWindowSize] = React.useState({ width: 0, height: 0 });
+  const [photos, setPhotos] = React.useState<CeremonyPhoto[]>([]);
+  const [canUploadCeremonyPhotos, setCanUploadCeremonyPhotos] =
+    React.useState(false);
+  const [galleryLoading, setGalleryLoading] = React.useState(true);
+  const [galleryError, setGalleryError] = React.useState<string | null>(null);
+  const [uploading, setUploading] = React.useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   React.useEffect(() => {
     const update = () => {
@@ -80,6 +105,84 @@ export function GrandeFinaleCelebration({
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
   }, []);
+
+  const fetchCeremonyPhotos = React.useCallback(async () => {
+    try {
+      setGalleryLoading(true);
+      setGalleryError(null);
+
+      const response = await fetch(`/api/leagues/${leagueId}/ceremony-photos`, {
+        headers: {
+          'x-active-role': activeRole || '',
+        },
+      });
+      const json = await response.json();
+
+      if (!response.ok || !json.success) {
+        throw new Error(json.error || 'Failed to load ceremony photos');
+      }
+
+      setCanUploadCeremonyPhotos(Boolean(json.data?.canUpload));
+      setPhotos(Array.isArray(json.data?.photos) ? json.data.photos : []);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Failed to load ceremony photos';
+      setGalleryError(message);
+    } finally {
+      setGalleryLoading(false);
+    }
+  }, [leagueId, activeRole]);
+
+  React.useEffect(() => {
+    fetchCeremonyPhotos();
+  }, [fetchCeremonyPhotos]);
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleCeremonyPhotoUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploading(true);
+      setGalleryError(null);
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch(`/api/leagues/${leagueId}/ceremony-photos`, {
+        method: 'POST',
+        headers: {
+          'x-active-role': activeRole || '',
+        },
+        body: formData,
+      });
+      const json = await response.json();
+
+      if (!response.ok || !json.success) {
+        throw new Error(json.error || 'Failed to upload ceremony photo');
+      }
+
+      await fetchCeremonyPhotos();
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Failed to upload ceremony photo';
+      setGalleryError(message);
+    } finally {
+      setUploading(false);
+      if (event.target) {
+        event.target.value = '';
+      }
+    }
+  };
 
   const { isPostLeague, day } = React.useMemo(
     () => getPostLeagueDayInfo(leagueEndDate),
@@ -366,6 +469,73 @@ export function GrandeFinaleCelebration({
               ))
             )}
           </div>
+        </section>
+
+        <section className="rounded-lg border border-[#D4AF37]/25 bg-[#0D1F44]/70 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="font-semibold text-[#F1D675]">Ceremony Photos</h3>
+            {canUploadCeremonyPhotos ? (
+              <>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  className="hidden"
+                  onChange={handleCeremonyPhotoUpload}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleUploadClick}
+                  disabled={uploading}
+                  className="bg-[#D4AF37] text-[#0A1A3A] hover:bg-[#D4AF37]/90"
+                >
+                  {uploading ? (
+                    <>
+                      <Loader2 className="mr-1.5 size-4 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="mr-1.5 size-4" />
+                      Upload Photo
+                    </>
+                  )}
+                </Button>
+              </>
+            ) : null}
+          </div>
+
+          {galleryLoading ? (
+            <p className="mt-3 text-sm text-[#E7D7A2]">
+              Loading ceremony photos...
+            </p>
+          ) : galleryError ? (
+            <p className="mt-3 text-sm text-red-300">{galleryError}</p>
+          ) : photos.length === 0 ? (
+            <p className="mt-3 text-sm text-[#E7D7A2]">
+              No ceremony photos uploaded yet.
+            </p>
+          ) : (
+            <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+              {photos.map((photo) => (
+                <a
+                  key={photo.path}
+                  href={photo.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block overflow-hidden rounded-md border border-[#D4AF37]/25"
+                >
+                  <img
+                    src={photo.url}
+                    alt={photo.name || 'Ceremony photo'}
+                    className="h-32 w-full object-cover transition-transform duration-200 hover:scale-105"
+                    loading="lazy"
+                  />
+                </a>
+              ))}
+            </div>
+          )}
         </section>
       </div>
     </div>
