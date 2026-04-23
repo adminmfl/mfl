@@ -244,6 +244,7 @@ export async function GET(req: NextRequest) {
         branding: (league as any)?.branding || null,
         rr_config: (league as any)?.rr_config || null,
         rest_days: (league as any)?.rest_days ?? 1,
+        league_mode: (league as any)?.league_mode || 'standard',
       };
     });
 

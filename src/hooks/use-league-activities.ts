@@ -43,6 +43,9 @@ export interface LeagueActivity {
   outcome_config?: { label: string; points: number }[] | null;
   max_images?: number;
   custom_field_label?: string | null;
+  custom_field_placeholder?: string | null;
+  custom_field_label_2?: string | null;
+  custom_field_placeholder_2?: string | null;
 }
 
 export interface LeagueActivitiesData {
@@ -59,12 +62,15 @@ export interface UseLeagueActivitiesReturn {
   error: string | null;
   errorCode: string | null; // For specific error handling (e.g., 'NO_ACTIVITIES_CONFIGURED')
   refetch: () => Promise<void>;
-  addActivities: (activityIds: string[], isCustom?: boolean) => Promise<boolean>;
+  addActivities: (
+    activityIds: string[],
+    isCustom?: boolean,
+  ) => Promise<boolean>;
   removeActivity: (activityId: string, isCustom?: boolean) => Promise<boolean>;
   updateFrequency: (
     activityId: string,
     frequency: number | null,
-    frequencyType?: 'daily' | 'weekly' | 'monthly' | null
+    frequencyType?: 'daily' | 'weekly' | 'monthly' | null,
   ) => Promise<boolean>;
 }
 
@@ -74,7 +80,7 @@ export interface UseLeagueActivitiesReturn {
 
 export function useLeagueActivities(
   leagueId: string | null,
-  options?: { includeAll?: boolean }
+  options?: { includeAll?: boolean },
 ): UseLeagueActivitiesReturn {
   const [data, setData] = useState<LeagueActivitiesData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -102,7 +108,9 @@ export function useLeagueActivities(
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || `Failed to fetch activities (${response.status})`);
+        throw new Error(
+          result.error || `Failed to fetch activities (${response.status})`,
+        );
       }
 
       // Check for specific error code (e.g., NO_ACTIVITIES_CONFIGURED)
@@ -116,80 +124,95 @@ export function useLeagueActivities(
       setData(result.data);
     } catch (err) {
       console.error('Error fetching league activities:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load activities');
+      setError(
+        err instanceof Error ? err.message : 'Failed to load activities',
+      );
     } finally {
       setIsLoading(false);
     }
   }, [leagueId, includeAll]);
 
   // Add activities to league (host only) - supports both global and custom activities
-  const addActivities = useCallback(async (activityIds: string[], isCustom: boolean = false): Promise<boolean> => {
-    if (!leagueId) return false;
+  const addActivities = useCallback(
+    async (
+      activityIds: string[],
+      isCustom: boolean = false,
+    ): Promise<boolean> => {
+      if (!leagueId) return false;
 
-    try {
-      const body = isCustom
-        ? { custom_activity_ids: activityIds }
-        : { activity_ids: activityIds };
+      try {
+        const body = isCustom
+          ? { custom_activity_ids: activityIds }
+          : { activity_ids: activityIds };
 
-      const response = await fetch(`/api/leagues/${leagueId}/activities`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
+        const response = await fetch(`/api/leagues/${leagueId}/activities`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
 
-      const result = await response.json();
+        const result = await response.json();
 
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to add activities');
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to add activities');
+        }
+
+        // Refetch activities after adding
+        await fetchActivities();
+        return true;
+      } catch (err) {
+        console.error('Error adding activities:', err);
+        setError(
+          err instanceof Error ? err.message : 'Failed to add activities',
+        );
+        return false;
       }
-
-      // Refetch activities after adding
-      await fetchActivities();
-      return true;
-    } catch (err) {
-      console.error('Error adding activities:', err);
-      setError(err instanceof Error ? err.message : 'Failed to add activities');
-      return false;
-    }
-  }, [leagueId, fetchActivities]);
+    },
+    [leagueId, fetchActivities],
+  );
 
   // Remove activity from league (host only) - supports both global and custom activities
-  const removeActivity = useCallback(async (activityId: string, isCustom: boolean = false): Promise<boolean> => {
-    if (!leagueId) return false;
+  const removeActivity = useCallback(
+    async (activityId: string, isCustom: boolean = false): Promise<boolean> => {
+      if (!leagueId) return false;
 
-    try {
-      const body = isCustom
-        ? { custom_activity_id: activityId }
-        : { activity_id: activityId };
+      try {
+        const body = isCustom
+          ? { custom_activity_id: activityId }
+          : { activity_id: activityId };
 
-      const response = await fetch(`/api/leagues/${leagueId}/activities`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
+        const response = await fetch(`/api/leagues/${leagueId}/activities`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
 
-      const result = await response.json();
+        const result = await response.json();
 
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to remove activity');
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to remove activity');
+        }
+
+        // Refetch activities after removing
+        await fetchActivities();
+        return true;
+      } catch (err) {
+        console.error('Error removing activity:', err);
+        setError(
+          err instanceof Error ? err.message : 'Failed to remove activity',
+        );
+        return false;
       }
-
-      // Refetch activities after removing
-      await fetchActivities();
-      return true;
-    } catch (err) {
-      console.error('Error removing activity:', err);
-      setError(err instanceof Error ? err.message : 'Failed to remove activity');
-      return false;
-    }
-  }, [leagueId, fetchActivities]);
+    },
+    [leagueId, fetchActivities],
+  );
 
   // Update activity frequency (host only)
   const updateFrequency = useCallback(
     async (
       activityId: string,
       frequency: number | null,
-      frequencyType?: 'daily' | 'weekly' | 'monthly' | null
+      frequencyType?: 'daily' | 'weekly' | 'monthly' | null,
     ): Promise<boolean> => {
       if (!leagueId) return false;
 
@@ -208,18 +231,22 @@ export function useLeagueActivities(
 
         if (!response.ok) {
           const detail = result?.details ? ` (${result.details})` : '';
-          throw new Error((result.error || 'Failed to update frequency') + detail);
+          throw new Error(
+            (result.error || 'Failed to update frequency') + detail,
+          );
         }
 
         await fetchActivities();
         return true;
       } catch (err) {
         console.error('Error updating frequency:', err);
-        setError(err instanceof Error ? err.message : 'Failed to update frequency');
+        setError(
+          err instanceof Error ? err.message : 'Failed to update frequency',
+        );
         return false;
       }
     },
-    [leagueId, fetchActivities]
+    [leagueId, fetchActivities],
   );
 
   // Initial fetch

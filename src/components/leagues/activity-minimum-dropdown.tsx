@@ -1,27 +1,27 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { ChevronDown, Plus, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useState, useEffect } from 'react';
+import { ChevronDown, Plus, Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { cn } from "@/lib/utils";
-import { toast } from "@/lib/toast";
+} from '@/components/ui/select';
+import { cn } from '@/lib/utils';
+import { toast } from '@/lib/toast';
 
 // Helper to get unit label from measurement type
 function getUnitLabel(measurementType: string): string {
   const unitMap: Record<string, string> = {
-    duration: "minutes",
-    distance: "km",
-    steps: "steps",
-    hole: "holes",
+    duration: 'minutes',
+    distance: 'km',
+    steps: 'steps',
+    hole: 'holes',
   };
   return unitMap[measurementType?.toLowerCase()] || measurementType;
 }
@@ -54,19 +54,22 @@ interface ActivityMinimumProps {
   symbol: string;
   measurementType: string;
   frequency?: number | null;
-  frequencyType?: "daily" | "weekly" | "monthly" | null;
+  frequencyType?: 'daily' | 'weekly' | 'monthly' | null;
   supportsFrequency?: boolean;
   initialConfig?: {
     min_value: number | null;
     max_value: number | null;
     age_group_overrides: Record<string, any>;
   };
-  proofRequirement?: "not_required" | "optional" | "mandatory";
-  notesRequirement?: "not_required" | "optional" | "mandatory";
+  proofRequirement?: 'not_required' | 'optional' | 'mandatory';
+  notesRequirement?: 'not_required' | 'optional' | 'mandatory';
   pointsPerSession?: number;
   outcomeConfig?: { label: string; points: number }[] | null;
   maxImages?: number;
   customFieldLabel?: string | null;
+  customFieldPlaceholder?: string | null;
+  customFieldLabel2?: string | null;
+  customFieldPlaceholder2?: string | null;
   onMinimumChange?: (config: {
     activity_id: string;
     min_value: number | null;
@@ -75,17 +78,20 @@ interface ActivityMinimumProps {
   onFrequencyChange?: (activityId: string, frequency: string) => void;
   onFrequencyTypeChange?: (
     activityId: string,
-    frequencyType: "daily" | "weekly" | "monthly",
+    frequencyType: 'daily' | 'weekly' | 'monthly',
   ) => void;
   onFrequencyBlur?: (activityId: string) => void;
   onActivityConfigChange?: (config: {
     activity_id: string;
-    proof_requirement: "not_required" | "optional" | "mandatory";
-    notes_requirement: "not_required" | "optional" | "mandatory";
+    proof_requirement: 'not_required' | 'optional' | 'mandatory';
+    notes_requirement: 'not_required' | 'optional' | 'mandatory';
     points_per_session: number;
     outcome_config?: { label: string; points: number }[] | null;
     max_images?: number;
     custom_field_label?: string | null;
+    custom_field_placeholder?: string | null;
+    custom_field_label_2?: string | null;
+    custom_field_placeholder_2?: string | null;
   }) => void;
 }
 
@@ -98,12 +104,15 @@ export function ActivityMinimumDropdown({
   frequencyType,
   supportsFrequency = true,
   initialConfig,
-  proofRequirement = "mandatory",
-  notesRequirement = "optional",
+  proofRequirement = 'mandatory',
+  notesRequirement = 'optional',
   pointsPerSession = 1,
   outcomeConfig,
   maxImages = 1,
   customFieldLabel = null,
+  customFieldPlaceholder = null,
+  customFieldLabel2 = null,
+  customFieldPlaceholder2 = null,
   onMinimumChange,
   onFrequencyChange,
   onFrequencyTypeChange,
@@ -119,16 +128,16 @@ export function ActivityMinimumDropdown({
     parseAgeOverrides(initialConfig?.age_group_overrides || {}),
   );
   const [frequencyDraft, setFrequencyDraft] = useState<string>(
-    typeof frequency === "number" && frequency > 0 ? String(frequency) : "",
+    typeof frequency === 'number' && frequency > 0 ? String(frequency) : '',
   );
   const [frequencyTypeDraft, setFrequencyTypeDraft] = useState<
-    "daily" | "weekly" | "monthly"
-  >(frequencyType ?? "weekly");
+    'daily' | 'weekly' | 'monthly'
+  >(frequencyType ?? 'weekly');
   const [proofDraft, setProofDraft] = useState<
-    "not_required" | "optional" | "mandatory"
+    'not_required' | 'optional' | 'mandatory'
   >(proofRequirement);
   const [notesDraft, setNotesDraft] = useState<
-    "not_required" | "optional" | "mandatory"
+    'not_required' | 'optional' | 'mandatory'
   >(notesRequirement);
   const [pointsDraft, setPointsDraft] = useState<number>(pointsPerSession);
   const [outcomeDraft, setOutcomeDraft] = useState<
@@ -136,8 +145,15 @@ export function ActivityMinimumDropdown({
   >(outcomeConfig && outcomeConfig.length > 0 ? outcomeConfig : []);
   const [maxImagesDraft, setMaxImagesDraft] = useState<number>(maxImages);
   const [customFieldLabelDraft, setCustomFieldLabelDraft] = useState<string>(
-    customFieldLabel || "",
+    customFieldLabel || '',
   );
+  const [customFieldPlaceholderDraft, setCustomFieldPlaceholderDraft] =
+    useState<string>(customFieldPlaceholder || '');
+  const [customFieldLabel2Draft, setCustomFieldLabel2Draft] = useState<string>(
+    customFieldLabel2 || '',
+  );
+  const [customFieldPlaceholder2Draft, setCustomFieldPlaceholder2Draft] =
+    useState<string>(customFieldPlaceholder2 || '');
 
   // Sync state with initialConfig when it changes
   useEffect(() => {
@@ -152,12 +168,12 @@ export function ActivityMinimumDropdown({
 
   useEffect(() => {
     setFrequencyDraft(
-      typeof frequency === "number" && frequency > 0 ? String(frequency) : "",
+      typeof frequency === 'number' && frequency > 0 ? String(frequency) : '',
     );
   }, [frequency]);
 
   useEffect(() => {
-    setFrequencyTypeDraft(frequencyType ?? "weekly");
+    setFrequencyTypeDraft(frequencyType ?? 'weekly');
   }, [frequencyType]);
 
   useEffect(() => {
@@ -178,15 +194,24 @@ export function ActivityMinimumDropdown({
     setMaxImagesDraft(maxImages);
   }, [maxImages]);
   useEffect(() => {
-    setCustomFieldLabelDraft(customFieldLabel || "");
+    setCustomFieldLabelDraft(customFieldLabel || '');
   }, [customFieldLabel]);
+  useEffect(() => {
+    setCustomFieldPlaceholderDraft(customFieldPlaceholder || '');
+  }, [customFieldPlaceholder]);
+  useEffect(() => {
+    setCustomFieldLabel2Draft(customFieldLabel2 || '');
+  }, [customFieldLabel2]);
+  useEffect(() => {
+    setCustomFieldPlaceholder2Draft(customFieldPlaceholder2 || '');
+  }, [customFieldPlaceholder2]);
 
   useEffect(() => {
-    if (frequencyDraft === "") return;
+    if (frequencyDraft === '') return;
     const maxAllowed =
-      frequencyTypeDraft === "monthly"
+      frequencyTypeDraft === 'monthly'
         ? 28
-        : frequencyTypeDraft === "daily"
+        : frequencyTypeDraft === 'daily'
           ? 10
           : 7;
     const current = Number(frequencyDraft);
@@ -263,7 +288,7 @@ export function ActivityMinimumDropdown({
           override.minValue === null,
       )
     ) {
-      toast.error("Please fill all age override fields before saving.");
+      toast.error('Please fill all age override fields before saving.');
       return;
     }
     if (onMinimumChange) {
@@ -285,6 +310,9 @@ export function ActivityMinimumDropdown({
             : null,
         max_images: maxImagesDraft,
         custom_field_label: customFieldLabelDraft.trim() || null,
+        custom_field_placeholder: customFieldPlaceholderDraft.trim() || null,
+        custom_field_label_2: customFieldLabel2Draft.trim() || null,
+        custom_field_placeholder_2: customFieldPlaceholder2Draft.trim() || null,
       });
     }
     setIsExpanded(false);
@@ -302,8 +330,8 @@ export function ActivityMinimumDropdown({
       >
         <ChevronDown
           className={cn(
-            "size-4 transition-transform",
-            isExpanded && "rotate-180",
+            'size-4 transition-transform',
+            isExpanded && 'rotate-180',
           )}
         />
         ⚙️ Configure
@@ -319,7 +347,7 @@ export function ActivityMinimumDropdown({
                 <Select
                   value={frequencyTypeDraft}
                   onValueChange={(value) => {
-                    const nextType = value as "daily" | "weekly" | "monthly";
+                    const nextType = value as 'daily' | 'weekly' | 'monthly';
                     setFrequencyTypeDraft(nextType);
                     onFrequencyTypeChange?.(activityId, nextType);
                   }}
@@ -334,9 +362,9 @@ export function ActivityMinimumDropdown({
                   </SelectContent>
                 </Select>
                 <Select
-                  value={frequencyDraft === "" ? "unlimited" : frequencyDraft}
+                  value={frequencyDraft === '' ? 'unlimited' : frequencyDraft}
                   onValueChange={(value) => {
-                    const nextValue = value === "unlimited" ? "" : value;
+                    const nextValue = value === 'unlimited' ? '' : value;
                     setFrequencyDraft(nextValue);
                     onFrequencyChange?.(activityId, nextValue);
                   }}
@@ -349,9 +377,9 @@ export function ActivityMinimumDropdown({
                     {Array.from(
                       {
                         length:
-                          frequencyTypeDraft === "monthly"
+                          frequencyTypeDraft === 'monthly'
                             ? 28
-                            : frequencyTypeDraft === "daily"
+                            : frequencyTypeDraft === 'daily'
                               ? 10
                               : 7,
                       },
@@ -367,9 +395,9 @@ export function ActivityMinimumDropdown({
                   </SelectContent>
                 </Select>
                 <span className="text-xs text-muted-foreground break-words">
-                  {frequencyTypeDraft === "daily"
-                    ? "times per day"
-                    : `submissions per ${frequencyTypeDraft === "monthly" ? "month" : "week"}`}
+                  {frequencyTypeDraft === 'daily'
+                    ? 'times per day'
+                    : `submissions per ${frequencyTypeDraft === 'monthly' ? 'month' : 'week'}`}
                 </span>
               </div>
             </div>
@@ -391,7 +419,7 @@ export function ActivityMinimumDropdown({
                 type="number"
                 min="0"
                 step="1"
-                value={baseMin ?? ""}
+                value={baseMin ?? ''}
                 onChange={(e) =>
                   setBaseMin(
                     e.target.value ? parseInt(e.target.value, 10) : null,
@@ -449,11 +477,11 @@ export function ActivityMinimumDropdown({
                         min="0"
                         max="120"
                         step="1"
-                        value={override.ageMin ?? ""}
+                        value={override.ageMin ?? ''}
                         onChange={(e) =>
                           updateOverride(override.id, {
                             ageMin:
-                              e.target.value === ""
+                              e.target.value === ''
                                 ? null
                                 : parseInt(e.target.value, 10),
                           })
@@ -466,11 +494,11 @@ export function ActivityMinimumDropdown({
                         min="0"
                         max="120"
                         step="1"
-                        value={override.ageMax ?? ""}
+                        value={override.ageMax ?? ''}
                         onChange={(e) =>
                           updateOverride(override.id, {
                             ageMax:
-                              e.target.value === ""
+                              e.target.value === ''
                                 ? null
                                 : parseInt(e.target.value, 10),
                           })
@@ -487,11 +515,11 @@ export function ActivityMinimumDropdown({
                         type="number"
                         min="0"
                         step="1"
-                        value={override.minValue ?? ""}
+                        value={override.minValue ?? ''}
                         onChange={(e) =>
                           updateOverride(override.id, {
                             minValue:
-                              e.target.value === ""
+                              e.target.value === ''
                                 ? null
                                 : parseInt(e.target.value, 10),
                           })
@@ -566,7 +594,7 @@ export function ActivityMinimumDropdown({
                 value={pointsDraft}
                 onChange={(e) =>
                   setPointsDraft(
-                    e.target.value === "" ? 0 : Number(e.target.value),
+                    e.target.value === '' ? 0 : Number(e.target.value),
                   )
                 }
               />
@@ -589,22 +617,75 @@ export function ActivityMinimumDropdown({
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <Label className="text-[10px] text-muted-foreground uppercase">
-                  Custom Field Label
-                </Label>
-                <Input
-                  placeholder="e.g. How do you feel?"
-                  className="h-7 text-xs"
-                  value={customFieldLabelDraft}
-                  onChange={(e) => setCustomFieldLabelDraft(e.target.value)}
-                />
+            </div>
+
+            {/* Custom Fields (up to 2) */}
+            <div className="space-y-2 border-t pt-2 mt-2">
+              <h5 className="text-[10px] font-semibold text-muted-foreground uppercase">
+                Custom Field 1
+              </h5>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-[10px] text-muted-foreground">
+                    Label
+                  </Label>
+                  <Input
+                    placeholder="e.g. How do you feel?"
+                    className="h-7 text-xs"
+                    value={customFieldLabelDraft}
+                    onChange={(e) => setCustomFieldLabelDraft(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label className="text-[10px] text-muted-foreground">
+                    Placeholder
+                  </Label>
+                  <Input
+                    placeholder="e.g. Great, energized..."
+                    className="h-7 text-xs"
+                    value={customFieldPlaceholderDraft}
+                    onChange={(e) =>
+                      setCustomFieldPlaceholderDraft(e.target.value)
+                    }
+                  />
+                </div>
               </div>
             </div>
-            <p className="text-[10px] text-muted-foreground">
-              Custom field adds a mandatory text input with your label on the
-              player submission form.
-            </p>
+            <div className="space-y-2">
+              <h5 className="text-[10px] font-semibold text-muted-foreground uppercase">
+                Custom Field 2
+              </h5>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-[10px] text-muted-foreground">
+                    Label
+                  </Label>
+                  <Input
+                    placeholder="e.g. Calories burned"
+                    className="h-7 text-xs"
+                    value={customFieldLabel2Draft}
+                    onChange={(e) => setCustomFieldLabel2Draft(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label className="text-[10px] text-muted-foreground">
+                    Placeholder
+                  </Label>
+                  <Input
+                    placeholder="e.g. Enter estimated calories"
+                    className="h-7 text-xs"
+                    value={customFieldPlaceholder2Draft}
+                    onChange={(e) =>
+                      setCustomFieldPlaceholder2Draft(e.target.value)
+                    }
+                  />
+                </div>
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Custom fields add mandatory text inputs on the player submission
+                form. Leave blank to disable.
+              </p>
+            </div>
           </div>
 
           {/* Multi-Outcome */}
@@ -615,7 +696,7 @@ export function ActivityMinimumDropdown({
                 size="sm"
                 variant="ghost"
                 onClick={() =>
-                  setOutcomeDraft((prev) => [...prev, { label: "", points: 1 }])
+                  setOutcomeDraft((prev) => [...prev, { label: '', points: 1 }])
                 }
                 className="h-6 px-2 text-xs gap-1"
               >
@@ -659,7 +740,7 @@ export function ActivityMinimumDropdown({
                               ? {
                                   ...o,
                                   points:
-                                    e.target.value === ""
+                                    e.target.value === ''
                                       ? 0
                                       : Number(e.target.value),
                                 }

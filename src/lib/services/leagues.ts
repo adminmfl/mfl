@@ -26,6 +26,7 @@ export interface LeagueInput {
   max_team_capacity?: number;
   price_paid?: number;
   payment_status?: 'pending' | 'completed' | 'failed';
+  league_mode?: 'standard' | 'challenges_only';
 }
 
 export interface League extends LeagueInput {
@@ -51,6 +52,7 @@ export interface League extends LeagueInput {
   max_team_capacity?: number; // Configurable limit (default 10)
   league_capacity?: number; // Derived from tier
   bonding_automations_enabled?: boolean; // Enable/disable automated team bonding messages
+  league_mode?: 'standard' | 'challenges_only'; // standard = activities + challenges, challenges_only = no activity submissions
 }
 
 function mapDbLeagueToLeague(dbLeague: any): League {
