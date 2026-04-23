@@ -69,6 +69,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { DumbbellLoading } from '@/components/ui/dumbbell-loading';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ProfilePicture } from "@/components/ui/profile-picture";
 
 import { CreateTeamDialog } from "./create-team-dialog";
 import { AddMembersDialog } from "./add-members-dialog";
@@ -440,19 +441,11 @@ export function TeamsTable({ leagueId, isHost, isGovernor }: TeamsTableProps) {
         return (
           <div className="flex items-center gap-1 min-w-0">
             <div className="relative flex-shrink-0">
-              <Avatar className="size-5">
-                <AvatarFallback className="text-[9px]">
-                  {captain.username
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")
-                    .toUpperCase()
-                    .slice(0, 2)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-amber-500 flex items-center justify-center ring-1 ring-background">
-                <Crown className="size-1.5 text-white" />
-              </div>
+              <ProfilePicture
+                username={captain.username}
+                size={32}
+                isCaptain={true}
+              />
             </div>
             <span className="text-[10px] break-words min-w-0">{captain.username}</span>
           </div>

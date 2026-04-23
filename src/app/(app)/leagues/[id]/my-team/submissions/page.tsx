@@ -69,6 +69,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { DumbbellLoading } from '@/components/ui/dumbbell-loading';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { ProfilePicture } from '@/components/ui/profile-picture';
 import { cn } from '@/lib/utils';
 
 import { SubmissionDetailDialog } from '@/components/submissions';
@@ -749,9 +750,10 @@ export default function TeamSubmissionsPage({
                   {/* Top Row: Identity + Date + Points */}
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
-                      <Avatar className="size-8">
-                        <AvatarFallback className="text-[10px]">{submission.member.username.slice(0, 2).toUpperCase()}</AvatarFallback>
-                      </Avatar>
+                      <ProfilePicture
+                        username={submission.member.username}
+                        size={32}
+                      />
                       <div className="min-w-0">
                         <p className="font-semibold text-sm leading-none truncate">{submission.member.username}</p>
                         {isOwnSubmission && <span className="text-[10px] text-muted-foreground bg-secondary px-1 py-0 rounded-sm inline-block mt-0.5">You</span>}

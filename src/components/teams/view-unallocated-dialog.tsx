@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ProfilePicture } from "@/components/ui/profile-picture";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -165,16 +166,10 @@ export function ViewUnallocatedDialog({
                         onCheckedChange={() => toggleMember(member.league_member_id)}
                         className="border-2 border-black dark:border-white"
                       />
-                      <Avatar className="size-8 shrink-0">
-                        <AvatarFallback className="text-xs">
-                          {member.username
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")
-                            .toUpperCase()
-                            .slice(0, 2)}
-                        </AvatarFallback>
-                      </Avatar>
+                      <ProfilePicture
+                        username={member.username}
+                        size={32}
+                      />
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-xs truncate">
                           {member.username}
@@ -190,13 +185,12 @@ export function ViewUnallocatedDialog({
                             <Badge
                               key={role}
                               variant="outline"
-                              className={`text-xs ${
-                                role === "governor"
-                                  ? "bg-blue-500/10 text-blue-600 border-blue-200"
-                                  : role === "host"
+                              className={`text-xs ${role === "governor"
+                                ? "bg-blue-500/10 text-blue-600 border-blue-200"
+                                : role === "host"
                                   ? "bg-purple-500/10 text-purple-600 border-purple-200"
                                   : ""
-                              }`}
+                                }`}
                             >
                               {role}
                             </Badge>

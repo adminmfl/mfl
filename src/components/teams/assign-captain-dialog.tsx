@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ProfilePicture } from "@/components/ui/profile-picture";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -126,11 +127,10 @@ export function AssignCaptainDialog({
                   return (
                     <div
                       key={member.user_id}
-                      className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
-                        selectedUserId === member.user_id
-                          ? "bg-primary/5 border-primary"
-                          : "hover:bg-muted/50"
-                      }`}
+                      className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${selectedUserId === member.user_id
+                        ? "bg-primary/5 border-primary"
+                        : "hover:bg-muted/50"
+                        }`}
                     >
                       <RadioGroupItem
                         value={member.user_id}
@@ -141,21 +141,11 @@ export function AssignCaptainDialog({
                         className="flex items-center gap-3 flex-1 cursor-pointer"
                       >
                         <div className="relative">
-                          <Avatar className="size-9">
-                            <AvatarFallback>
-                              {member.username
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("")
-                                .toUpperCase()
-                                .slice(0, 2)}
-                            </AvatarFallback>
-                          </Avatar>
-                          {isCurrent && (
-                            <div className="absolute -bottom-0.5 -right-0.5 size-4 rounded-full bg-amber-500 flex items-center justify-center ring-2 ring-background">
-                              <Crown className="size-2.5 text-white" />
-                            </div>
-                          )}
+                          <ProfilePicture
+                            username={member.username}
+                            size={64}
+                            isCaptain={isCurrent}
+                          />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm truncate">

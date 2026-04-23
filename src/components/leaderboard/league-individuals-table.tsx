@@ -5,12 +5,11 @@
 'use client';
 
 import * as React from 'react';
-import Trophy from 'lucide-react/dist/esm/icons/trophy';
-import Star from 'lucide-react/dist/esm/icons/star';
-import Medal from 'lucide-react/dist/esm/icons/medal';
+import { Trophy, Star, Medal } from 'lucide-react';
 
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ProfilePicture } from '@/components/ui/profile-picture';
 import {
   Table,
   TableBody,
@@ -106,12 +105,11 @@ export function LeagueIndividualsTable({
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <Avatar className="size-8 shrink-0">
-                      <AvatarImage src={(player as any).profile_picture_url || undefined} />
-                      <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                        {getInitials(player.username)}
-                      </AvatarFallback>
-                    </Avatar>
+                    <ProfilePicture
+                      username={player.username}
+                      profilePictureUrl={(player as any).profile_picture_url}
+                      size={32}
+                    />
                     <div>
                       <p className="font-semibold text-sm whitespace-nowrap">{capitalizeName(player.username)}</p>
                       {player.team_name && (
