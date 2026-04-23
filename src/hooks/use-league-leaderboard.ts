@@ -5,7 +5,11 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { getClientCache, setClientCache, invalidateClientCache } from '@/lib/client-cache';
+import {
+  getClientCache,
+  setClientCache,
+  invalidateClientCache,
+} from '@/lib/client-cache';
 
 // ============================================================================
 // Types
@@ -35,6 +39,7 @@ export interface IndividualRanking {
   team_name: string | null;
   points: number;
   challenge_points?: number;
+  profile_picture_url?: string;
   avg_rr: number;
   submission_count: number;
 }
@@ -126,9 +131,11 @@ export interface UseLeagueLeaderboardReturn {
 
 export function useLeagueLeaderboard(
   leagueId: string | null,
-  options?: UseLeagueLeaderboardOptions
+  options?: UseLeagueLeaderboardOptions,
 ): UseLeagueLeaderboardReturn {
-  const [data, setData] = useState<LeaderboardData | null>(options?.initialData || null);
+  const [data, setData] = useState<LeaderboardData | null>(
+    options?.initialData || null,
+  );
   const [isLoading, setIsLoading] = useState(!options?.initialData);
   const [error, setError] = useState<string | null>(null);
   const [dateRange, setDateRangeState] = useState<{
@@ -139,211 +146,256 @@ export function useLeagueLeaderboard(
     endDate: options?.endDate || null,
   });
   const [rawTeams, setRawTeams] = useState<TeamRanking[] | undefined>(
-    options?.initialData?.teams
+    options?.initialData?.teams,
   );
   const [rawPendingWindow, setRawPendingWindow] = useState<
     PendingWindow | undefined
   >(options?.initialData?.pendingWindow);
 
-  const fetchLeaderboard = useCallback(async (force = false) => {
-    if (!leagueId) {
-      setData(null);
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      // Only show full loading state if we don't have data yet or if it's a forced refetch
-      if (!data || force) {
-        setIsLoading(true);
+  const fetchLeaderboard = useCallback(
+    async (force = false) => {
+      if (!leagueId) {
+        setData(null);
+        setIsLoading(false);
+        return;
       }
-      setError(null);
 
-      // Build URL with query params
-      const params = new URLSearchParams();
-
-      params.set('tzOffsetMinutes', String(new Date().getTimezoneOffset()));
-      // Also send IANA timezone for more accurate date calculation
       try {
-        const ianaTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        if (ianaTimezone) {
-          params.set('ianaTimezone', ianaTimezone);
+        // Only show full loading state if we don't have data yet or if it's a forced refetch
+        if (!data || force) {
+          setIsLoading(true);
         }
-      } catch { }
-      if (dateRange.startDate) {
-        params.set('startDate', dateRange.startDate);
-      }
-      if (dateRange.endDate) {
-        params.set('endDate', dateRange.endDate);
-      }
+        setError(null);
 
-      const url = `/api/leagues/${leagueId}/leaderboard${params.toString() ? `?${params.toString()}` : ''}`;
+        // Build URL with query params
+        const params = new URLSearchParams();
 
-
-      // Try in-memory cache first for snappy back/forward navigation.
-      const cacheKey = `leaderboard:${leagueId}:${dateRange.startDate || ''}:${dateRange.endDate || ''}`;
-
-      if (!force) {
-        const cached = getClientCache<{
-          data: LeaderboardData | null;
-          rawTeams?: TeamRanking[];
-          rawPendingWindow?: PendingWindow;
-        }>(cacheKey);
-
-        if (cached && cached.data) {
-          setData(cached.data);
-          setRawTeams(cached.rawTeams);
-          setRawPendingWindow(cached.rawPendingWindow);
-          setIsLoading(false);
-          return;
+        params.set('tzOffsetMinutes', String(new Date().getTimezoneOffset()));
+        // Also send IANA timezone for more accurate date calculation
+        try {
+          const ianaTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          if (ianaTimezone) {
+            params.set('ianaTimezone', ianaTimezone);
+          }
+        } catch {}
+        if (dateRange.startDate) {
+          params.set('startDate', dateRange.startDate);
         }
-      } else {
-        // Invalidate cache before forced refresh to ensure fresh data
-        invalidateClientCache(cacheKey);
-      }
-
-      // Fetch leaderboard data and team metadata in parallel
-      const [response, teamsResp] = await Promise.all([
-        fetch(url),
-        fetch(`/api/leagues/${leagueId}/teams`)
-      ]);
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || `Failed to fetch leaderboard (${response.status})`);
-      }
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to fetch leaderboard');
-      }
-
-      let data: LeaderboardData = result.data;
-      // Snapshot raw data before normalization
-      const initialTeams = Array.isArray(data?.teams) ? data.teams : undefined;
-      setRawTeams(initialTeams);
-      setRawPendingWindow(data?.pendingWindow);
-
-      if (teamsResp.ok) {
-        const teamsJson = await teamsResp.json();
-        const normalizeActive = Boolean(
-          teamsJson?.data?.league?.normalize_points_by_team_size
-        );
-        const variance = teamsJson?.data?.teamSizeVariance as { hasVariance: boolean; avgSize: number; minSize: number; maxSize: number } | undefined;
-        const teamMemberMap: Record<string, number> = {};
-        const apiTeams: Array<{ team_id: string; member_count?: number; logo_url?: string | null }> = teamsJson?.data?.teams || [];
-        apiTeams.forEach(t => { teamMemberMap[t.team_id] = Number(t.member_count ?? 0); });
-
-        // Merge logo_url into leaderboard team objects so UI can render team logos
-        const logoByTeamId: Record<string, string | null> = {};
-        apiTeams.forEach(t => { logoByTeamId[t.team_id] = (t as any).logo_url || null; });
-        if (Array.isArray(data?.teams)) {
-          data.teams = data.teams.map((t) => ({
-            ...t,
-            logo_url: logoByTeamId[t.team_id] || null,
-          }));
+        if (dateRange.endDate) {
+          params.set('endDate', dateRange.endDate);
         }
-        if (Array.isArray(data?.pendingWindow?.teams)) {
-          data.pendingWindow = {
-            ...data.pendingWindow,
-            teams: data.pendingWindow.teams.map((t) => ({
+
+        const url = `/api/leagues/${leagueId}/leaderboard${params.toString() ? `?${params.toString()}` : ''}`;
+
+        // Try in-memory cache first for snappy back/forward navigation.
+        const cacheKey = `leaderboard:${leagueId}:${dateRange.startDate || ''}:${dateRange.endDate || ''}`;
+
+        if (!force) {
+          const cached = getClientCache<{
+            data: LeaderboardData | null;
+            rawTeams?: TeamRanking[];
+            rawPendingWindow?: PendingWindow;
+          }>(cacheKey);
+
+          if (cached && cached.data) {
+            setData(cached.data);
+            setRawTeams(cached.rawTeams);
+            setRawPendingWindow(cached.rawPendingWindow);
+            setIsLoading(false);
+            return;
+          }
+        } else {
+          // Invalidate cache before forced refresh to ensure fresh data
+          invalidateClientCache(cacheKey);
+        }
+
+        // Fetch leaderboard data and team metadata in parallel
+        const [response, teamsResp] = await Promise.all([
+          fetch(url),
+          fetch(`/api/leagues/${leagueId}/teams`),
+        ]);
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            result.error || `Failed to fetch leaderboard (${response.status})`,
+          );
+        }
+
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to fetch leaderboard');
+        }
+
+        let data: LeaderboardData = result.data;
+        // Snapshot raw data before normalization
+        const initialTeams = Array.isArray(data?.teams)
+          ? data.teams
+          : undefined;
+        setRawTeams(initialTeams);
+        setRawPendingWindow(data?.pendingWindow);
+
+        if (teamsResp.ok) {
+          const teamsJson = await teamsResp.json();
+          const normalizeActive = Boolean(
+            teamsJson?.data?.league?.normalize_points_by_team_size,
+          );
+          const variance = teamsJson?.data?.teamSizeVariance as
+            | {
+                hasVariance: boolean;
+                avgSize: number;
+                minSize: number;
+                maxSize: number;
+              }
+            | undefined;
+          const teamMemberMap: Record<string, number> = {};
+          const apiTeams: Array<{
+            team_id: string;
+            member_count?: number;
+            logo_url?: string | null;
+          }> = teamsJson?.data?.teams || [];
+          apiTeams.forEach((t) => {
+            teamMemberMap[t.team_id] = Number(t.member_count ?? 0);
+          });
+
+          // Merge logo_url into leaderboard team objects so UI can render team logos
+          const logoByTeamId: Record<string, string | null> = {};
+          apiTeams.forEach((t) => {
+            logoByTeamId[t.team_id] = (t as any).logo_url || null;
+          });
+          if (Array.isArray(data?.teams)) {
+            data.teams = data.teams.map((t) => ({
               ...t,
               logo_url: logoByTeamId[t.team_id] || null,
-            })),
-          };
-        }
-
-        // Compute normalized points when active and variance exists
-        if (normalizeActive && variance?.hasVariance && variance.maxSize > 0 && Array.isArray(data?.teams)) {
-          // Apply normalized points using: (raw_points / member_count) × max_team_size
-          const normalizedTeams = data.teams.map((t) => {
-            const memberCount = Math.max(1, t.member_count);
-            const normalizedBase = Math.round(t.points * (variance.maxSize / memberCount));
-            const normalizedChallenge = Math.round((t.challenge_bonus || 0) * (variance.maxSize / memberCount));
-            const displayTotal = normalizedBase + normalizedChallenge;
-            return {
-              ...t,
-              normalized_points: normalizedBase,
-              total_points: displayTotal, // overwrite displayed total to normalized base + challenge bonus
-            };
-          });
-          // Sort by normalized display total, then avg_rr DESC as tiebreaker
-          normalizedTeams.sort((a, b) => {
-            if (b.total_points !== a.total_points) return b.total_points - a.total_points;
-            return b.avg_rr - a.avg_rr;
-          });
-          const reRanked = normalizedTeams.map((t, idx) => ({ ...t, rank: idx + 1 }));
-
-          // Normalize pending window (today/yesterday) pointsByDate using team member counts
-          let normalizedPending = data.pendingWindow;
-          if (data.pendingWindow && data.pendingWindow.dates?.length) {
-            const dates = data.pendingWindow.dates;
-            const todayKey = dates[0]; // pendingWindowEnd first in list
-            const teamsPW = data.pendingWindow.teams.map((pw) => {
-              const memberCount = Math.max(1, teamMemberMap[pw.team_id] ?? 0);
-              const normalizedPointsByDate: Record<string, number> = {};
-              Object.entries(pw.pointsByDate || {}).forEach(([k, v]) => {
-                normalizedPointsByDate[k] = Math.round((v || 0) * (variance.maxSize / memberCount));
-              });
-              return {
-                ...pw,
-                pointsByDate: normalizedPointsByDate,
-              };
-            });
-            // Rank by today's normalized points
-            teamsPW.sort((a, b) => (b.pointsByDate?.[todayKey] ?? 0) - (a.pointsByDate?.[todayKey] ?? 0));
-            normalizedPending = {
-              dates,
-              teams: teamsPW.map((t, idx) => ({ ...t, rank: idx + 1 })),
+            }));
+          }
+          if (Array.isArray(data?.pendingWindow?.teams)) {
+            data.pendingWindow = {
+              ...data.pendingWindow,
+              teams: data.pendingWindow.teams.map((t) => ({
+                ...t,
+                logo_url: logoByTeamId[t.team_id] || null,
+              })),
             };
           }
 
-          data = {
-            ...data,
-            normalization: {
-              active: true,
-              hasVariance: true,
-              avgSize: variance.avgSize,
-              minSize: variance.minSize,
-              maxSize: variance.maxSize,
-            },
-            teams: reRanked,
-            pendingWindow: normalizedPending,
-          };
-        } else {
-          data = {
-            ...data,
-            normalization: {
-              active: false,
-              hasVariance: Boolean(variance?.hasVariance),
-              avgSize: Number(variance?.avgSize ?? 0),
-              minSize: Number(variance?.minSize ?? 0),
-              maxSize: Number(variance?.maxSize ?? 0),
-            },
-          };
+          // Compute normalized points when active and variance exists
+          if (
+            normalizeActive &&
+            variance?.hasVariance &&
+            variance.maxSize > 0 &&
+            Array.isArray(data?.teams)
+          ) {
+            // Apply normalized points using: (raw_points / member_count) × max_team_size
+            const normalizedTeams = data.teams.map((t) => {
+              const memberCount = Math.max(1, t.member_count);
+              const normalizedBase = Math.round(
+                t.points * (variance.maxSize / memberCount),
+              );
+              const normalizedChallenge = Math.round(
+                (t.challenge_bonus || 0) * (variance.maxSize / memberCount),
+              );
+              const displayTotal = normalizedBase + normalizedChallenge;
+              return {
+                ...t,
+                normalized_points: normalizedBase,
+                total_points: displayTotal, // overwrite displayed total to normalized base + challenge bonus
+              };
+            });
+            // Sort by normalized display total, then avg_rr DESC as tiebreaker
+            normalizedTeams.sort((a, b) => {
+              if (b.total_points !== a.total_points)
+                return b.total_points - a.total_points;
+              return b.avg_rr - a.avg_rr;
+            });
+            const reRanked = normalizedTeams.map((t, idx) => ({
+              ...t,
+              rank: idx + 1,
+            }));
+
+            // Normalize pending window (today/yesterday) pointsByDate using team member counts
+            let normalizedPending = data.pendingWindow;
+            if (data.pendingWindow && data.pendingWindow.dates?.length) {
+              const dates = data.pendingWindow.dates;
+              const todayKey = dates[0]; // pendingWindowEnd first in list
+              const teamsPW = data.pendingWindow.teams.map((pw) => {
+                const memberCount = Math.max(1, teamMemberMap[pw.team_id] ?? 0);
+                const normalizedPointsByDate: Record<string, number> = {};
+                Object.entries(pw.pointsByDate || {}).forEach(([k, v]) => {
+                  normalizedPointsByDate[k] = Math.round(
+                    (v || 0) * (variance.maxSize / memberCount),
+                  );
+                });
+                return {
+                  ...pw,
+                  pointsByDate: normalizedPointsByDate,
+                };
+              });
+              // Rank by today's normalized points
+              teamsPW.sort(
+                (a, b) =>
+                  (b.pointsByDate?.[todayKey] ?? 0) -
+                  (a.pointsByDate?.[todayKey] ?? 0),
+              );
+              normalizedPending = {
+                dates,
+                teams: teamsPW.map((t, idx) => ({ ...t, rank: idx + 1 })),
+              };
+            }
+
+            data = {
+              ...data,
+              normalization: {
+                active: true,
+                hasVariance: true,
+                avgSize: variance.avgSize,
+                minSize: variance.minSize,
+                maxSize: variance.maxSize,
+              },
+              teams: reRanked,
+              pendingWindow: normalizedPending,
+            };
+          } else {
+            data = {
+              ...data,
+              normalization: {
+                active: false,
+                hasVariance: Boolean(variance?.hasVariance),
+                avgSize: Number(variance?.avgSize ?? 0),
+                minSize: Number(variance?.minSize ?? 0),
+                maxSize: Number(variance?.maxSize ?? 0),
+              },
+            };
+          }
         }
+
+        setData(data);
+
+        // Store in client cache for fast subsequent navigations.
+        setClientCache(cacheKey, {
+          data,
+          rawTeams: initialTeams,
+          rawPendingWindow: data?.pendingWindow,
+        });
+      } catch (err) {
+        console.error('Error fetching leaderboard:', err);
+        setError(
+          err instanceof Error ? err.message : 'Failed to load leaderboard',
+        );
+      } finally {
+        setIsLoading(false);
       }
-
-      setData(data);
-
-      // Store in client cache for fast subsequent navigations.
-      setClientCache(cacheKey, {
-        data,
-        rawTeams: initialTeams,
-        rawPendingWindow: data?.pendingWindow,
-      });
-    } catch (err) {
-      console.error('Error fetching leaderboard:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load leaderboard');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [leagueId, dateRange.startDate, dateRange.endDate]);
+    },
+    [leagueId, dateRange.startDate, dateRange.endDate],
+  );
 
   // Set date range and trigger refetch
-  const setDateRange = useCallback((startDate: string | null, endDate: string | null) => {
-    setDateRangeState({ startDate, endDate });
-  }, []);
+  const setDateRange = useCallback(
+    (startDate: string | null, endDate: string | null) => {
+      setDateRangeState({ startDate, endDate });
+    },
+    [],
+  );
 
   // Seed initial cache if data is provided from server
   useEffect(() => {
@@ -361,7 +413,6 @@ export function useLeagueLeaderboard(
   useEffect(() => {
     fetchLeaderboard();
   }, [fetchLeaderboard]);
-
 
   return {
     data,

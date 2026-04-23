@@ -19,6 +19,8 @@
 
 **Fair Play Safeguards** — Suspicious submissions can now be flagged and tracked through a strike-based system, with warnings for players and improved visibility for captains and organizers.
 
+**Grande Finale Awards Experience** — Completed leagues now switch to a celebration view replacing the leaderboard, highlighting winners and all participants, with a limited-time Trophy Mode followed by an archive view.
+
 ### What's Fixed
 
 - Captain permissions and add-member edge cases

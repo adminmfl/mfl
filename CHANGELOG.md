@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Auto-crop to circle with compression on upload (JPG/PNG support)
   - Player-controlled uploads (Host/Admin cannot upload on behalf)
   - Storage in Supabase profile-pictures bucket with organized folder structure
+- Add Grande Finale awards view replacing leaderboard after league completion with Trophy Mode and Extended Archive states (#158)
 
 ### Changed
 
