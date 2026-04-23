@@ -137,7 +137,6 @@ export async function GET(
     }
 
     // Create a map of league_member_id to member info
-<<<<<<< HEAD
     const memberMap = new Map<
       string,
       {
@@ -148,16 +147,6 @@ export async function GET(
         team_name: string | null;
       }
     >();
-=======
-    const memberMap = new Map<string, {
-      user_id: string;
-      username: string;
-      email: string;
-      team_id: string | null;
-      team_name: string | null;
-      suspicious_proof_strikes: number;
-    }>();
->>>>>>> 4d8e1ba8d308c7980b1003767a991ae2686c6221
 
     const teamSet = new Set<string>();
 
@@ -241,7 +230,13 @@ export async function GET(
       }
 
       const results = await Promise.all(pagePromises);
-      results.forEach((res) => {
+      results.forEach((res, index) => {
+        if (res.error) {
+          console.error(
+            `Error fetching submissions page ${index + 1}:`,
+            res.error,
+          );
+        }
         if (res.data) submissions = submissions.concat(res.data);
       });
     }

@@ -278,7 +278,13 @@ export async function calculateLeaderboard(
       }
 
       const additionalPages = await Promise.all(pagePromises);
-      additionalPages.forEach((res) => {
+      additionalPages.forEach((res, index) => {
+        if (res.error) {
+          console.error(
+            `Error fetching effort entries page ${index + 1}:`,
+            res.error,
+          );
+        }
         if (res.data) entries = entries.concat(res.data);
       });
     }
