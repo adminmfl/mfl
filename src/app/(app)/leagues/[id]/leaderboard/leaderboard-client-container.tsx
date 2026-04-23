@@ -1,9 +1,16 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { Trophy, Flag, ChevronDown } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
+import React, { useState, useMemo } from 'react';
+import { RefreshCw, Calendar, ChevronDown, Trophy, Flag } from 'lucide-react';
+
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import {
   DropdownMenu,
@@ -11,57 +18,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
 
-import dynamic from 'next/dynamic';
 import { useLeagueLeaderboard } from '@/hooks/use-league-leaderboard';
 import { useAiInsights } from '@/hooks/use-ai-insights';
-
-// Dynamically import heavy components
-const LeagueTeamsTable = dynamic(
-  () =>
-    import('@/components/leaderboard/league-teams-table').then(
-      (mod) => mod.LeagueTeamsTable,
-    ),
-  {
-    loading: () => (
-      <div className="h-40 animate-pulse bg-muted/20 rounded-lg" />
-    ),
-  },
-);
-const LeagueIndividualsTable = dynamic(
-  () =>
-    import('@/components/leaderboard/league-individuals-table').then(
-      (mod) => mod.LeagueIndividualsTable,
-    ),
-  {
-    loading: () => (
-      <div className="h-40 animate-pulse bg-muted/20 rounded-lg" />
-    ),
-  },
-);
-const ChallengeSpecificLeaderboard = dynamic(
-  () =>
-    import('@/components/leaderboard/challenge-specific-leaderboard').then(
-      (mod) => mod.ChallengeSpecificLeaderboard,
-    ),
-  {
-    loading: () => (
-      <div className="h-40 animate-pulse bg-muted/20 rounded-lg" />
-    ),
-  },
-);
-const RealTimeScoreboardTable = dynamic(
-  () =>
-    import('@/components/leaderboard/realtime-scoreboard-table').then(
-      (mod) => mod.RealTimeScoreboardTable,
-    ),
-  {
-    loading: () => (
-      <div className="h-40 animate-pulse bg-muted/20 rounded-lg" />
-    ),
-  },
-);
-
+import {
+  LeagueTeamsTable,
+  LeagueIndividualsTable,
+  ChallengeSpecificLeaderboard,
+  RealTimeScoreboardTable,
+  GrandeFinaleCelebration,
+} from '@/components/leaderboard';
 import {
   HeaderSkeleton,
   TableSkeleton,
@@ -106,10 +73,10 @@ export function LeaderboardClientContainer({
 
   // Calculate week presets based on league dates
   const league = data?.league;
-  const leagueStartDate = league?.start_date;
-  const leagueEndDate = league?.end_date;
   const rrFormula = league?.rr_config?.formula || 'standard';
   const showRR = rrFormula === 'standard';
+  const leagueStartDate = league?.start_date ?? null;
+  const leagueEndDate = league?.end_date ?? null;
 
   const weekPresets = useMemo(() => {
     if (!leagueStartDate || !leagueEndDate) return [];
@@ -192,26 +159,200 @@ export function LeaderboardClientContainer({
       ? rawPendingWindow
       : data?.pendingWindow;
 
+  const isPostLeague = (() => {
+    if (!league?.end_date) return false;
+    const now = new Date();
+    const leagueEnd = new Date(league.end_date);
+    if (Number.isNaN(leagueEnd.getTime())) return false;
+    leagueEnd.setHours(23, 59, 59, 999);
+    return now > leagueEnd;
+  })();
+
+  if (isPostLeague && league?.end_date) {
+    return (
+      <div className="@container/main flex flex-1 flex-col gap-3 lg:gap-4 px-4 pb-4 lg:px-6">
+        <GrandeFinaleCelebration
+          leagueId={leagueId}
+          leagueName={league.league_name || 'League Finale'}
+          leagueEndDate={league.end_date}
+          teams={teams}
+          individuals={allIndividuals}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="@container/main flex flex-1 flex-col gap-3 lg:gap-4">
       {/* Header + Filter Card */}
       <div className="px-4 lg:px-6">
         <div className="rounded-lg border bg-card/70 shadow-sm px-3 py-3">
           <div className="flex items-center justify-between gap-2 mb-2">
-            <LeaderboardControls
-              selectedWeek={selectedWeek}
-              startDate={startDate}
-              endDate={endDate}
-              filterOpen={filterOpen}
-              setFilterOpen={setFilterOpen}
-              weekPresets={weekPresets}
-              handleWeekSelect={handleWeekSelect}
-              handleApplyDateRange={handleApplyDateRange}
-              handleResetDateRange={handleResetDateRange}
-              setStartDate={setStartDate}
-              setEndDate={setEndDate}
-              refetch={refetch}
-            />
+            <div>
+              <h1 className="text-xl font-bold tracking-tight">Leaderboard</h1>
+              <p className="text-sm text-muted-foreground leading-none truncate max-w-[200px]">
+                {league?.league_name || 'Rankings'}
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs font-normal shadow-sm hover:shadow"
+                  >
+                    <Calendar className="size-3.5 mr-1.5" />
+                    <span className="truncate max-w-[80px] sm:max-w-none">
+                      {selectedWeek === 'all'
+                        ? 'All Time'
+                        : selectedWeek === 'custom'
+                          ? startDate && endDate
+                            ? `${format(startDate, 'MMM d')} - ${format(endDate, 'MMM d')}`
+                            : 'Custom'
+                          : weekPresets.find(
+                              (w) => w.weekNumber === selectedWeek,
+                            )?.label || 'All Time'}
+                    </span>
+                    <ChevronDown className="size-3.5 ml-1.5 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  className="w-72 p-0 shadow-lg border-muted"
+                  align="end"
+                >
+                  <div className="flex flex-col gap-1 p-2">
+                    <Button
+                      variant={selectedWeek === 'all' ? 'secondary' : 'ghost'}
+                      size="sm"
+                      className="justify-start shadow-sm"
+                      onClick={() => handleWeekSelect('all')}
+                    >
+                      All Time
+                    </Button>
+
+                    {weekPresets.length > 0 && (
+                      <>
+                        <div className="text-xs font-medium text-muted-foreground px-2 py-2 mt-1">
+                          Weeks
+                        </div>
+                        <div className="max-h-[240px] overflow-y-auto pr-1 space-y-1">
+                          {[...weekPresets].reverse().map((week) => (
+                            <Button
+                              key={week.weekNumber}
+                              variant={
+                                selectedWeek === week.weekNumber
+                                  ? 'secondary'
+                                  : 'ghost'
+                              }
+                              size="sm"
+                              className="justify-start w-full shadow-sm"
+                              onClick={() => handleWeekSelect(week.weekNumber)}
+                            >
+                              <span className="font-medium">{week.label}</span>
+                              <span className="ml-auto text-xs text-muted-foreground pl-2">
+                                {format(parseISO(week.startDate), 'MMM d')} –{' '}
+                                {format(parseISO(week.endDate), 'MMM d')}
+                              </span>
+                            </Button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+
+                    <div className="text-xs font-medium text-muted-foreground px-2 py-2 mt-2">
+                      Custom Range
+                    </div>
+                    <div className="flex flex-col gap-2.5 p-3 rounded-md border bg-muted/20 shadow-inner">
+                      <div className="flex items-center gap-2">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className={cn(
+                                'flex-1 text-xs shadow-sm hover:shadow',
+                                !startDate && 'text-muted-foreground',
+                              )}
+                            >
+                              {startDate ? format(startDate, 'MMM d') : 'Start'}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent
+                            className="w-auto p-0 shadow-lg"
+                            align="start"
+                          >
+                            <CalendarComponent
+                              mode="single"
+                              selected={startDate}
+                              onSelect={setStartDate}
+                              disabled={(date) =>
+                                endDate ? date > endDate : false
+                              }
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <span className="text-xs text-muted-foreground">–</span>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className={cn(
+                                'flex-1 text-xs shadow-sm hover:shadow',
+                                !endDate && 'text-muted-foreground',
+                              )}
+                            >
+                              {endDate ? format(endDate, 'MMM d') : 'End'}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent
+                            className="w-auto p-0 shadow-lg"
+                            align="start"
+                          >
+                            <CalendarComponent
+                              mode="single"
+                              selected={endDate}
+                              onSelect={setEndDate}
+                              disabled={(date) =>
+                                startDate ? date < startDate : false
+                              }
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="flex-1 text-xs shadow-sm hover:shadow"
+                          onClick={handleResetDateRange}
+                        >
+                          Reset
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="flex-1 text-xs shadow-sm hover:shadow-md"
+                          onClick={handleApplyDateRange}
+                        >
+                          Apply
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={refetch}
+              >
+                <RefreshCw className="size-3.5" />
+              </Button>
+            </div>
           </div>
           <div className="border-t mt-2 pt-3">
             <Tabs
@@ -280,7 +421,7 @@ export function LeaderboardClientContainer({
               <TabsContent value="challenges" className="mt-0">
                 <ChallengeSpecificLeaderboard
                   leagueId={leagueId}
-                  renderViewSwitcher={() => (
+                  renderViewSwitcher={
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
@@ -319,7 +460,7 @@ export function LeaderboardClientContainer({
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                  )}
+                  }
                 />
               </TabsContent>
             </Tabs>
