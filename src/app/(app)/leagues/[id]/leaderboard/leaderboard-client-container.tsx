@@ -1,23 +1,16 @@
 'use client';
 
-<<<<<<< HEAD
-import { useState, useMemo } from 'react';
-import { Trophy, Flag, ChevronDown } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
-=======
 import React, { useState, useMemo } from 'react';
-import { format, parseISO } from 'date-fns';
 import { RefreshCw, Calendar, ChevronDown, Trophy, Flag } from 'lucide-react';
 
-import { Button } from '@/components/ui/button';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
->>>>>>> 67af46e (feature: add grand finale awards view)
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import {
   DropdownMenu,
@@ -25,84 +18,25 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-<<<<<<< HEAD
-
-import dynamic from 'next/dynamic';
-import { useLeagueLeaderboard } from '@/hooks/use-league-leaderboard';
-import { useAiInsights } from '@/hooks/use-ai-insights';
-
-// Dynamically import heavy components
-const LeagueTeamsTable = dynamic(
-  () =>
-    import('@/components/leaderboard/league-teams-table').then(
-      (mod) => mod.LeagueTeamsTable,
-    ),
-  {
-    loading: () => (
-      <div className="h-40 animate-pulse bg-muted/20 rounded-lg" />
-    ),
-  },
-);
-const LeagueIndividualsTable = dynamic(
-  () =>
-    import('@/components/leaderboard/league-individuals-table').then(
-      (mod) => mod.LeagueIndividualsTable,
-    ),
-  {
-    loading: () => (
-      <div className="h-40 animate-pulse bg-muted/20 rounded-lg" />
-    ),
-  },
-);
-const ChallengeSpecificLeaderboard = dynamic(
-  () =>
-    import('@/components/leaderboard/challenge-specific-leaderboard').then(
-      (mod) => mod.ChallengeSpecificLeaderboard,
-    ),
-  {
-    loading: () => (
-      <div className="h-40 animate-pulse bg-muted/20 rounded-lg" />
-    ),
-  },
-);
-const RealTimeScoreboardTable = dynamic(
-  () =>
-    import('@/components/leaderboard/realtime-scoreboard-table').then(
-      (mod) => mod.RealTimeScoreboardTable,
-    ),
-  {
-    loading: () => (
-      <div className="h-40 animate-pulse bg-muted/20 rounded-lg" />
-    ),
-  },
-);
-
-=======
 import { cn } from '@/lib/utils';
 
 import { useLeagueLeaderboard } from '@/hooks/use-league-leaderboard';
 import { useAiInsights } from '@/hooks/use-ai-insights';
 import {
-  LeaderboardStats,
   LeagueTeamsTable,
   LeagueIndividualsTable,
   ChallengeSpecificLeaderboard,
   RealTimeScoreboardTable,
   GrandeFinaleCelebration,
 } from '@/components/leaderboard';
->>>>>>> 67af46e (feature: add grand finale awards view)
 import {
   HeaderSkeleton,
   TableSkeleton,
   StatsSkeleton,
 } from '@/components/leaderboard/leaderboard-skeletons';
-<<<<<<< HEAD
 import { LeaderboardStats } from '@/components/leaderboard/leaderboard-stats';
 import { calculateWeekPresets } from '@/lib/utils/leaderboard-utils';
 import { LeaderboardControls } from './leaderboard-controls';
-=======
-import { calculateWeekPresets } from '@/lib/utils/leaderboard-utils';
->>>>>>> 67af46e (feature: add grand finale awards view)
 import type { LeaderboardData } from '@/hooks/use-league-leaderboard';
 
 interface LeaderboardClientContainerProps {
@@ -139,17 +73,10 @@ export function LeaderboardClientContainer({
 
   // Calculate week presets based on league dates
   const league = data?.league;
-<<<<<<< HEAD
-  const leagueStartDate = league?.start_date;
-  const leagueEndDate = league?.end_date;
-  const rrFormula = league?.rr_config?.formula || 'standard';
-  const showRR = rrFormula === 'standard';
-=======
   const rrFormula = league?.rr_config?.formula || 'standard';
   const showRR = rrFormula === 'standard';
   const leagueStartDate = league?.start_date ?? null;
   const leagueEndDate = league?.end_date ?? null;
->>>>>>> 67af46e (feature: add grand finale awards view)
 
   const weekPresets = useMemo(() => {
     if (!leagueStartDate || !leagueEndDate) return [];
@@ -261,22 +188,6 @@ export function LeaderboardClientContainer({
       <div className="px-4 lg:px-6">
         <div className="rounded-lg border bg-card/70 shadow-sm px-3 py-3">
           <div className="flex items-center justify-between gap-2 mb-2">
-<<<<<<< HEAD
-            <LeaderboardControls
-              selectedWeek={selectedWeek}
-              startDate={startDate}
-              endDate={endDate}
-              filterOpen={filterOpen}
-              setFilterOpen={setFilterOpen}
-              weekPresets={weekPresets}
-              handleWeekSelect={handleWeekSelect}
-              handleApplyDateRange={handleApplyDateRange}
-              handleResetDateRange={handleResetDateRange}
-              setStartDate={setStartDate}
-              setEndDate={setEndDate}
-              refetch={refetch}
-            />
-=======
             <div>
               <h1 className="text-xl font-bold tracking-tight">Leaderboard</h1>
               <p className="text-sm text-muted-foreground leading-none truncate max-w-[200px]">
@@ -442,7 +353,6 @@ export function LeaderboardClientContainer({
                 <RefreshCw className="size-3.5" />
               </Button>
             </div>
->>>>>>> 67af46e (feature: add grand finale awards view)
           </div>
           <div className="border-t mt-2 pt-3">
             <Tabs
@@ -511,7 +421,7 @@ export function LeaderboardClientContainer({
               <TabsContent value="challenges" className="mt-0">
                 <ChallengeSpecificLeaderboard
                   leagueId={leagueId}
-                  renderViewSwitcher={() => (
+                  renderViewSwitcher={
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
@@ -550,7 +460,7 @@ export function LeaderboardClientContainer({
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                  )}
+                  }
                 />
               </TabsContent>
             </Tabs>

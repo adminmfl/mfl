@@ -2,22 +2,17 @@
 
 import React from 'react';
 import Confetti from 'react-confetti';
-import {
-  Crown,
-  Loader2,
-  Medal,
-  Sparkles,
-  Star,
-  Trophy,
-  Upload,
-} from 'lucide-react';
+import { Crown, Medal, Sparkles, Star, Trophy } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRole } from '@/contexts/role-context';
 
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DownloadCertificateButton } from '@/components/leagues/download-report-button';
+import { AwardGrid } from './grande-finale/award-grid';
+import { CeremonyPhotosSection } from './grande-finale/ceremony-photos-section';
+import type { CeremonyPhoto } from './grande-finale/ceremony-photos-section';
+import { computeFinaleAwards } from './grande-finale/compute-awards';
+import { TrophyLeaderboardSection } from './grande-finale/trophy-leaderboard-section';
 import type {
   IndividualRanking,
   TeamRanking,
@@ -29,28 +24,6 @@ interface GrandeFinaleCelebrationProps {
   leagueEndDate: string;
   teams: TeamRanking[];
   individuals: IndividualRanking[];
-}
-
-type AwardCard = {
-  title: string;
-  subtitle: string;
-  recipient: string;
-  fallback: string;
-  pointsLabel?: string;
-};
-
-type CeremonyPhoto = {
-  path: string;
-  url: string;
-  name: string;
-  createdAt: string | null;
-};
-
-function getInitials(name: string): string {
-  const parts = name.trim().split(' ').filter(Boolean);
-  if (parts.length === 0) return 'NA';
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
 }
 
 function getPostLeagueDayInfo(endDate: string): {
@@ -85,6 +58,30 @@ export function GrandeFinaleCelebration({
   teams,
   individuals,
 }: GrandeFinaleCelebrationProps) {
+  const finaleTheme = React.useMemo(
+    () =>
+      ({
+        '--gf-text-primary': '#F8F2D8',
+        '--gf-text-secondary': '#E7D7A2',
+        '--gf-text-heading': '#F1D675',
+        '--gf-text-emphasis': '#F6E27A',
+        '--gf-text-subtle': '#D8C996',
+        '--gf-surface-card': '#102756',
+        '--gf-surface-muted': '#0D1F44B3',
+        '--gf-surface-row': '#132C61',
+        '--gf-avatar-bg': '#1A356E',
+        '--gf-avatar-text': '#F4E5B0',
+        '--gf-badge-bg': '#D4AF37',
+        '--gf-badge-text': '#0A1A3A',
+        '--gf-border-20': '#D4AF3733',
+        '--gf-border-25': '#D4AF3740',
+        '--gf-border-30': '#D4AF374D',
+        '--gf-border-35': '#D4AF3759',
+        '--gf-border-60': '#D4AF3799',
+      }) as React.CSSProperties,
+    [],
+  );
+
   const { data: session } = useSession();
   const { activeRole } = useRole();
   const [windowSize, setWindowSize] = React.useState({ width: 0, height: 0 });
@@ -111,18 +108,16 @@ export function GrandeFinaleCelebration({
       setGalleryLoading(true);
       setGalleryError(null);
 
-      const response = await fetch(`/api/leagues/${leagueId}/ceremony-photos`, {
-        headers: {
-          'x-active-role': activeRole || '',
-        },
-      });
+      const response = await fetch(`/api/leagues/${leagueId}/ceremony-photos`);
       const json = await response.json();
 
       if (!response.ok || !json.success) {
         throw new Error(json.error || 'Failed to load ceremony photos');
       }
 
-      setCanUploadCeremonyPhotos(Boolean(json.data?.canUpload));
+      setCanUploadCeremonyPhotos(
+        Boolean(json.data?.canUpload) && activeRole === 'host',
+      );
       setPhotos(Array.isArray(json.data?.photos) ? json.data.photos : []);
     } catch (error) {
       const message =
@@ -158,15 +153,17 @@ export function GrandeFinaleCelebration({
 
       const response = await fetch(`/api/leagues/${leagueId}/ceremony-photos`, {
         method: 'POST',
-        headers: {
-          'x-active-role': activeRole || '',
-        },
         body: formData,
       });
-      const json = await response.json();
+      const contentType = response.headers.get('content-type') || '';
+      const json = contentType.includes('application/json')
+        ? await response.json()
+        : null;
 
-      if (!response.ok || !json.success) {
-        throw new Error(json.error || 'Failed to upload ceremony photo');
+      if (!response.ok || !json?.success) {
+        throw new Error(
+          json?.error || `Failed to upload ceremony photo (${response.status})`,
+        );
       }
 
       await fetchCeremonyPhotos();
@@ -189,6 +186,16 @@ export function GrandeFinaleCelebration({
     [leagueEndDate],
   );
 
+  const {
+    winnerAwards,
+    teamCharacterAwards,
+    leadershipAwards,
+    individualAwards,
+  } = React.useMemo(
+    () => computeFinaleAwards(teams, individuals),
+    [teams, individuals],
+  );
+
   if (!isPostLeague) {
     return null;
   }
@@ -196,145 +203,14 @@ export function GrandeFinaleCelebration({
   const isTrophyMode = day <= 14;
   const remainingDays = Math.max(0, 14 - day + 1);
 
-  const topTeams = teams.slice(0, 3);
-  const remainingTeams = teams.slice(3);
-
-  const bestIndividualByTeam = new Map<string, IndividualRanking>();
-  for (const individual of individuals) {
-    if (!individual.team_id) continue;
-    const current = bestIndividualByTeam.get(individual.team_id);
-    if (!current || individual.points > current.points) {
-      bestIndividualByTeam.set(individual.team_id, individual);
-    }
-  }
-
-  const winnerAwards: AwardCard[] = topTeams.map((team, index) => {
-    const labels = ['Champion Team', 'First Runner-Up', 'Second Runner-Up'];
-    const representative = bestIndividualByTeam.get(team.team_id);
-    return {
-      title: labels[index] || 'Winner Award',
-      subtitle: `Rank #${team.rank}`,
-      recipient: team.team_name,
-      fallback: getInitials(representative?.username || team.team_name),
-      pointsLabel: `${team.total_points} pts`,
-    };
-  });
-
-  const teamCharacterNames = [
-    'Spirit Squad Award',
-    'Consistency Crew Award',
-    'Comeback Crew Award',
-    'Heart of the League Award',
-    'Momentum Makers Award',
-    'Team Unity Award',
-  ];
-
-  const teamCharacterAwards: AwardCard[] = remainingTeams.map((team, index) => {
-    const representative = bestIndividualByTeam.get(team.team_id);
-    return {
-      title: teamCharacterNames[index % teamCharacterNames.length],
-      subtitle: 'Team Character Award',
-      recipient: team.team_name,
-      fallback: getInitials(representative?.username || team.team_name),
-      pointsLabel: `${team.total_points} pts`,
-    };
-  });
-
-  const byPoints = [...individuals].sort((a, b) => b.points - a.points);
-  const byRR = [...individuals].sort((a, b) => b.avg_rr - a.avg_rr);
-  const bySubmissions = [...individuals].sort(
-    (a, b) => b.submission_count - a.submission_count,
-  );
-
-  const leadershipAwards: AwardCard[] = [];
-  if (byRR[0]) {
-    leadershipAwards.push({
-      title: 'Leadership Awards',
-      subtitle: 'Rhythm Leader',
-      recipient: byRR[0].username,
-      fallback: getInitials(byRR[0].username),
-      pointsLabel: `RR ${byRR[0].avg_rr.toFixed(2)}`,
-    });
-  }
-  if (bySubmissions[0]) {
-    leadershipAwards.push({
-      title: 'Leadership Awards',
-      subtitle: 'Consistency Captain',
-      recipient: bySubmissions[0].username,
-      fallback: getInitials(bySubmissions[0].username),
-      pointsLabel: `${bySubmissions[0].submission_count} logs`,
-    });
-  }
-
-  const individualAwards: AwardCard[] = [];
-  if (byPoints[0]) {
-    individualAwards.push({
-      title: 'Individual Awards',
-      subtitle: 'Most Active Player',
-      recipient: byPoints[0].username,
-      fallback: getInitials(byPoints[0].username),
-      pointsLabel: `${byPoints[0].points} pts`,
-    });
-  }
-  if (byPoints[1]) {
-    individualAwards.push({
-      title: 'Individual Awards',
-      subtitle: 'Rising Star',
-      recipient: byPoints[1].username,
-      fallback: getInitials(byPoints[1].username),
-      pointsLabel: `${byPoints[1].points} pts`,
-    });
-  }
-  if (bySubmissions[1]) {
-    individualAwards.push({
-      title: 'Individual Awards',
-      subtitle: 'Most Dedicated',
-      recipient: bySubmissions[1].username,
-      fallback: getInitials(bySubmissions[1].username),
-      pointsLabel: `${bySubmissions[1].submission_count} logs`,
-    });
-  }
-
-  const renderAwardGrid = (cards: AwardCard[], emptyText: string) => {
-    if (cards.length === 0) {
-      return (
-        <div className="rounded-lg border border-[#D4AF37]/25 bg-[#0D1F44]/70 p-4 text-sm text-[#E7D7A2]">
-          {emptyText}
-        </div>
-      );
-    }
-
-    return (
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {cards.map((card) => (
-          <Card
-            key={`${card.title}-${card.subtitle}-${card.recipient}`}
-            className="border-[#D4AF37]/30 bg-[#102756] text-[#F8F2D8] shadow-lg"
-          >
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold text-[#F1D675]">
-                {card.subtitle}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex items-center gap-3 pt-1">
-              <div className="flex size-11 items-center justify-center rounded-full border border-[#D4AF37]/60 bg-[#1A356E] text-sm font-semibold text-[#F4E5B0]">
-                {card.fallback}
-              </div>
-              <div>
-                <p className="font-semibold">{card.recipient}</p>
-                {card.pointsLabel ? (
-                  <p className="text-xs text-[#E7D7A2]">{card.pointsLabel}</p>
-                ) : null}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    );
-  };
-
   return (
-    <div className="relative overflow-hidden rounded-xl border border-[#D4AF37]/30 bg-gradient-to-b from-[#0B1A3A] via-[#102756] to-[#08142F] p-4 text-[#FAF3D9] shadow-xl lg:p-6">
+    <div
+      className="relative overflow-hidden rounded-xl border bg-gradient-to-b from-[#0B1A3A] via-[#102756] to-[#08142F] p-4 text-[#FAF3D9] shadow-xl lg:p-6"
+      style={{
+        ...finaleTheme,
+        borderColor: 'var(--gf-border-30)',
+      }}
+    >
       {isTrophyMode && windowSize.width > 0 && windowSize.height > 0 ? (
         <Confetti
           width={windowSize.width}
@@ -347,15 +223,29 @@ export function GrandeFinaleCelebration({
       ) : null}
 
       <div className="relative z-10 space-y-5">
-        <div className="rounded-lg border border-[#D4AF37]/35 bg-[#0D1F44]/75 p-4">
+        <div
+          className="rounded-lg border p-4"
+          style={{
+            borderColor: 'var(--gf-border-35)',
+            backgroundColor: 'var(--gf-surface-muted)',
+          }}
+        >
           <div className="flex flex-wrap items-center gap-3">
-            <Badge className="bg-[#D4AF37] text-[#0A1A3A] hover:bg-[#D4AF37]">
+            <Badge
+              style={{
+                backgroundColor: 'var(--gf-badge-bg)',
+                color: 'var(--gf-badge-text)',
+              }}
+            >
               {isTrophyMode ? 'Trophy Mode' : 'Extended Archive'}
             </Badge>
             {isTrophyMode ? (
               <Badge
                 variant="outline"
-                className="border-[#D4AF37]/70 text-[#F6E27A]"
+                style={{
+                  borderColor: 'var(--gf-border-60)',
+                  color: 'var(--gf-text-emphasis)',
+                }}
               >
                 {remainingDays} day{remainingDays === 1 ? '' : 's'} remaining
               </Badge>
@@ -371,15 +261,24 @@ export function GrandeFinaleCelebration({
 
           <div className="mt-3 flex items-start justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-[#F6E27A]">
+              <h1
+                className="text-2xl font-bold tracking-tight"
+                style={{ color: 'var(--gf-text-emphasis)' }}
+              >
                 Grande Finale
               </h1>
-              <p className="mt-1 text-sm text-[#E7D7A2]">
+              <p
+                className="mt-1 text-sm"
+                style={{ color: 'var(--gf-text-secondary)' }}
+              >
                 {leagueName} has entered the finale experience with trophy
                 rankings and award cards.
               </p>
             </div>
-            <Trophy className="size-7 text-[#D4AF37]" />
+            <Trophy
+              className="size-7"
+              style={{ color: 'var(--gf-badge-bg)' }}
+            />
           </div>
 
           {session?.user?.id ? (
@@ -390,7 +289,10 @@ export function GrandeFinaleCelebration({
                 leagueStatus="completed"
                 size="sm"
               />
-              <p className="mt-2 text-xs text-[#D8C996]">
+              <p
+                className="mt-2 text-xs"
+                style={{ color: 'var(--gf-text-subtle)' }}
+              >
                 League Finisher Certificate is available for every participant.
               </p>
             </div>
@@ -398,145 +300,75 @@ export function GrandeFinaleCelebration({
         </div>
 
         <section className="space-y-3">
-          <div className="flex items-center gap-2 text-[#F6E27A]">
+          <div
+            className="flex items-center gap-2"
+            style={{ color: 'var(--gf-text-emphasis)' }}
+          >
             <Crown className="size-4" />
             <h2 className="text-lg font-semibold">
               Winner Awards (Top 3 Teams)
             </h2>
           </div>
-          {renderAwardGrid(
-            winnerAwards,
-            'Winner awards will appear when rankings are available.',
-          )}
+          <AwardGrid
+            cards={winnerAwards}
+            emptyText="Winner awards will appear when rankings are available."
+          />
         </section>
 
         <section className="space-y-3">
-          <div className="flex items-center gap-2 text-[#F6E27A]">
+          <div
+            className="flex items-center gap-2"
+            style={{ color: 'var(--gf-text-emphasis)' }}
+          >
             <Sparkles className="size-4" />
             <h2 className="text-lg font-semibold">Team Character Awards</h2>
           </div>
-          {renderAwardGrid(
-            teamCharacterAwards,
-            'No remaining teams to assign team character awards yet.',
-          )}
+          <AwardGrid
+            cards={teamCharacterAwards}
+            emptyText="No remaining teams to assign team character awards yet."
+          />
         </section>
 
         <section className="space-y-3">
-          <div className="flex items-center gap-2 text-[#F6E27A]">
+          <div
+            className="flex items-center gap-2"
+            style={{ color: 'var(--gf-text-emphasis)' }}
+          >
             <Medal className="size-4" />
             <h2 className="text-lg font-semibold">Leadership Awards</h2>
           </div>
-          {renderAwardGrid(
-            leadershipAwards,
-            'Leadership awards need enough individual data to compute.',
-          )}
+          <AwardGrid
+            cards={leadershipAwards}
+            emptyText="Leadership awards need enough individual data to compute."
+          />
         </section>
 
         <section className="space-y-3">
-          <div className="flex items-center gap-2 text-[#F6E27A]">
+          <div
+            className="flex items-center gap-2"
+            style={{ color: 'var(--gf-text-emphasis)' }}
+          >
             <Star className="size-4" />
             <h2 className="text-lg font-semibold">Individual Awards</h2>
           </div>
-          {renderAwardGrid(
-            individualAwards,
-            'Individual awards will appear when participants have scored entries.',
-          )}
+          <AwardGrid
+            cards={individualAwards}
+            emptyText="Individual awards will appear when participants have scored entries."
+          />
         </section>
 
-        <section className="rounded-lg border border-[#D4AF37]/25 bg-[#0D1F44]/70 p-4">
-          <h3 className="font-semibold text-[#F1D675]">Trophy Leaderboard</h3>
-          <div className="mt-3 space-y-2">
-            {teams.length === 0 ? (
-              <p className="text-sm text-[#E7D7A2]">
-                No team standings available.
-              </p>
-            ) : (
-              teams.map((team) => (
-                <div
-                  key={team.team_id}
-                  className="flex items-center justify-between rounded-md border border-[#D4AF37]/20 bg-[#132C61] px-3 py-2"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="inline-flex size-7 items-center justify-center rounded-full bg-[#D4AF37] text-sm font-bold text-[#0A1A3A]">
-                      {team.rank}
-                    </span>
-                    <p className="font-medium">{team.team_name}</p>
-                  </div>
-                  <p className="text-sm font-semibold text-[#F6E27A]">
-                    {team.total_points} pts
-                  </p>
-                </div>
-              ))
-            )}
-          </div>
-        </section>
+        <TrophyLeaderboardSection teams={teams} />
 
-        <section className="rounded-lg border border-[#D4AF37]/25 bg-[#0D1F44]/70 p-4">
-          <div className="flex items-center justify-between gap-3">
-            <h3 className="font-semibold text-[#F1D675]">Ceremony Photos</h3>
-            {canUploadCeremonyPhotos ? (
-              <>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp,image/gif"
-                  className="hidden"
-                  onChange={handleCeremonyPhotoUpload}
-                />
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={handleUploadClick}
-                  disabled={uploading}
-                  className="bg-[#D4AF37] text-[#0A1A3A] hover:bg-[#D4AF37]/90"
-                >
-                  {uploading ? (
-                    <>
-                      <Loader2 className="mr-1.5 size-4 animate-spin" />
-                      Uploading...
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="mr-1.5 size-4" />
-                      Upload Photo
-                    </>
-                  )}
-                </Button>
-              </>
-            ) : null}
-          </div>
-
-          {galleryLoading ? (
-            <p className="mt-3 text-sm text-[#E7D7A2]">
-              Loading ceremony photos...
-            </p>
-          ) : galleryError ? (
-            <p className="mt-3 text-sm text-red-300">{galleryError}</p>
-          ) : photos.length === 0 ? (
-            <p className="mt-3 text-sm text-[#E7D7A2]">
-              No ceremony photos uploaded yet.
-            </p>
-          ) : (
-            <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
-              {photos.map((photo) => (
-                <a
-                  key={photo.path}
-                  href={photo.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="block overflow-hidden rounded-md border border-[#D4AF37]/25"
-                >
-                  <img
-                    src={photo.url}
-                    alt={photo.name || 'Ceremony photo'}
-                    className="h-32 w-full object-cover transition-transform duration-200 hover:scale-105"
-                    loading="lazy"
-                  />
-                </a>
-              ))}
-            </div>
-          )}
-        </section>
+        <CeremonyPhotosSection
+          canUploadCeremonyPhotos={canUploadCeremonyPhotos}
+          fileInputRef={fileInputRef}
+          handleCeremonyPhotoUpload={handleCeremonyPhotoUpload}
+          handleUploadClick={handleUploadClick}
+          uploading={uploading}
+          galleryLoading={galleryLoading}
+          galleryError={galleryError}
+          photos={photos}
+        />
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth/get-auth-user';
 import { getSupabaseServiceRole } from '@/lib/supabase/client';
+import { userHasAnyRole, userHasRole } from '@/lib/services/roles';
 import { Buffer } from 'node:buffer';
 
 const CEREMONY_PHOTOS_BUCKET =
@@ -30,10 +31,18 @@ export async function GET(
     const { id: leagueId } = await params;
     const authUser = await getAuthUser(request);
     if (!authUser) return buildError('Unauthorized', 401);
-    const activeRole =
-      request.headers.get('x-active-role')?.toLowerCase() || '';
 
     const supabase = getSupabaseServiceRole();
+
+    const isLeagueMember = await userHasAnyRole(authUser.id, leagueId, [
+      'host',
+      'governor',
+      'captain',
+      'player',
+    ]);
+    if (!isLeagueMember) {
+      return buildError('Forbidden', 403);
+    }
 
     const { data: league, error: leagueError } = await supabase
       .from('leagues')
@@ -50,7 +59,10 @@ export async function GET(
 
     if (listError) {
       console.error('[Ceremony Photos] list error', listError);
-      return buildError('Failed to list ceremony photos', 500);
+      return buildError(
+        `Failed to list ceremony photos: ${listError.message}`,
+        500,
+      );
     }
 
     const photos = (files || [])
@@ -82,7 +94,7 @@ export async function GET(
     return NextResponse.json({
       success: true,
       data: {
-        canUpload: league.created_by === authUser.id && activeRole === 'host',
+        canUpload: await userHasRole(authUser.id, leagueId, 'host'),
         photos,
       },
     });
@@ -100,8 +112,11 @@ export async function POST(
     const { id: leagueId } = await params;
     const authUser = await getAuthUser(request);
     if (!authUser) return buildError('Unauthorized', 401);
-    const activeRole =
-      request.headers.get('x-active-role')?.toLowerCase() || '';
+
+    const isHostRole = await userHasRole(authUser.id, leagueId, 'host');
+    if (!isHostRole) {
+      return buildError('Only host can upload ceremony photos', 403);
+    }
 
     const supabase = getSupabaseServiceRole();
 
@@ -112,12 +127,6 @@ export async function POST(
       .single();
 
     if (leagueError || !league) return buildError('League not found', 404);
-    if (league.created_by !== authUser.id) {
-      return buildError('Only host can upload ceremony photos', 403);
-    }
-    if (activeRole !== 'host') {
-      return buildError('Switch to host role to upload ceremony photos', 403);
-    }
 
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
@@ -145,7 +154,10 @@ export async function POST(
 
     if (uploadError) {
       console.error('[Ceremony Photos] upload error', uploadError);
-      return buildError('Failed to upload ceremony photo', 500);
+      return buildError(
+        `Failed to upload ceremony photo: ${uploadError.message}`,
+        500,
+      );
     }
 
     const { data } = supabase.storage
