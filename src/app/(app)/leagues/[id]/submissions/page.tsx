@@ -81,6 +81,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { DumbbellLoading } from '@/components/ui/dumbbell-loading';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { SubmissionsPageSkeleton } from '@/components/league/submissions/submissions-skeletons';
 import { ProfilePicture } from '@/components/ui/profile-picture';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
@@ -143,7 +144,7 @@ interface TeamOption {
 // ============================================================================
 
 function PageSkeleton() {
-  return <DumbbellLoading label="Loading submissions..." />;
+  return <SubmissionsPageSkeleton />;
 }
 
 // ============================================================================

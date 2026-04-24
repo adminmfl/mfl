@@ -78,6 +78,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAiInsights } from '@/hooks/use-ai-insights';
 import { Sparkles } from 'lucide-react';
+import { MyTeamPageSkeleton } from '@/components/league/my-team/my-team-skeletons';
 
 import type { TeamMember } from '@/hooks/use-league-teams';
 
@@ -86,7 +87,7 @@ import type { TeamMember } from '@/hooks/use-league-teams';
 // ============================================================================
 
 function PageSkeleton() {
-  return <DumbbellLoading label="Loading team..." />;
+  return <MyTeamPageSkeleton />;
 }
 
 // ============================================================================
@@ -755,7 +756,7 @@ export default function MyTeamPage({
                 >
                   {selectedMemberIds.size ===
                     filteredUnallocatedMembers.length &&
-                  filteredUnallocatedMembers.length > 0
+                    filteredUnallocatedMembers.length > 0
                     ? 'Deselect All'
                     : 'Select All'}
                 </Button>

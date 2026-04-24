@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add League Ended status badge based on end_date (#150)
 - **Captain Guidelines and pre-launch bonding automations (#153)**
   - Auto-send welcome message from captain when player joins team
+- **Skeleton loading UI for slow pages**
+  - Replace generic loading spinners with proper skeleton layouts
+  - Dashboard, My Team, Submissions, Team pages now show structured loading states
+  - Skeleton layouts match final page structure for better UX
   - Auto-send team announcement when new member is added
   - Captain Guidelines document/tooltip accessible in-app with Week 1 focus
   - System-generated team identity reveal message (team name + logo) on league launch
@@ -73,6 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix rest day donation sync, availability, and donor balance logic (#152)
 - Fix auto-assignment inconsistencies and submission conflicts (#152)
 - Fix chat workout links to display readable labels (#132)
+- Fix syntax error in messages API route causing build failures
 
 ## [2.0.0] — 2026-04-01
 

@@ -31,6 +31,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { DumbbellLoading } from '@/components/ui/dumbbell-loading';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,
   SelectContent,
@@ -319,7 +320,7 @@ export default function LeaguesPage() {
       {/* Leagues Table */}
       <div className="px-4 lg:px-6">
         {isLoading ? (
-          <DumbbellLoading label="Loading leagues..." />
+          <LeaguesTableSkeleton />
         ) : filteredLeagues.length === 0 ? (
           <EmptyState
             hasLeagues={userLeagues.length > 0}
@@ -579,5 +580,92 @@ function EmptyState({
 // ============================================================================
 
 function LeaguesTableSkeleton() {
-  return <DumbbellLoading label="Loading leagues..." />;
+  return (
+    <div className="space-y-4">
+      {/* Stats Cards Skeleton */}
+      <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-2 gap-3 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs sm:grid-cols-2 sm:gap-4 @xl/main:grid-cols-3">
+        {[1, 2, 3].map((i) => (
+          <Card key={i} className="@container/card py-4 sm:py-6">
+            <CardHeader className="gap-1.5 px-4 sm:px-6">
+              <CardDescription className="flex items-center gap-2 text-xs sm:text-sm">
+                <Skeleton className="size-4 rounded" />
+                <Skeleton className="h-3 w-20" />
+              </CardDescription>
+              <CardTitle className="text-xl font-semibold tabular-nums sm:text-2xl @[250px]/card:text-3xl">
+                <Skeleton className="h-8 w-12" />
+              </CardTitle>
+              <div>
+                <Skeleton className="h-5 w-16 rounded-full" />
+              </div>
+            </CardHeader>
+            <CardFooter className="flex-col items-start gap-1 text-xs px-4 pt-3 sm:px-6 sm:pt-6 sm:text-sm">
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-3 w-32" />
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+
+      {/* Filters Skeleton */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+        <div className="relative flex-1 sm:max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <Input placeholder="Search leagues..." disabled className="pl-9" />
+        </div>
+        <Skeleton className="h-10 w-[150px]" />
+        <Skeleton className="h-10 w-[150px]" />
+      </div>
+
+      {/* Results Count Skeleton */}
+      <Skeleton className="h-4 w-32" />
+
+      {/* Table Skeleton */}
+      <div className="overflow-hidden rounded-lg border">
+        <Table>
+          <TableHeader className="bg-muted">
+            <TableRow>
+              <TableHead>League</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Your Role</TableHead>
+              <TableHead>Team</TableHead>
+              <TableHead className="w-12"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {[1, 2, 3, 4, 5].map((i) => (
+              <TableRow key={i}>
+                <TableCell>
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="size-10 rounded-lg" />
+                    <div className="min-w-0">
+                      <Skeleton className="h-4 w-32 mb-1" />
+                      <Skeleton className="h-3 w-48" />
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-5 w-16 rounded-full" />
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="size-4 rounded" />
+                    <Skeleton className="h-4 w-16" />
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="size-4 rounded" />
+                    <Skeleton className="h-4 w-20" />
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="size-8 rounded" />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
 }
