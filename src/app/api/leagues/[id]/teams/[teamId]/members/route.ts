@@ -162,14 +162,47 @@ export async function POST(
     const body = await request.json();
     const validated = addMemberSchema.parse(body);
 
+    // Verify the team exists and belongs to this league
+    const { data: team, error: teamError } = await supabase
+      .from('teams')
+      .select('team_id, league_id')
+      .eq('team_id', teamId)
+      .eq('league_id', leagueId)
+      .maybeSingle();
+
+    if (teamError) {
+      console.error('[Add Member] Team lookup error:', teamError);
+      return NextResponse.json(
+        { error: 'Database error while looking up team', details: teamError.message },
+        { status: 500 },
+      );
+    }
+
+    if (!team) {
+      return NextResponse.json(
+        { error: 'Team not found in this league' },
+        { status: 404 },
+      );
+    }
+
     // Verify the member exists and belongs to this league
     const supabase = getSupabaseServiceRole();
-    const { data: member } = await supabase
+    const { data: member, error: memberError } = await supabase
       .from('leaguemembers')
-      .select('league_member_id, team_id, league_id')
+      .select('league_member_id, team_id, league_id, user_id')
       .eq('league_member_id', validated.league_member_id)
       .eq('league_id', leagueId)
       .maybeSingle();
+
+    console.log('[Add Member] Member lookup result:', { member, memberError, league_member_id: validated.league_member_id, leagueId });
+
+    if (memberError) {
+      console.error('[Add Member] Database error:', memberError);
+      return NextResponse.json(
+        { error: 'Database error while looking up member', details: memberError.message },
+        { status: 500 },
+      );
+    }
 
     if (!member) {
       return NextResponse.json(
@@ -178,22 +211,23 @@ export async function POST(
       );
     }
 
-    if (member.team_id) {
+    if (member.team_id && member.team_id !== null) {
       return NextResponse.json(
         { error: 'Member is already assigned to a team' },
         { status: 400 },
       );
     }
 
-    const success = await assignMemberToTeam(
+    const assignResult = await assignMemberToTeam(
       validated.league_member_id,
       teamId,
       userId,
     );
 
-    if (!success) {
+    if (!assignResult.success) {
+      console.error('[Add Member] Assignment failed:', assignResult.error);
       return NextResponse.json(
-        { error: 'Failed to assign member to team' },
+        { error: assignResult.error || 'Failed to assign member to team' },
         { status: 500 },
       );
     }

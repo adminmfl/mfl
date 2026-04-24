@@ -581,21 +581,35 @@ export async function assignMemberToTeam(
   leagueMemberId: string,
   teamId: string,
   modifiedBy: string,
-): Promise<boolean> {
+): Promise<{ success: boolean; error?: string }> {
   try {
-    const { error } = await getSupabaseServiceRole()
+    console.log('[assignMemberToTeam] Attempting to assign:', { leagueMemberId, teamId, modifiedBy });
+
+    const { data, error } = await getSupabaseServiceRole()
       .from('leaguemembers')
       .update({
         team_id: teamId,
         modified_by: modifiedBy,
         modified_date: new Date().toISOString(),
       })
-      .eq('league_member_id', leagueMemberId);
+      .eq('league_member_id', leagueMemberId)
+      .select();
 
-    return !error;
+    console.log('[assignMemberToTeam] Update result:', { data, error });
+
+    if (error) {
+      console.error('[assignMemberToTeam] Database error:', error);
+      return { success: false, error: error.message };
+    }
+
+    if (!data || data.length === 0) {
+      return { success: false, error: 'No rows were updated - member may not exist' };
+    }
+
+    return { success: true };
   } catch (err) {
-    console.error('Error assigning member to team:', err);
-    return false;
+    console.error('[assignMemberToTeam] Exception:', err);
+    return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
   }
 }
 
