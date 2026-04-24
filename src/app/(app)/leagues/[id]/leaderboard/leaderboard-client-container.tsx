@@ -280,7 +280,7 @@ export function LeaderboardClientContainer({
               <TabsContent value="challenges" className="mt-0">
                 <ChallengeSpecificLeaderboard
                   leagueId={leagueId}
-                  renderViewSwitcher={() => (
+                  renderViewSwitcher={
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
@@ -319,7 +319,7 @@ export function LeaderboardClientContainer({
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                  )}
+                  }
                 />
               </TabsContent>
             </Tabs>

@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth/config';
 import { getLeagueById } from '@/lib/services/leagues';
 import { calculateLeaderboard } from '@/lib/services/leaderboard-logic';
 import { isLeagueEnded as isLeagueEndedByDate } from '@/lib/utils';
+import { getLeaguePhase } from '@/lib/utils/league-phases';
 
 // Modular Components
 
@@ -14,6 +15,9 @@ import { ActivityTimeline } from '@/components/league/dashboard/activity-timelin
 import { LeagueInfoSection } from '@/components/league/dashboard/league-info-section';
 import { ActionCards } from '@/components/league/dashboard/action-cards';
 import { SummarySection } from '@/components/league/dashboard/summary-section';
+import { TrophyCelebration } from '@/components/league/trophy-celebration';
+import { ArchiveNotice } from '@/components/league/archive-notice';
+import { DeletionNotice } from '@/components/league/deletion-notice';
 import { MessageSquareHeart, ExternalLink, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
@@ -77,6 +81,12 @@ export default async function LeagueDashboardPage({
     league.status === 'completed' || isLeagueEndedByDate(league.end_date);
   const isChallengesOnly = (league as any).league_mode === 'challenges_only';
 
+  // Get league phase information (trophy/archive/deleted)
+  const leaguePhase = getLeaguePhase(league.status, league.end_date);
+  const showTrophyCelebration = leaguePhase.phase === 'trophy';
+  const showArchiveNotice = leaguePhase.phase === 'archive';
+  const showDeletionNotice = leaguePhase.phase === 'deleted';
+
   return (
     <div className="@container/main flex flex-1 flex-col gap-4 lg:gap-6">
       <div className="flex flex-col gap-4">
@@ -105,7 +115,7 @@ export default async function LeagueDashboardPage({
       </div>
 
       {/* League Ended Banner */}
-      {isLeagueEnded && (
+      {isLeagueEnded && !showTrophyCelebration && (
         <div
           className="mx-4 lg:mx-6 rounded-lg border border-primary/20 bg-primary/5 p-4 flex items-center gap-3"
           role="status"
@@ -135,8 +145,42 @@ export default async function LeagueDashboardPage({
         </div>
       )}
 
-      {/* Summary Section (Progressive streaming) */}
-      {user && (
+      {/* Trophy Celebration (First 14 days after league ends) */}
+      {showTrophyCelebration && (
+        <div className="px-4 lg:px-6">
+          <Suspense fallback={<StatsSectionSkeleton showRest={false} />}>
+            <TrophyCelebration
+              leagueId={id}
+              leagueName={league.league_name}
+              daysRemaining={leaguePhase.daysRemaining}
+            />
+          </Suspense>
+        </div>
+      )}
+
+      {/* Archive Notice (Days 15-90 after league ends) */}
+      {showArchiveNotice && (
+        <div className="px-4 lg:px-6">
+          <ArchiveNotice
+            daysRemaining={leaguePhase.daysRemaining}
+            endDate={league.end_date}
+            leagueName={league.league_name}
+          />
+        </div>
+      )}
+
+      {/* Deletion Notice (After 90 days) */}
+      {showDeletionNotice && (
+        <div className="px-4 lg:px-6">
+          <DeletionNotice
+            leagueName={league.league_name}
+            endDate={league.end_date}
+          />
+        </div>
+      )}
+
+      {/* Summary Section (Progressive streaming) - Hidden in deletion phase */}
+      {user && !showDeletionNotice && (
         <Suspense
           fallback={
             <StatsSectionSkeleton showRest={(league.rest_days ?? 0) > 0} />
@@ -151,8 +195,8 @@ export default async function LeagueDashboardPage({
         </Suspense>
       )}
 
-      {/* Recent Activity Timeline with Suspense — hidden for challenges-only leagues */}
-      {!isChallengesOnly && (
+      {/* Recent Activity Timeline with Suspense — hidden for challenges-only leagues and deletion phase */}
+      {!isChallengesOnly && !showDeletionNotice && (
         <Suspense fallback={<TimelineSkeleton />}>
           <ActivityTimeline
             id={id}
