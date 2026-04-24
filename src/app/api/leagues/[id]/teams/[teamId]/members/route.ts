@@ -101,6 +101,9 @@ export async function POST(
 
     const userId = authUser.id;
 
+    // Declare supabase at the top to avoid reference errors
+    const supabase = getSupabaseServiceRole();
+
     // Check permissions (host, governor, or captain of this specific team)
     const isHostOrGovernor = await userHasAnyRole(userId, leagueId, [
       'host',
@@ -117,8 +120,7 @@ export async function POST(
       ]);
       if (isCaptainLevel) {
         // Verify the captain/VC is on this specific team
-        const supabaseCheck = getSupabaseServiceRole();
-        const { data: captainMembership } = await supabaseCheck
+        const { data: captainMembership } = await supabase
           .from('leaguemembers')
           .select('team_id')
           .eq('user_id', userId)
@@ -186,7 +188,6 @@ export async function POST(
     }
 
     // Verify the member exists and belongs to this league
-    const supabase = getSupabaseServiceRole();
     const { data: member, error: memberError } = await supabase
       .from('leaguemembers')
       .select('league_member_id, team_id, league_id, user_id')
