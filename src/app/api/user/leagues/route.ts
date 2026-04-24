@@ -245,6 +245,10 @@ export async function GET(req: NextRequest) {
         rr_config: (league as any)?.rr_config || null,
         rest_days: (league as any)?.rest_days ?? 1,
         league_mode: (league as any)?.league_mode || 'standard',
+        player_team_workout_visibility:
+          (league as any)?.player_team_workout_visibility ?? false,
+        player_league_workout_visibility:
+          (league as any)?.player_league_workout_visibility ?? false,
       };
     });
 

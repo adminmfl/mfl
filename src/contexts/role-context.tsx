@@ -24,14 +24,15 @@ interface RoleContextType {
   isHost: boolean;
   isGovernor: boolean;
   isCaptain: boolean;
+  isViceCaptain: boolean;
   isPlayer: boolean;
 
   // Action permissions
-  canManageLeague: boolean;      // Edit league settings
-  canManageTeams: boolean;       // Create/edit teams, assign members
+  canManageLeague: boolean; // Edit league settings
+  canManageTeams: boolean; // Create/edit teams, assign members
   canValidateSubmissions: boolean; // Validate submissions
   canValidateOwnTeamOnly: boolean; // Captain-level validation
-  canSubmitWorkouts: boolean;    // Submit workouts as a player
+  canSubmitWorkouts: boolean; // Submit workouts as a player
 }
 
 // ============================================================================
@@ -74,18 +75,21 @@ export function RoleProvider({ children }: RoleProviderProps) {
     const isHost = role === 'host';
     const isGovernor = role === 'governor';
     const isCaptain = role === 'captain';
+    const isViceCaptain = role === 'vice_captain';
     const isPlayer = role === 'player';
+    const isCaptainLevel = isCaptain || isViceCaptain;
 
     // Action permissions (cumulative based on role hierarchy)
     // Host can do everything
     // Governor can do Host-1 level
-    // Captain can do their team only
+    // Captain / Vice Captain can do their team only
     // Player can only submit
 
     return {
       isHost,
       isGovernor,
       isCaptain,
+      isViceCaptain,
       isPlayer,
 
       // Host-only: Edit league settings
@@ -95,9 +99,9 @@ export function RoleProvider({ children }: RoleProviderProps) {
       canManageTeams: isHost || isGovernor,
 
       // Host + Governor: Validate any submission
-      // Captain: Validate own team only
-      canValidateSubmissions: isHost || isGovernor || isCaptain,
-      canValidateOwnTeamOnly: isCaptain && !isHost && !isGovernor,
+      // Captain / Vice Captain: Validate own team only
+      canValidateSubmissions: isHost || isGovernor || isCaptainLevel,
+      canValidateOwnTeamOnly: isCaptainLevel && !isHost && !isGovernor,
 
       // Can submit workouts (must be a player)
       canSubmitWorkouts: isAlsoPlayer,
@@ -108,12 +112,14 @@ export function RoleProvider({ children }: RoleProviderProps) {
     <RoleContext.Provider
       value={{
         activeRole: currentRole,
-        availableRoles: availableRoles.filter(role => {
-          const hasCaptain = availableRoles.includes('captain');
+        availableRoles: availableRoles.filter((role) => {
+          const hasCaptainLevel =
+            availableRoles.includes('captain') ||
+            availableRoles.includes('vice_captain');
 
           if (role === 'player') {
-            // If captain role exists, show Player(C) instead of Player
-            if (hasCaptain) return false;
+            // If captain/vice_captain role exists, show Player(C)/Player(VC) instead of Player
+            if (hasCaptainLevel) return false;
             return true;
           }
 

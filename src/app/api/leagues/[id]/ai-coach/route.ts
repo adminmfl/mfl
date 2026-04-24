@@ -7,7 +7,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth/config';
 import { getSupabaseServiceRole } from '@/lib/supabase/client';
-import { answerLeagueQuestion, storeCoachMessage } from '@/lib/services/ai-coach';
+import {
+  answerLeagueQuestion,
+  storeCoachMessage,
+} from '@/lib/services/ai-coach';
 
 // ============================================================================
 // GET - Fetch coach messages
@@ -15,7 +18,7 @@ import { answerLeagueQuestion, storeCoachMessage } from '@/lib/services/ai-coach
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = (await getServerSession(authOptions as any)) as any;
@@ -36,7 +39,10 @@ export async function GET(
       .single();
 
     if (!membership) {
-      return NextResponse.json({ error: 'Not a member of this league' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Not a member of this league' },
+        { status: 403 },
+      );
     }
 
     // Get user's role from assignedrolesforleague
@@ -46,8 +52,14 @@ export async function GET(
       .eq('league_id', leagueId)
       .eq('user_id', userId);
 
-    const roleNames = (roleData || []).map((r: any) => r.roles?.role_name || '').filter(Boolean);
-    const isLeader = roleNames.includes('host') || roleNames.includes('governor') || roleNames.includes('captain');
+    const roleNames = (roleData || [])
+      .map((r: any) => r.roles?.role_name || '')
+      .filter(Boolean);
+    const isLeader =
+      roleNames.includes('host') ||
+      roleNames.includes('governor') ||
+      roleNames.includes('captain') ||
+      roleNames.includes('vice_captain');
 
     const url = new URL(req.url);
     const type = url.searchParams.get('type'); // filter by message_type
@@ -65,11 +77,11 @@ export async function GET(
     // Filter: user's individual messages + team messages + league-wide messages
     if (membership.team_id) {
       query = query.or(
-        `user_id.eq.${userId},and(user_id.is.null,team_id.eq.${membership.team_id}),and(user_id.is.null,team_id.is.null)`
+        `user_id.eq.${userId},and(user_id.is.null,team_id.eq.${membership.team_id}),and(user_id.is.null,team_id.is.null)`,
       );
     } else {
       query = query.or(
-        `user_id.eq.${userId},and(user_id.is.null,team_id.is.null)`
+        `user_id.eq.${userId},and(user_id.is.null,team_id.is.null)`,
       );
     }
 
@@ -90,13 +102,19 @@ export async function GET(
 
     if (error) {
       console.error('Error fetching AI coach messages:', error);
-      return NextResponse.json({ error: 'Failed to fetch messages' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to fetch messages' },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json({ success: true, messages: data || [] });
   } catch (error) {
     console.error('Error in AI coach GET:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 },
+    );
   }
 }
 
@@ -106,7 +124,7 @@ export async function GET(
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = (await getServerSession(authOptions as any)) as any;
@@ -115,7 +133,10 @@ export async function POST(
     }
 
     if (!process.env.MISTRAL_API_KEY) {
-      return NextResponse.json({ error: 'AI Coach not configured' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'AI Coach not configured' },
+        { status: 500 },
+      );
     }
 
     const { id: leagueId } = await params;
@@ -131,14 +152,20 @@ export async function POST(
       .single();
 
     if (!membership) {
-      return NextResponse.json({ error: 'Not a member of this league' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Not a member of this league' },
+        { status: 403 },
+      );
     }
 
     const body = await req.json();
     const question = body.question?.trim();
 
     if (!question || question.length > 500) {
-      return NextResponse.json({ error: 'Question is required (max 500 chars)' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Question is required (max 500 chars)' },
+        { status: 400 },
+      );
     }
 
     // Rate limit: max 20 questions per user per day
@@ -154,7 +181,10 @@ export async function POST(
       .gte('created_at', todayStart.toISOString());
 
     if ((count || 0) >= 20) {
-      return NextResponse.json({ error: 'Daily question limit reached (20/day)' }, { status: 429 });
+      return NextResponse.json(
+        { error: 'Daily question limit reached (20/day)' },
+        { status: 429 },
+      );
     }
 
     // Get recent chat history
@@ -179,7 +209,7 @@ export async function POST(
       question,
       leagueId,
       userId,
-      (history || []) as { role: 'user' | 'assistant'; content: string }[]
+      (history || []) as { role: 'user' | 'assistant'; content: string }[],
     );
 
     // Store answer
@@ -193,7 +223,10 @@ export async function POST(
     return NextResponse.json({ success: true, answer });
   } catch (error) {
     console.error('Error in AI coach POST:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 },
+    );
   }
 }
 
@@ -203,7 +236,7 @@ export async function POST(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = (await getServerSession(authOptions as any)) as any;
@@ -216,7 +249,10 @@ export async function PATCH(
     const { messageIds, action } = body;
 
     if (!Array.isArray(messageIds) || messageIds.length === 0) {
-      return NextResponse.json({ error: 'messageIds required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'messageIds required' },
+        { status: 400 },
+      );
     }
 
     const supabase = getSupabaseServiceRole();
@@ -226,7 +262,10 @@ export async function PATCH(
     if (action === 'dismiss') update.is_dismissed = true;
 
     if (Object.keys(update).length === 0) {
-      return NextResponse.json({ error: 'action must be "read" or "dismiss"' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'action must be "read" or "dismiss"' },
+        { status: 400 },
+      );
     }
 
     const { error } = await supabase
@@ -236,12 +275,18 @@ export async function PATCH(
       .eq('league_id', leagueId);
 
     if (error) {
-      return NextResponse.json({ error: 'Failed to update messages' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to update messages' },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error in AI coach PATCH:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 },
+    );
   }
 }

@@ -139,6 +139,7 @@ export async function getUserRoleInLeague(
     if (roleNames.includes('host')) return 'host';
     if (roleNames.includes('governor')) return 'governor';
     if (roleNames.includes('captain')) return 'captain';
+    if (roleNames.includes('vice_captain')) return 'captain'; // vice_captain has captain-level chat access
     if (roleNames.includes('player')) return 'player';
     return roleNames[0] || null;
   } catch (err) {
@@ -208,8 +209,8 @@ async function getIntendedAudienceCount(
         const roleName = r.roles?.role_name;
         if (roleName === 'host' || roleName === 'governor') {
           count++;
-        } else if (roleName === 'captain') {
-          // Check if this captain is on the target team
+        } else if (roleName === 'captain' || roleName === 'vice_captain') {
+          // Check if this captain/vc is on the target team
           const { data: membership } = await supabase
             .from('leaguemembers')
             .select('team_id')
@@ -243,7 +244,12 @@ async function getIntendedAudienceCount(
       if (!roles) return 0;
       return (roles as any[]).filter((r) => {
         const rn = r.roles?.role_name;
-        return rn === 'host' || rn === 'governor' || rn === 'captain';
+        return (
+          rn === 'host' ||
+          rn === 'governor' ||
+          rn === 'captain' ||
+          rn === 'vice_captain'
+        );
       }).length;
     }
 
@@ -283,12 +289,17 @@ export async function getMessagesForUser(
 
     const effectiveTeamId = teamId || userTeamId;
     const isHostOrGovernor = role === 'host' || role === 'governor';
-    const isCaptain = role === 'captain';
+    const isCaptain = role === 'captain' || role === 'vice_captain';
 
     // 2. Build and execute primary messages query
     let query = supabase
       .from('messages')
-      .select('*, users:sender_id(username)')
+      .select(
+        `
+        *,
+        users:sender_id(username)
+      `,
+      )
       .eq('league_id', leagueId)
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
@@ -808,7 +819,7 @@ export async function getMessageCounts(
     if (!role) return { unread: 0, total: 0 };
 
     const isHostOrGovernor = role === 'host' || role === 'governor';
-    const isCaptain = role === 'captain';
+    const isCaptain = role === 'captain' || role === 'vice_captain';
 
     // Build query for visible messages
     let query = supabase
@@ -920,6 +931,177 @@ export async function getCannedMessages(
   try {
     const { data, error } = await getSupabaseServiceRole()
       .from('canned_messages')
+      .select('*')
+      .eq('role_target', role)
+      .or(`league_id.eq.${leagueId},league_id.is.null`)
+      .order('is_system', { ascending: false })
+      .order('title', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching canned messages:', error);
+      return [];
+    }
+
+    return (data || []) as CannedMessage[];
+  } catch (err) {
+    console.error('Error in getCannedMessages:', err);
+    return [];
+  }
+}
+
+/**
+ * Create a canned message for a league
+ */
+export async function createCannedMessage(
+  leagueId: string,
+  userId: string,
+  data: CannedMessageData,
+): Promise<CannedMessage | null> {
+  try {
+    const { data: created, error } = await getSupabaseServiceRole()
+      .from('canned_messages')
+      .insert({
+        league_id: leagueId,
+        role_target: data.roleTarget,
+        title: data.title,
+        content: data.content,
+        is_system: data.isSystem || false,
+        created_by: userId,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating canned message:', error);
+      return null;
+    }
+
+    return created as CannedMessage;
+  } catch (err) {
+    console.error('Error in createCannedMessage:', err);
+    return null;
+  }
+}
+
+/**
+ * Update an existing canned message
+ */
+export async function updateCannedMessage(
+  cannedMessageId: string,
+  userId: string,
+  data: Partial<CannedMessageData>,
+): Promise<CannedMessage | null> {
+  try {
+    const updatePayload: Record<string, any> = {
+      updated_at: new Date().toISOString(),
+    };
+    if (data.roleTarget !== undefined)
+      updatePayload.role_target = data.roleTarget;
+    if (data.title !== undefined) updatePayload.title = data.title;
+    if (data.content !== undefined) updatePayload.content = data.content;
+    if (data.isSystem !== undefined) updatePayload.is_system = data.isSystem;
+
+    const { data: updated, error } = await getSupabaseServiceRole()
+      .from('canned_messages')
+      .update(updatePayload)
+      .eq('canned_message_id', cannedMessageId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating canned message:', error);
+      return null;
+    }
+
+    return updated as CannedMessage;
+  } catch (err) {
+    console.error('Error in updateCannedMessage:', err);
+    return null;
+  }
+}
+
+/**
+ * Delete a canned message
+ * Only non-system canned messages can be deleted
+ */
+export async function deleteCannedMessage(
+  cannedMessageId: string,
+): Promise<boolean> {
+  try {
+    const supabase = getSupabaseServiceRole();
+
+    // Prevent deletion of system canned messages
+    const { data: existing, error: fetchError } = await supabase
+      .from('canned_messages')
+      .select('is_system')
+      .eq('canned_message_id', cannedMessageId)
+      .single();
+
+    if (fetchError || !existing) {
+      console.error('Canned message not found:', fetchError);
+      return false;
+    }
+
+    if (existing.is_system) {
+      console.error('Cannot delete system canned messages');
+      return false;
+    }
+
+    const { error } = await supabase
+      .from('canned_messages')
+      .delete()
+      .eq('canned_message_id', cannedMessageId);
+
+    if (error) {
+      console.error('Error deleting canned message:', error);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.error('Error in deleteCannedMessage:', err);
+    return false;
+  }
+}
+
+// ============================================================================
+// Reactions
+// ============================================================================
+
+/**
+ * Toggle a reaction on a message.
+ * If the user already reacted with this emoji, remove it. Otherwise, add it.
+ */
+export async function toggleReaction(
+  messageId: string,
+  userId: string,
+  emoji: string,
+): Promise<{ action: 'added' | 'removed' }> {
+  const supabase = getSupabaseServiceRole();
+
+  // Check if reaction already exists
+  const { data: existing } = await supabase
+    .from('message_reactions')
+    .select('reaction_id')
+    .eq('message_id', messageId)
+    .eq('user_id', userId)
+    .eq('emoji', emoji)
+    .maybeSingle();
+
+  if (existing) {
+    await supabase
+      .from('message_reactions')
+      .delete()
+      .eq('reaction_id', existing.reaction_id);
+    return { action: 'removed' };
+  }
+
+  await supabase
+    .from('message_reactions')
+    .insert({ message_id: messageId, user_id: userId, emoji });
+
+  return { action: 'added' };
+}
       .select('*')
       .eq('role_target', role)
       .or(`league_id.eq.${leagueId},league_id.is.null`)

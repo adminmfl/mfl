@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 
+import { PwaInstallPrompt } from '@/components/pwa-install-prompt';
 import {
   ResidentialNav,
   ResidentialBanner,
@@ -57,6 +58,7 @@ export default function CommunitiesPage() {
       <ResidentialCta />
       <ResidentialFooter />
       <ResidentialContactModal />
+      <PwaInstallPrompt />
     </div>
   );
 }

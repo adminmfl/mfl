@@ -4,7 +4,6 @@
  */
 'use client';
 
-import * as React from 'react';
 import { format } from 'date-fns';
 import { Medal, Star, Trophy, Users } from 'lucide-react';
 
@@ -64,7 +63,11 @@ function formatHeaderDate(dateYYYYMMDD: string): string {
   return format(dt, 'MMM d');
 }
 
-export function RealTimeScoreboardTable({ dates, teams, showAvgRR = true }: RealTimeScoreboardTableProps) {
+export function RealTimeScoreboardTable({
+  dates,
+  teams,
+  showAvgRR = true,
+}: RealTimeScoreboardTableProps) {
   if (!dates.length) return null;
 
   return (
@@ -75,11 +78,16 @@ export function RealTimeScoreboardTable({ dates, teams, showAvgRR = true }: Real
             <TableHead className="w-[50px] px-2 text-center">Rank</TableHead>
             <TableHead className="px-2">Team</TableHead>
             {dates.map((d) => (
-              <TableHead key={d} className="text-right tabular-nums whitespace-nowrap w-[65px] px-2 text-xs sm:text-sm">
+              <TableHead
+                key={d}
+                className="text-right tabular-nums whitespace-nowrap w-[65px] px-2 text-xs sm:text-sm"
+              >
                 {formatHeaderDate(d)}
               </TableHead>
             ))}
-            {showAvgRR && <TableHead className="text-right w-[65px] px-2">RR</TableHead>}
+            {showAvgRR && (
+              <TableHead className="text-right w-[65px] px-2">RR</TableHead>
+            )}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -104,8 +112,12 @@ export function RealTimeScoreboardTable({ dates, teams, showAvgRR = true }: Real
                       )}
                     </Avatar>
                     <div className="min-w-0">
-                      <p className="font-semibold text-sm leading-tight">{t.team_name}</p>
-                      <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">Pending verification</p>
+                      <p className="font-semibold text-sm leading-tight">
+                        {t.team_name}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">
+                        Pending verification
+                      </p>
                     </div>
                   </div>
                 </TableCell>
@@ -113,25 +125,35 @@ export function RealTimeScoreboardTable({ dates, teams, showAvgRR = true }: Real
                   const points = t.pointsByDate?.[d] ?? 0;
                   return (
                     <TableCell key={d} className="text-right tabular-nums px-2">
-                      <span className={cn('text-base font-bold', points > 0 ? 'text-primary' : 'text-muted-foreground')}>
+                      <span
+                        className={cn(
+                          'text-base font-bold',
+                          points > 0 ? 'text-primary' : 'text-muted-foreground',
+                        )}
+                      >
                         {points}
                       </span>
                     </TableCell>
                   );
                 })}
                 {showAvgRR && (
-                <TableCell className="text-right px-2">
-                  <div className="flex items-center justify-end gap-1">
-                    <Star className="size-3.5 text-yellow-500" />
-                    <span className="text-sm font-medium tabular-nums whitespace-nowrap">{t.avg_rr.toFixed(2)}</span>
-                  </div>
-                </TableCell>
+                  <TableCell className="text-right px-2">
+                    <div className="flex items-center justify-end gap-1">
+                      <Star className="size-3.5 text-yellow-500" />
+                      <span className="text-sm font-medium tabular-nums whitespace-nowrap">
+                        {t.avg_rr.toFixed(2)}
+                      </span>
+                    </div>
+                  </TableCell>
                 )}
               </TableRow>
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={3 + dates.length} className="h-24 text-center">
+              <TableCell
+                colSpan={3 + dates.length}
+                className="h-24 text-center"
+              >
                 <div className="flex flex-col items-center gap-2">
                   <Users className="size-8 text-muted-foreground" />
                   <p className="text-muted-foreground">No teams found</p>
