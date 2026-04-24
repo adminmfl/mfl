@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/empty";
 import { DumbbellLoading } from "@/components/ui/dumbbell-loading";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // ============================================================================
 // Types
@@ -459,9 +460,68 @@ function LeaguesEmptyState() {
 // ============================================================================
 
 function SectionCardsSkeleton() {
-  return <DumbbellLoading label="Loading dashboard..." />;
+  return (
+    <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-2 gap-2 px-4 *:data-[slot=card]:bg-linear-to-t *:data-[slot=card]:shadow-xs lg:px-6 sm:grid-cols-2 lg:grid-cols-3 @5xl/main:grid-cols-3">
+      {[1, 2, 3, 4].map((i) => (
+        <Card key={i} className="@container/card p-2.5 sm:p-4">
+          <CardHeader className="p-0 sm:p-4 sm:pb-1.5">
+            <CardDescription className="flex items-center gap-2 text-[11px] sm:text-xs">
+              <Skeleton className="size-4 rounded" />
+              <Skeleton className="h-3 w-16" />
+            </CardDescription>
+            <CardTitle className="text-lg sm:text-xl font-semibold tabular-nums @[250px]/card:text-2xl">
+              <Skeleton className="h-6 w-12" />
+            </CardTitle>
+          </CardHeader>
+          <CardFooter className="flex-col items-start gap-1 p-0 pt-1.5 sm:p-4 sm:pt-0">
+            <div className="line-clamp-1 flex gap-1.5 font-medium text-[11px] sm:text-xs">
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="size-3 sm:size-4 rounded" />
+            </div>
+            <div className="text-muted-foreground text-[10px] sm:text-xs line-clamp-1 w-full">
+              <Skeleton className="h-3 w-full" />
+            </div>
+          </CardFooter>
+        </Card>
+      ))}
+    </div>
+  );
 }
 
 function LeagueGridSkeleton() {
-  return <DumbbellLoading label="Loading leagues..." />;
+  return (
+    <div className="grid gap-2 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3">
+      {[1, 2, 3].map((i) => (
+        <Card key={i} className="h-full p-0 overflow-hidden">
+          {/* Cover Gradient */}
+          <div className="relative h-16 lg:h-28 rounded-t-lg">
+            <Skeleton className="h-full w-full rounded-t-lg" />
+            <div className="absolute top-1.5 right-1.5 lg:top-3 lg:right-3">
+              <Skeleton className="h-5 w-16 rounded-full" />
+            </div>
+            <div className="absolute top-1.5 left-1.5 lg:top-3 lg:left-3">
+              <Skeleton className="size-6 lg:size-10 rounded-full" />
+            </div>
+            <div className="absolute bottom-1.5 left-2.5 right-2.5 lg:bottom-3 lg:left-4 lg:right-4">
+              <Skeleton className="h-3 lg:h-4 w-3/4" />
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="p-2 lg:p-4">
+            <Skeleton className="h-3 lg:h-4 w-full mb-1 lg:mb-3" />
+            <Skeleton className="h-4 w-24 mb-2" />
+            <div className="flex flex-wrap gap-1">
+              <Skeleton className="h-4 w-16 rounded-full" />
+              <Skeleton className="h-4 w-12 rounded-full" />
+            </div>
+            <div className="hidden lg:flex items-center gap-1.5 mt-3 pt-3 border-t">
+              <Skeleton className="size-3.5 rounded" />
+              <Skeleton className="h-3 w-20" />
+            </div>
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
 }

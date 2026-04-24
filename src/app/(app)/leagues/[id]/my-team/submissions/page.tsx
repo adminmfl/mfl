@@ -73,6 +73,7 @@ import {
 import { DumbbellLoading } from '@/components/ui/dumbbell-loading';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { TeamSubmissionsPageSkeleton } from '@/components/league/submissions/submissions-skeletons';
 import { ProfilePicture } from '@/components/ui/profile-picture';
 import { cn } from '@/lib/utils';
 
@@ -94,11 +95,11 @@ interface TeamSubmission {
   holes: number | null;
   rr_value: number | null;
   status:
-    | 'pending'
-    | 'approved'
-    | 'rejected'
-    | 'rejected_resubmit'
-    | 'rejected_permanent';
+  | 'pending'
+  | 'approved'
+  | 'rejected'
+  | 'rejected_resubmit'
+  | 'rejected_permanent';
   proof_url: string | null;
   notes: string | null;
   created_date: string;
@@ -125,7 +126,7 @@ interface SubmissionStats {
 // ============================================================================
 
 function PageSkeleton() {
-  return <DumbbellLoading label="Loading submissions..." />;
+  return <TeamSubmissionsPageSkeleton />;
 }
 
 // ============================================================================
@@ -780,9 +781,9 @@ export default function TeamSubmissionsPage({
                       {header.isPlaceholder
                         ? null
                         : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext(),
-                          )}
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )}
                     </TableHead>
                   ))}
                 </TableRow>

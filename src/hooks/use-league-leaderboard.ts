@@ -153,8 +153,8 @@ export function useLeagueLeaderboard(
     }
 
     try {
-      // Only show full loading state if we don't have data yet or if it's a forced refetch
-      if (!data || force) {
+      // Only show full loading state if it's a forced refetch
+      if (force) {
         setIsLoading(true);
       }
       setError(null);

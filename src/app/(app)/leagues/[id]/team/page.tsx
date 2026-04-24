@@ -41,6 +41,7 @@ import {
 
 import { DumbbellLoading } from '@/components/ui/dumbbell-loading';
 import { TeamsTable } from '@/components/teams';
+import { TeamPageSkeleton } from '@/components/teams/team-page-skeleton';
 
 function capitalizeName(name: string) {
   if (!name) return '';
@@ -55,7 +56,7 @@ function capitalizeName(name: string) {
 ============================================================================ */
 
 function PageSkeleton() {
-  return <DumbbellLoading label="Loading team..." />;
+  return <TeamPageSkeleton />;
 }
 
 /* ============================================================================
@@ -215,17 +216,17 @@ function TeamMemberView({
                   </div>
                 </TableCell>
                 {showRestDays && (
-                <TableCell className="text-center text-muted-foreground text-sm">
-                  {(m as any).rest_days_used ?? 0}
-                </TableCell>
+                  <TableCell className="text-center text-muted-foreground text-sm">
+                    {(m as any).rest_days_used ?? 0}
+                  </TableCell>
                 )}
                 <TableCell className="text-center font-medium">
                   {m.points}
                 </TableCell>
                 {showRR && (
-                <TableCell className="text-center font-medium">
-                  {(m.avg_rr ?? 0).toFixed(2)}
-                </TableCell>
+                  <TableCell className="text-center font-medium">
+                    {(m.avg_rr ?? 0).toFixed(2)}
+                  </TableCell>
                 )}
               </TableRow>
             ))}
