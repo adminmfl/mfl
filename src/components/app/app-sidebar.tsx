@@ -239,7 +239,7 @@ function NavSectionGroup({
                 <CaptainGuidelinesDialog
                   open={captainGuidelinesOpen}
                   onOpenChange={setCaptainGuidelinesOpen}
-                  leagueId={leagueId}
+                  leagueId={leagueId ?? undefined}
                   trigger={
                     <SidebarMenuButton
                       tooltip={item.title}

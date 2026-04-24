@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, memo, type ReactNode } from 'react';
 import Link from 'next/link';
 import {
   Megaphone,

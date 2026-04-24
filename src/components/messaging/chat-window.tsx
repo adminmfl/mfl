@@ -48,6 +48,7 @@ interface ChatWindowProps {
   teamId?: string | null;
   teamName?: string;
   adminView?: boolean;
+  onLoadingChange?: (loading: boolean) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -59,6 +60,7 @@ export function ChatWindow({
   teamId,
   teamName,
   adminView,
+  onLoadingChange,
 }: ChatWindowProps) {
   const { data: session } = useSession();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -73,6 +75,11 @@ export function ChatWindow({
 
   const currentUserId = session?.user?.id;
 
+  // Notify parent of loading state changes
+  useEffect(() => {
+    onLoadingChange?.(loading);
+  }, [loading, onLoadingChange]);
+
   // -----------------------------------------------------------------------
   // Fetch messages (full reload from API)
   // -----------------------------------------------------------------------
@@ -80,6 +87,7 @@ export function ChatWindow({
   const fetchMessages = useCallback(
     async (isInitial = false) => {
       const fetchId = ++latestFetchRef.current;
+      const startTime = Date.now();
       if (isInitial) setLoading(true);
 
       try {
@@ -117,7 +125,7 @@ export function ChatWindow({
               // Notify badge to refetch immediately
               window.dispatchEvent(new Event('mfl:messages-read'));
             })
-            .catch(() => {});
+            .catch(() => { });
         }
       } catch {
         if (fetchId === latestFetchRef.current) {
@@ -125,7 +133,16 @@ export function ChatWindow({
         }
       } finally {
         if (fetchId === latestFetchRef.current && isInitial) {
-          setLoading(false);
+          const elapsed = Date.now() - startTime;
+          const minDuration = 500; // Minimum 500ms to show skeleton (avoid flash)
+
+          if (elapsed < minDuration) {
+            setTimeout(() => {
+              setLoading(false);
+            }, minDuration - elapsed);
+          } else {
+            setLoading(false);
+          }
         }
       }
     },

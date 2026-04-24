@@ -1,9 +1,9 @@
-import { DumbbellLoading } from '@/components/ui/dumbbell-loading';
+import { TeamPageSkeleton } from '@/components/teams/team-page-skeleton';
 
 // ============================================================================
 // Loading Page
 // ============================================================================
 
 export default function Loading() {
-  return <DumbbellLoading label="Loading page..." />;
+  return <TeamPageSkeleton />;
 }

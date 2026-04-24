@@ -35,6 +35,7 @@ import {
 } from '@/components/ui/table';
 import { DumbbellLoading } from '@/components/ui/dumbbell-loading';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { MyTeamPageSkeleton } from '@/components/league/my-team/my-team-skeletons';
 
 import type { TeamMember } from '@/hooks/use-league-teams';
 
@@ -51,7 +52,7 @@ function capitalizeName(name: string) {
 }
 
 function PageSkeleton() {
-  return <DumbbellLoading label="Loading team..." />;
+  return <MyTeamPageSkeleton />;
 }
 
 // ============================================================================
@@ -447,20 +448,20 @@ export default function MyTeamViewPage({
                       )}
                     </TableCell>
                     {showRestDays && (
-                    <TableCell className="text-center text-muted-foreground tabular-nums">
-                      {(member as any).rest_days_used ?? 0}
-                    </TableCell>
+                      <TableCell className="text-center text-muted-foreground tabular-nums">
+                        {(member as any).rest_days_used ?? 0}
+                      </TableCell>
                     )}
                     <TableCell className="text-center font-medium tabular-nums">
                       {(member as any).points ?? 0}
                     </TableCell>
                     {showRR && (
-                    <TableCell className="text-center font-medium tabular-nums">
-                      <div className="flex items-center justify-center gap-1">
-                        <Star className="size-3 text-yellow-500" />
-                        {((member as any).avg_rr ?? 0).toFixed(2)}
-                      </div>
-                    </TableCell>
+                      <TableCell className="text-center font-medium tabular-nums">
+                        <div className="flex items-center justify-center gap-1">
+                          <Star className="size-3 text-yellow-500" />
+                          {((member as any).avg_rr ?? 0).toFixed(2)}
+                        </div>
+                      </TableCell>
                     )}
                   </TableRow>
                 ))

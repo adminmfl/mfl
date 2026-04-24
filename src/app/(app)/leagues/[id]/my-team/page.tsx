@@ -154,6 +154,34 @@ export default function MyTeamPage({
     'leader_badge',
   ]);
 
+  // Team stats for display
+  const stats = [
+    {
+      title: 'Team Rank',
+      value: teamRank,
+      description: 'Current position',
+      icon: Trophy,
+    },
+    {
+      title: 'Total Points',
+      value: teamPoints,
+      description: 'Team score',
+      icon: Target,
+    },
+    {
+      title: 'Avg RR',
+      value: teamAvgRR,
+      description: 'Run rate average',
+      icon: Flame,
+    },
+    {
+      title: 'Members',
+      value: members.length,
+      description: `of ${teamCapacity}`,
+      icon: Users,
+    },
+  ];
+
   // Combined data fetch for team members, stats, and logo
   useEffect(() => {
     async function fetchData() {
