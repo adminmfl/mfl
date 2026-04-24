@@ -63,7 +63,10 @@ export async function getRoleByName(roleName: string): Promise<Role | null> {
  * @param createdBy - User ID creating the role
  * @returns Created role or null
  */
-export async function createRole(roleName: string, createdBy: string): Promise<Role | null> {
+export async function createRole(
+  roleName: string,
+  createdBy: string,
+): Promise<Role | null> {
   try {
     // Check if role already exists
     const existing = await getRoleByName(roleName);
@@ -124,7 +127,7 @@ export async function initializeDefaultRoles(): Promise<void> {
 export async function userHasRole(
   userId: string,
   leagueId: string,
-  roleName: string
+  roleName: string,
 ): Promise<boolean> {
   try {
     const { data, error } = await getSupabaseServiceRole()
@@ -134,12 +137,12 @@ export async function userHasRole(
       .eq('league_id', leagueId)
       .in('role_id', [
         // Get role_id for the given role_name
-        (await getSupabaseServiceRole()
+        await getSupabaseServiceRole()
           .from('roles')
           .select('role_id')
           .eq('role_name', roleName)
           .single()
-          .then((res) => res.data?.role_id || null)),
+          .then((res) => res.data?.role_id || null),
       ])
       .maybeSingle();
 
@@ -155,11 +158,11 @@ export async function userHasRole(
  */
 export async function getUserRolesForLeague(
   userId: string,
-  leagueId: string
+  leagueId: string,
 ): Promise<string[]> {
   try {
     const supabase = getSupabaseServiceRole();
-    
+
     // Check if user is the league creator (Host)
     const { data: league } = await supabase
       .from('leagues')
@@ -195,7 +198,6 @@ export async function getUserRolesForLeague(
   }
 }
 
-
 /**
  * Check if user has any of the specified roles in a league (OR logic)
  * @param userId - User ID
@@ -206,7 +208,7 @@ export async function getUserRolesForLeague(
 export async function userHasAnyRole(
   userId: string,
   leagueId: string,
-  roleNames: string[]
+  roleNames: string[],
 ): Promise<boolean> {
   try {
     const supabase = getSupabaseServiceRole();
@@ -220,7 +222,16 @@ export async function userHasAnyRole(
         .eq('league_id', leagueId)
         .single();
 
-      console.log('[userHasAnyRole] Checking host - userId:', userId, 'leagueId:', leagueId, 'created_by:', league?.created_by, 'error:', leagueError?.message);
+      console.log(
+        '[userHasAnyRole] Checking host - userId:',
+        userId,
+        'leagueId:',
+        leagueId,
+        'created_by:',
+        league?.created_by,
+        'error:',
+        leagueError?.message,
+      );
 
       if (league?.created_by === userId) {
         return true;
@@ -274,7 +285,7 @@ export async function userHasAnyRole(
 export async function userHasAllRoles(
   userId: string,
   leagueId: string,
-  roleNames: string[]
+  roleNames: string[],
 ): Promise<boolean> {
   try {
     const userRoles = await getSupabaseServiceRole()
@@ -285,7 +296,9 @@ export async function userHasAllRoles(
 
     if (userRoles.error) return false;
 
-    const assignedRoleNames = new Set((userRoles.data || []).map((row: any) => row.roles?.role_name));
+    const assignedRoleNames = new Set(
+      (userRoles.data || []).map((row: any) => row.roles?.role_name),
+    );
     return roleNames.every((roleName) => assignedRoleNames.has(roleName));
   } catch (err) {
     console.error('Error checking user roles:', err);
@@ -302,9 +315,10 @@ export async function userHasAllRoles(
 export function getRoleHierarchyLevel(roleName: string): number {
   const hierarchy: Record<string, number> = {
     player: 0,
-    captain: 1,
-    governor: 2,
-    host: 3,
+    vice_captain: 1,
+    captain: 2,
+    governor: 3,
+    host: 4,
   };
 
   return hierarchy[roleName] ?? -1; // -1 for unknown roles

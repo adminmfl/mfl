@@ -535,6 +535,15 @@ export async function updateLeague(
       // League mode is always editable
       if (data.league_mode !== undefined)
         allowedUpdates.league_mode = data.league_mode;
+      // Workout visibility settings are always editable
+      if ((data as any).player_team_workout_visibility !== undefined)
+        (allowedUpdates as any).player_team_workout_visibility = (
+          data as any
+        ).player_team_workout_visibility;
+      if ((data as any).player_league_workout_visibility !== undefined)
+        (allowedUpdates as any).player_league_workout_visibility = (
+          data as any
+        ).player_league_workout_visibility;
       // Allow date edits if the date hasn't passed yet
       const today = new Date().toISOString().slice(0, 10);
       if (data.start_date !== undefined) {
@@ -685,6 +694,7 @@ export async function getUserRoleInLeague(
     if (roleNames.includes('host')) return 'host';
     if (roleNames.includes('governor')) return 'governor';
     if (roleNames.includes('captain')) return 'captain';
+    if (roleNames.includes('vice_captain')) return 'vice_captain';
     if (roleNames.includes('player')) return 'player';
     return roleNames[0] || null;
   } catch (err) {

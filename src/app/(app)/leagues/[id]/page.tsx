@@ -22,6 +22,7 @@ import {
   StatsSectionSkeleton,
   TimelineSkeleton,
 } from '@/components/league/dashboard/dashboard-skeletons';
+import { WorkoutsSection } from '@/components/workouts/workouts-section';
 
 export default async function LeagueDashboardPage({
   params,
@@ -183,6 +184,9 @@ export default async function LeagueDashboardPage({
           </Link>
         </div>
       )}
+
+      {/* Team Workouts Viewer (visible based on league settings / role) */}
+      {user && <WorkoutsSection leagueId={id} />}
 
       {/* Action Cards (Report, Donate) */}
       <ActionCards id={id} league={league} isLeagueEnded={isLeagueEnded} />

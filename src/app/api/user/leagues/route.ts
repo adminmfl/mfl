@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
     const { data: leaguesData, error: leaguesError } = await supabase
       .from('leagues')
       .select(
-        'league_id, league_name, description, status, start_date, end_date, num_teams, tier_id, is_public, is_exclusive, invite_code, created_by, logo_url, branding, rr_config, rest_days, league_mode',
+        'league_id, league_name, description, status, start_date, end_date, num_teams, tier_id, is_public, is_exclusive, invite_code, created_by, logo_url, branding, rr_config, rest_days, league_mode, player_team_workout_visibility, player_league_workout_visibility',
       )
       .in('league_id', leagueIds);
 
@@ -249,6 +249,10 @@ export async function GET(req: NextRequest) {
         rr_config: (league as any)?.rr_config || null,
         rest_days: (league as any)?.rest_days ?? 1,
         league_mode: (league as any)?.league_mode || 'standard',
+        player_team_workout_visibility:
+          (league as any)?.player_team_workout_visibility ?? false,
+        player_league_workout_visibility:
+          (league as any)?.player_league_workout_visibility ?? false,
       };
     });
 

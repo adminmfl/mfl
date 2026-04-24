@@ -23,7 +23,12 @@ export interface TeamSubmission {
   steps: number | null;
   holes: number | null;
   rr_value: number | null;
-  status: 'pending' | 'approved' | 'rejected' | 'rejected_resubmit' | 'rejected_permanent';
+  status:
+    | 'pending'
+    | 'approved'
+    | 'rejected'
+    | 'rejected_resubmit'
+    | 'rejected_permanent';
   proof_url: string | null;
   notes: string | null;
   created_date: string;
@@ -44,11 +49,13 @@ export interface TeamSubmission {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id: leagueId } = await params;
-    const session = (await getServerSession(authOptions as any)) as import('next-auth').Session | null;
+    const session = (await getServerSession(authOptions as any)) as
+      | import('next-auth').Session
+      | null;
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -68,35 +75,35 @@ export async function GET(
     if (membershipError || !membership) {
       return NextResponse.json(
         { error: 'You are not a member of this league' },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
     if (!membership.team_id) {
       return NextResponse.json(
         { error: 'You are not assigned to a team' },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
-    // Check if user is captain of their team (via assignedrolesforleague)
-    const { data: captainRole } = await supabase
+    // Check if user is captain or vice_captain of their team (via assignedrolesforleague)
+    const { data: captainLevelRoles } = await supabase
       .from('roles')
       .select('role_id')
-      .eq('role_name', 'captain')
-      .single();
+      .in('role_name', ['captain', 'vice_captain']);
 
     let isCaptain = false;
-    if (captainRole) {
+    if (captainLevelRoles && captainLevelRoles.length > 0) {
+      const roleIds = captainLevelRoles.map((r: any) => r.role_id);
       const { data: captainCheck } = await supabase
         .from('assignedrolesforleague')
         .select('id')
         .eq('user_id', userId)
         .eq('league_id', leagueId)
-        .eq('role_id', captainRole.role_id)
-        .maybeSingle();
+        .in('role_id', roleIds)
+        .limit(1);
 
-      isCaptain = !!captainCheck;
+      isCaptain = !!(captainCheck && captainCheck.length > 0);
     }
 
     // Also check if user is host or governor (they can also validate)
@@ -112,25 +119,36 @@ export async function GET(
       .eq('user_id', userId)
       .eq('league_id', leagueId);
 
-    const userRoleNames = (userRoles || []).map((r: any) => r.roles?.role_name).filter(Boolean);
-    const isHost = leagueData?.created_by === userId || userRoleNames.includes('host');
+    const userRoleNames = (userRoles || [])
+      .map((r: any) => r.roles?.role_name)
+      .filter(Boolean);
+    const isHost =
+      leagueData?.created_by === userId || userRoleNames.includes('host');
     const isGovernor = userRoleNames.includes('governor');
 
     if (!isCaptain && !isHost && !isGovernor) {
       return NextResponse.json(
         { error: 'Only team captain can validate team submissions' },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
     // Get optional query params for filtering
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status') as 'pending' | 'approved' | 'rejected' | 'rejected_resubmit' | 'rejected_permanent' | null;
+    const status = searchParams.get('status') as
+      | 'pending'
+      | 'approved'
+      | 'rejected'
+      | 'rejected_resubmit'
+      | 'rejected_permanent'
+      | null;
 
     // Get all team members
     const { data: teamMembers, error: membersError } = await supabase
       .from('leaguemembers')
-      .select('league_member_id, user_id, users!leaguemembers_user_id_fkey(username, email)')
+      .select(
+        'league_member_id, user_id, users!leaguemembers_user_id_fkey(username, email)',
+      )
       .eq('team_id', membership.team_id)
       .eq('league_id', leagueId);
 
@@ -138,7 +156,7 @@ export async function GET(
       console.error('Error fetching team members:', membersError);
       return NextResponse.json(
         { error: 'Failed to fetch team members' },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -153,7 +171,10 @@ export async function GET(
     }
 
     // Create a map of league_member_id to user info
-    const memberMap = new Map<string, { user_id: string; username: string; email: string }>();
+    const memberMap = new Map<
+      string,
+      { user_id: string; username: string; email: string }
+    >();
     teamMembers.forEach((m) => {
       const user = m.users as any;
       memberMap.set(m.league_member_id, {
@@ -168,7 +189,8 @@ export async function GET(
     // Build query for team submissions
     let query = supabase
       .from('effortentry')
-      .select(`
+      .select(
+        `
         id,
         league_member_id,
         date,
@@ -187,7 +209,8 @@ export async function GET(
         modified_by,
         reupload_of,
         outcome
-      `)
+      `,
+      )
       .in('league_member_id', memberIds)
       .order('date', { ascending: false });
 
@@ -202,7 +225,7 @@ export async function GET(
       console.error('Error fetching submissions:', submissionsError);
       return NextResponse.json(
         { error: 'Failed to fetch submissions' },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -211,8 +234,8 @@ export async function GET(
       new Set(
         (submissions || [])
           .map((s: any) => s?.modified_by as string | null)
-          .filter((v: string | null): v is string => !!v)
-      )
+          .filter((v: string | null): v is string => !!v),
+      ),
     );
 
     const rolesByUser = new Map<string, Set<string>>();
@@ -236,7 +259,10 @@ export async function GET(
       }
     }
 
-    const getGradedByRole = (modifiedBy: string | null, status: string): TeamSubmission['graded_by_role'] => {
+    const getGradedByRole = (
+      modifiedBy: string | null,
+      status: string,
+    ): TeamSubmission['graded_by_role'] => {
       if (!modifiedBy) return null;
       if (status === 'pending') return null;
       if (leagueCreatedBy && modifiedBy === leagueCreatedBy) return 'host';
@@ -252,12 +278,20 @@ export async function GET(
     // Fetch activity points config for effective_points calculation
     const { data: leagueActivities } = await supabase
       .from('leagueactivities')
-      .select('activity_id, custom_activity_id, points_per_session, outcome_config, activities(activity_name)')
+      .select(
+        'activity_id, custom_activity_id, points_per_session, outcome_config, activities(activity_name)',
+      )
       .eq('league_id', leagueId);
 
-    const activityPointsMap = new Map<string, { points_per_session: number; outcome_config: any[] | null }>();
+    const activityPointsMap = new Map<
+      string,
+      { points_per_session: number; outcome_config: any[] | null }
+    >();
     (leagueActivities || []).forEach((row: any) => {
-      const config = { points_per_session: row.points_per_session ?? 1, outcome_config: row.outcome_config };
+      const config = {
+        points_per_session: row.points_per_session ?? 1,
+        outcome_config: row.outcome_config,
+      };
       const key = row.custom_activity_id || row.activity_id;
       if (key) activityPointsMap.set(key, config);
       const actName = row.activities?.activity_name;
@@ -268,25 +302,36 @@ export async function GET(
       if (!entry.workout_type) return entry.rr_value ?? 1;
       const config = activityPointsMap.get(entry.workout_type);
       if (!config) return entry.rr_value ?? 1;
-      if (config.outcome_config && Array.isArray(config.outcome_config) && entry.outcome) {
-        const match = config.outcome_config.find((o: any) => o.label === entry.outcome);
+      if (
+        config.outcome_config &&
+        Array.isArray(config.outcome_config) &&
+        entry.outcome
+      ) {
+        const match = config.outcome_config.find(
+          (o: any) => o.label === entry.outcome,
+        );
         if (match) return match.points;
       }
       return config.points_per_session;
     };
 
     // Enrich submissions with member info + grader info + effective_points
-    const enrichedSubmissions: TeamSubmission[] = (submissions || []).map((s: any) => ({
-      ...s,
-      effective_points: getEffectivePoints(s),
-      modified_by: (s?.modified_by ?? null) as string | null,
-      graded_by_role: getGradedByRole((s?.modified_by ?? null) as string | null, s.status),
-      member: memberMap.get(s.league_member_id) || {
-        user_id: '',
-        username: 'Unknown',
-        email: '',
-      },
-    }));
+    const enrichedSubmissions: TeamSubmission[] = (submissions || []).map(
+      (s: any) => ({
+        ...s,
+        effective_points: getEffectivePoints(s),
+        modified_by: (s?.modified_by ?? null) as string | null,
+        graded_by_role: getGradedByRole(
+          (s?.modified_by ?? null) as string | null,
+          s.status,
+        ),
+        member: memberMap.get(s.league_member_id) || {
+          user_id: '',
+          username: 'Unknown',
+          email: '',
+        },
+      }),
+    );
 
     // Include all team submissions (including captain's own) for visibility.
     // Validation rules are still enforced by /api/submissions/[id]/validate.
@@ -296,8 +341,13 @@ export async function GET(
     const stats = {
       total: visibleSubmissions.length,
       pending: visibleSubmissions.filter((s) => s.status === 'pending').length,
-      approved: visibleSubmissions.filter((s) => s.status === 'approved').length,
-      rejected: visibleSubmissions.filter((s) => ['rejected', 'rejected_resubmit', 'rejected_permanent'].includes(s.status)).length,
+      approved: visibleSubmissions.filter((s) => s.status === 'approved')
+        .length,
+      rejected: visibleSubmissions.filter((s) =>
+        ['rejected', 'rejected_resubmit', 'rejected_permanent'].includes(
+          s.status,
+        ),
+      ).length,
     };
 
     return NextResponse.json({
@@ -312,7 +362,7 @@ export async function GET(
     console.error('Error in my-team/submissions GET:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

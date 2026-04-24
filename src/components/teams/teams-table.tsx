@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import * as React from "react";
+import * as React from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -13,12 +13,13 @@ import {
   Trash2,
   Users,
   Crown,
+  ShieldPlus,
   UserPlus,
   Shield,
   Loader2,
   Share2,
   Save,
-} from "lucide-react";
+} from 'lucide-react';
 import {
   flexRender,
   getCoreRowModel,
@@ -28,27 +29,27 @@ import {
   useReactTable,
   type ColumnDef,
   type SortingState,
-} from "@tanstack/react-table";
-import { toast } from "@/lib/toast";
+} from '@tanstack/react-table';
+import { toast } from '@/lib/toast';
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -56,7 +57,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from '@/components/ui/table';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -66,26 +67,27 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from '@/components/ui/alert-dialog';
 import { DumbbellLoading } from '@/components/ui/dumbbell-loading';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ProfilePicture } from "@/components/ui/profile-picture";
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ProfilePicture } from '@/components/ui/profile-picture';
 
-import { CreateTeamDialog } from "./create-team-dialog";
-import { AddMembersDialog } from "./add-members-dialog";
-import { AssignCaptainDialog } from "./assign-captain-dialog";
-import { AssignGovernorDialog } from "./assign-governor-dialog";
-import { ViewUnallocatedDialog } from "./view-unallocated-dialog";
-import { ViewTeamMembersDialog } from "./view-team-members-dialog";
-import { TeamInviteDialog } from "./team-invite-dialog";
-import { InviteDialog } from "@/components/league/invite-dialog";
-import { CaptainGuidelinesTooltip } from "@/components/captain/captain-guidelines-tooltip";
+import { CreateTeamDialog } from './create-team-dialog';
+import { AddMembersDialog } from './add-members-dialog';
+import { AssignCaptainDialog } from './assign-captain-dialog';
+import { AssignViceCaptainDialog } from './assign-vice-captain-dialog';
+import { AssignGovernorDialog } from './assign-governor-dialog';
+import { ViewUnallocatedDialog } from './view-unallocated-dialog';
+import { ViewTeamMembersDialog } from './view-team-members-dialog';
+import { TeamInviteDialog } from './team-invite-dialog';
+import { InviteDialog } from '@/components/league/invite-dialog';
+import { CaptainGuidelinesTooltip } from '@/components/captain/captain-guidelines-tooltip';
 
 import {
   useLeagueTeams,
   type TeamWithDetails,
   type TeamMember,
-} from "@/hooks/use-league-teams";
+} from '@/hooks/use-league-teams';
 
 // ============================================================================
 // Loading Skeleton
@@ -107,30 +109,46 @@ interface TeamsTableProps {
 
 export function TeamsTable({ leagueId, isHost, isGovernor }: TeamsTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [globalFilter, setGlobalFilter] = React.useState("");
-  const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 100 });
+  const [globalFilter, setGlobalFilter] = React.useState('');
+  const [pagination, setPagination] = React.useState({
+    pageIndex: 0,
+    pageSize: 100,
+  });
 
   // Dialog states
   const [createDialogOpen, setCreateDialogOpen] = React.useState(false);
   const [addMembersDialogOpen, setAddMembersDialogOpen] = React.useState(false);
-  const [assignCaptainDialogOpen, setAssignCaptainDialogOpen] = React.useState(false);
-  const [assignGovernorDialogOpen, setAssignGovernorDialogOpen] = React.useState(false);
-  const [viewUnallocatedDialogOpen, setViewUnallocatedDialogOpen] = React.useState(false);
-  const [viewTeamMembersDialogOpen, setViewTeamMembersDialogOpen] = React.useState(false);
+  const [assignCaptainDialogOpen, setAssignCaptainDialogOpen] =
+    React.useState(false);
+  const [assignViceCaptainDialogOpen, setAssignViceCaptainDialogOpen] =
+    React.useState(false);
+  const [assignGovernorDialogOpen, setAssignGovernorDialogOpen] =
+    React.useState(false);
+  const [viewUnallocatedDialogOpen, setViewUnallocatedDialogOpen] =
+    React.useState(false);
+  const [viewTeamMembersDialogOpen, setViewTeamMembersDialogOpen] =
+    React.useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
 
-  const [selectedTeam, setSelectedTeam] = React.useState<TeamWithDetails | null>(null);
+  const [selectedTeam, setSelectedTeam] =
+    React.useState<TeamWithDetails | null>(null);
   const [teamMembers, setTeamMembers] = React.useState<TeamMember[]>([]);
-  const [pointsMap, setPointsMap] = React.useState<Map<string, number> | null>(null);
+  const [pointsMap, setPointsMap] = React.useState<Map<string, number> | null>(
+    null,
+  );
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [loadingTeamMembers, setLoadingTeamMembers] = React.useState(false);
-  const [logoUploadTeamId, setLogoUploadTeamId] = React.useState<string | null>(null);
-  const [logoRemovingTeamId, setLogoRemovingTeamId] = React.useState<string | null>(null);
+  const [logoUploadTeamId, setLogoUploadTeamId] = React.useState<string | null>(
+    null,
+  );
+  const [logoRemovingTeamId, setLogoRemovingTeamId] = React.useState<
+    string | null
+  >(null);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   // Edit team name states
   const [editNameDialogOpen, setEditNameDialogOpen] = React.useState(false);
-  const [editingTeamName, setEditingTeamName] = React.useState("");
+  const [editingTeamName, setEditingTeamName] = React.useState('');
   const [isSavingName, setIsSavingName] = React.useState(false);
 
   const canManageTeams = isHost || isGovernor;
@@ -161,13 +179,24 @@ export function TeamsTable({ leagueId, isHost, isGovernor }: TeamsTableProps) {
     let mounted = true;
     async function fetchPoints() {
       try {
-        const res = await fetch(`/api/leagues/${leagueId}/leaderboard?full=true`);
+        const res = await fetch(
+          `/api/leagues/${leagueId}/leaderboard?full=true`,
+        );
         const json = await res.json();
         if (mounted && res.ok && json?.success && json.data?.individuals) {
-          console.debug('[TeamsTable] leaderboard individuals count:', json.data.individuals.length);
-          console.debug('[TeamsTable] sample individuals:', json.data.individuals.slice(0, 5));
+          console.debug(
+            '[TeamsTable] leaderboard individuals count:',
+            json.data.individuals.length,
+          );
+          console.debug(
+            '[TeamsTable] sample individuals:',
+            json.data.individuals.slice(0, 5),
+          );
           const map = new Map<string, number>(
-            json.data.individuals.map((i: any) => [String(i.user_id), Number(i.points || 0)])
+            json.data.individuals.map((i: any) => [
+              String(i.user_id),
+              Number(i.points || 0),
+            ]),
           );
           console.debug('[TeamsTable] built pointsMap size:', map.size);
           setPointsMap(map);
@@ -183,13 +212,12 @@ export function TeamsTable({ leagueId, isHost, isGovernor }: TeamsTableProps) {
     };
   }, [leagueId]);
 
-
   const handleCreateTeam = async (teamName: string): Promise<boolean> => {
     const success = await createTeam(teamName);
     if (success) {
       toast.success(`Team "${teamName}" created successfully`);
     } else {
-      toast.error("Failed to create team");
+      toast.error('Failed to create team');
     }
     return success;
   };
@@ -211,7 +239,7 @@ export function TeamsTable({ leagueId, isHost, isGovernor }: TeamsTableProps) {
       setDeleteDialogOpen(false);
       setSelectedTeam(null);
     } else {
-      toast.error("Failed to delete team");
+      toast.error('Failed to delete team');
     }
   };
 
@@ -226,11 +254,14 @@ export function TeamsTable({ leagueId, isHost, isGovernor }: TeamsTableProps) {
 
     setIsSavingName(true);
     try {
-      const res = await fetch(`/api/leagues/${leagueId}/teams/${selectedTeam.team_id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ team_name: editingTeamName.trim() }),
-      });
+      const res = await fetch(
+        `/api/leagues/${leagueId}/teams/${selectedTeam.team_id}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ team_name: editingTeamName.trim() }),
+        },
+      );
       const json = await res.json();
 
       if (!res.ok || !json?.success) {
@@ -242,7 +273,9 @@ export function TeamsTable({ leagueId, isHost, isGovernor }: TeamsTableProps) {
       setSelectedTeam(null);
       await refetch();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to update team name');
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to update team name',
+      );
     } finally {
       setIsSavingName(false);
     }
@@ -259,19 +292,27 @@ export function TeamsTable({ leagueId, isHost, isGovernor }: TeamsTableProps) {
     setViewTeamMembersDialogOpen(true);
 
     try {
-      const response = await fetch(`/api/leagues/${leagueId}/teams/${team.team_id}/members`);
+      const response = await fetch(
+        `/api/leagues/${leagueId}/teams/${team.team_id}/members`,
+      );
       const result = await response.json();
       if (result.success) {
-        console.debug('[TeamsTable] fetched team members count:', (result.data || []).length);
+        console.debug(
+          '[TeamsTable] fetched team members count:',
+          (result.data || []).length,
+        );
         const membersWithPoints = (result.data || []).map((m: any) => ({
           ...m,
           points: pointsMap?.get(String(m.user_id)) ?? 0,
         }));
-        console.debug('[TeamsTable] membersWithPoints sample:', membersWithPoints.slice(0, 5));
+        console.debug(
+          '[TeamsTable] membersWithPoints sample:',
+          membersWithPoints.slice(0, 5),
+        );
         setTeamMembers(membersWithPoints as TeamMember[]);
       }
     } catch (err) {
-      console.error("Error fetching team members:", err);
+      console.error('Error fetching team members:', err);
     } finally {
       setLoadingTeamMembers(false);
     }
@@ -283,7 +324,9 @@ export function TeamsTable({ leagueId, isHost, isGovernor }: TeamsTableProps) {
 
     try {
       // Fetch team members for captain selection
-      const response = await fetch(`/api/leagues/${leagueId}/teams/${team.team_id}/members`);
+      const response = await fetch(
+        `/api/leagues/${leagueId}/teams/${team.team_id}/members`,
+      );
       const result = await response.json();
       if (result.success) {
         const membersWithPoints = (result.data || []).map((m: any) => ({
@@ -293,29 +336,35 @@ export function TeamsTable({ leagueId, isHost, isGovernor }: TeamsTableProps) {
         setTeamMembers(membersWithPoints as TeamMember[]);
       }
     } catch (err) {
-      console.error("Error fetching team members:", err);
+      console.error('Error fetching team members:', err);
     } finally {
       setLoadingTeamMembers(false);
       setAssignCaptainDialogOpen(true);
     }
   };
 
-  const handleAddMember = async (teamId: string, leagueMemberId: string): Promise<boolean> => {
+  const handleAddMember = async (
+    teamId: string,
+    leagueMemberId: string,
+  ): Promise<boolean> => {
     const success = await assignMember(teamId, leagueMemberId);
     if (success) {
-      toast.success("Member added to team");
+      toast.success('Member added to team');
     } else {
-      toast.error("Failed to add member");
+      toast.error('Failed to add member');
     }
     return success;
   };
 
-  const handleAssignCaptain = async (teamId: string, userId: string): Promise<boolean> => {
+  const handleAssignCaptain = async (
+    teamId: string,
+    userId: string,
+  ): Promise<boolean> => {
     const success = await assignCaptain(teamId, userId);
     if (success) {
-      toast.success("Captain assigned successfully");
+      toast.success('Captain assigned successfully');
     } else {
-      toast.error("Failed to assign captain");
+      toast.error('Failed to assign captain');
     }
     return success;
   };
@@ -323,9 +372,9 @@ export function TeamsTable({ leagueId, isHost, isGovernor }: TeamsTableProps) {
   const handleAssignGovernor = async (userId: string): Promise<boolean> => {
     const success = await assignGovernor(userId);
     if (success) {
-      toast.success("Governor assigned successfully");
+      toast.success('Governor assigned successfully');
     } else {
-      toast.error("Failed to assign governor");
+      toast.error('Failed to assign governor');
     }
     return success;
   };
@@ -333,9 +382,9 @@ export function TeamsTable({ leagueId, isHost, isGovernor }: TeamsTableProps) {
   const handleRemoveGovernor = async (userId: string): Promise<boolean> => {
     const success = await removeGovernor(userId);
     if (success) {
-      toast.success("Governor removed successfully");
+      toast.success('Governor removed successfully');
     } else {
-      toast.error("Failed to remove governor");
+      toast.error('Failed to remove governor');
     }
     return success;
   };
@@ -367,7 +416,9 @@ export function TeamsTable({ leagueId, isHost, isGovernor }: TeamsTableProps) {
     }
   };
 
-  const handleTeamLogoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleTeamLogoFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = e.target.files?.[0];
     if (!file || !logoUploadTeamId) {
       setLogoUploadTeamId(null);
@@ -402,13 +453,16 @@ export function TeamsTable({ leagueId, isHost, isGovernor }: TeamsTableProps) {
 
   const columns: ColumnDef<TeamWithDetails>[] = [
     {
-      accessorKey: "team_name",
-      header: "Team",
+      accessorKey: 'team_name',
+      header: 'Team',
       cell: ({ row }) => (
         <div className="flex items-center gap-1.5 min-w-0">
           <Avatar className="size-6 rounded-lg flex-shrink-0">
             {row.original.logo_url ? (
-              <AvatarImage src={row.original.logo_url} alt={row.original.team_name} />
+              <AvatarImage
+                src={row.original.logo_url}
+                alt={row.original.team_name}
+              />
             ) : (
               <AvatarFallback className="rounded-lg text-[10px] uppercase">
                 {row.original.team_name.slice(0, 2)}
@@ -416,13 +470,15 @@ export function TeamsTable({ leagueId, isHost, isGovernor }: TeamsTableProps) {
             )}
           </Avatar>
           <div className="flex flex-col leading-tight min-w-0">
-            <div className="font-medium text-xs break-words">{row.original.team_name}</div>
+            <div className="font-medium text-xs break-words">
+              {row.original.team_name}
+            </div>
           </div>
         </div>
       ),
     },
     {
-      accessorKey: "captain",
+      accessorKey: 'captain',
       header: () => (
         <div className="flex items-center gap-1">
           Captain
@@ -447,14 +503,16 @@ export function TeamsTable({ leagueId, isHost, isGovernor }: TeamsTableProps) {
                 isCaptain={true}
               />
             </div>
-            <span className="text-[10px] break-words min-w-0">{captain.username}</span>
+            <span className="text-[10px] break-words min-w-0">
+              {captain.username}
+            </span>
           </div>
         );
       },
     },
     {
-      accessorKey: "member_count",
-      header: "Members",
+      accessorKey: 'member_count',
+      header: 'Members',
       cell: ({ row }) => (
         <Badge variant="outline" className="text-[10px] px-1 py-0">
           {row.original.member_count}
@@ -462,7 +520,7 @@ export function TeamsTable({ leagueId, isHost, isGovernor }: TeamsTableProps) {
       ),
     },
     {
-      id: "actions",
+      id: 'actions',
       cell: ({ row }) => {
         if (!canManageTeams) return null;
 
@@ -477,10 +535,13 @@ export function TeamsTable({ leagueId, isHost, isGovernor }: TeamsTableProps) {
             <DropdownMenuContent align="end" className="w-40">
               {canManageLogos && (
                 <>
-                  <DropdownMenuItem onClick={() => {
-                    setLogoUploadTeamId(row.original.team_id);
-                    fileInputRef.current?.click();
-                  }} className="text-xs">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setLogoUploadTeamId(row.original.team_id);
+                      fileInputRef.current?.click();
+                    }}
+                    className="text-xs"
+                  >
                     <Pencil className="mr-1.5 size-3.5" />
                     Upload Logo
                   </DropdownMenuItem>
@@ -491,39 +552,78 @@ export function TeamsTable({ leagueId, isHost, isGovernor }: TeamsTableProps) {
                       className="text-xs"
                     >
                       <Trash2 className="mr-1.5 size-3.5" />
-                      {logoRemovingTeamId === row.original.team_id ? 'Removing...' : 'Remove Logo'}
+                      {logoRemovingTeamId === row.original.team_id
+                        ? 'Removing...'
+                        : 'Remove Logo'}
                     </DropdownMenuItem>
                   ) : null}
                   <DropdownMenuSeparator />
                 </>
               )}
-              <DropdownMenuItem onClick={() => handleEditNameClick(row.original)} className="text-xs">
+              <DropdownMenuItem
+                onClick={() => handleEditNameClick(row.original)}
+                className="text-xs"
+              >
                 <Pencil className="mr-1.5 size-3.5" />
                 Edit Name
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => handleViewTeamMembersClick(row.original)} className="text-xs">
+              <DropdownMenuItem
+                onClick={() => handleViewTeamMembersClick(row.original)}
+                className="text-xs"
+              >
                 <Users className="mr-1.5 size-3.5" />
                 View Members
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => handleAddMembersClick(row.original)} className="text-xs">
+              <DropdownMenuItem
+                onClick={() => handleAddMembersClick(row.original)}
+                className="text-xs"
+              >
                 <UserPlus className="mr-1.5 size-3.5" />
                 Add Members
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleAssignCaptainClick(row.original)} className="text-xs">
+              <DropdownMenuItem
+                onClick={() => handleAssignCaptainClick(row.original)}
+                className="text-xs"
+              >
                 <Crown className="mr-1.5 size-3.5" />
                 Assign Captain
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={async () => {
+                  setSelectedTeam(row.original);
+                  setLoadingTeamMembers(true);
+                  try {
+                    const response = await fetch(
+                      `/api/leagues/${leagueId}/teams/${row.original.team_id}/members`,
+                    );
+                    const result = await response.json();
+                    if (result.success)
+                      setTeamMembers((result.data || []) as TeamMember[]);
+                  } catch {
+                  } finally {
+                    setLoadingTeamMembers(false);
+                    setAssignViceCaptainDialogOpen(true);
+                  }
+                }}
+                className="text-xs"
+              >
+                <ShieldPlus className="mr-1.5 size-3.5" />
+                Vice Captains
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <TeamInviteDialog
                 teamName={row.original.team_name}
-                leagueName={data?.league.league_name || ""}
-                inviteCode={row.original.invite_code || ""}
+                leagueName={data?.league.league_name || ''}
+                inviteCode={row.original.invite_code || ''}
                 memberCount={row.original.member_count}
                 maxCapacity={data?.league.league_capacity || 20}
                 trigger={
-                  <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-xs">
+                  <DropdownMenuItem
+                    onSelect={(e) => e.preventDefault()}
+                    className="text-xs"
+                  >
                     <Share2 className="mr-1.5 size-3.5" />
                     Invite to Team
                   </DropdownMenuItem>
@@ -576,7 +676,8 @@ export function TeamsTable({ leagueId, isHost, isGovernor }: TeamsTableProps) {
         <div>
           <h2 className="text-xl font-bold tracking-tight">Team Management</h2>
           <p className="text-sm text-muted-foreground">
-            {data?.meta.current_team_count || 0} of {data?.meta.max_teams || 0} teams created
+            {data?.meta.current_team_count || 0} of {data?.meta.max_teams || 0}{' '}
+            teams created
           </p>
         </div>
         {canManageTeams && (
@@ -618,14 +719,16 @@ export function TeamsTable({ leagueId, isHost, isGovernor }: TeamsTableProps) {
                 leagueId={leagueId}
                 leagueName={data.league.league_name}
                 inviteCode={data.league.invite_code || ''}
-                memberCount={data.members.allocated.length + data.members.unallocated.length}
+                memberCount={
+                  data.members.allocated.length +
+                  data.members.unallocated.length
+                }
                 maxCapacity={data.league.league_capacity || 20}
                 buttonLabel="League Invite"
               />
             )}
           </div>
         )}
-
       </div>
 
       {/* Governors Info */}
@@ -636,10 +739,12 @@ export function TeamsTable({ leagueId, isHost, isGovernor }: TeamsTableProps) {
           </div>
           <div className="flex-1">
             <p className="font-medium text-sm">
-              {data.governors.length === 1 ? 'Governor' : 'Governors'}: {data.governors.map(g => g.username).join(', ')}
+              {data.governors.length === 1 ? 'Governor' : 'Governors'}:{' '}
+              {data.governors.map((g) => g.username).join(', ')}
             </p>
             <p className="text-xs text-muted-foreground">
-              {data.governors.length === 1 ? 'Has' : 'Have'} oversight of all teams and can validate any submission
+              {data.governors.length === 1 ? 'Has' : 'Have'} oversight of all
+              teams and can validate any submission
             </p>
           </div>
         </div>
@@ -654,11 +759,14 @@ export function TeamsTable({ leagueId, isHost, isGovernor }: TeamsTableProps) {
                 {headerGroup.headers.map((header) => (
                   <TableHead
                     key={header.id}
-                    className={`px-2 py-2 text-xs font-semibold text-muted-foreground ${header.id === "actions" ? "text-right pr-1 pl-1 w-8" : ""} ${header.id === "team_name" ? "w-auto" : ""} ${header.id === "captain" ? "w-[30%]" : ""} ${header.id === "member_count" ? "w-[15%]" : ""}`}
+                    className={`px-2 py-2 text-xs font-semibold text-muted-foreground ${header.id === 'actions' ? 'text-right pr-1 pl-1 w-8' : ''} ${header.id === 'team_name' ? 'w-auto' : ''} ${header.id === 'captain' ? 'w-[30%]' : ''} ${header.id === 'member_count' ? 'w-[15%]' : ''}`}
                   >
                     {header.isPlaceholder
                       ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )}
                   </TableHead>
                 ))}
               </TableRow>
@@ -671,9 +779,12 @@ export function TeamsTable({ leagueId, isHost, isGovernor }: TeamsTableProps) {
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
                       key={cell.id}
-                      className={`px-2 py-2 align-middle text-xs ${cell.column.id === "actions" ? "text-right pr-1 pl-1" : ""}`}
+                      className={`px-2 py-2 align-middle text-xs ${cell.column.id === 'actions' ? 'text-right pr-1 pl-1' : ''}`}
                     >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
                     </TableCell>
                   ))}
                 </TableRow>
@@ -689,12 +800,15 @@ export function TeamsTable({ leagueId, isHost, isGovernor }: TeamsTableProps) {
                       <p className="font-medium">No teams yet</p>
                       <p className="text-sm text-muted-foreground">
                         {error
-                          ? "Unable to load teams. Please try again."
-                          : "Create your first team to get started."}
+                          ? 'Unable to load teams. Please try again.'
+                          : 'Create your first team to get started.'}
                       </p>
                     </div>
                     {!error && canManageTeams && (
-                      <Button size="sm" onClick={() => setCreateDialogOpen(true)}>
+                      <Button
+                        size="sm"
+                        onClick={() => setCreateDialogOpen(true)}
+                      >
                         <Plus className="mr-2 size-4" />
                         Create Team
                       </Button>
@@ -720,7 +834,6 @@ export function TeamsTable({ leagueId, isHost, isGovernor }: TeamsTableProps) {
         onChange={handleTeamLogoFileChange}
       />
 
-
       {/* Dialogs */}
       <CreateTeamDialog
         open={createDialogOpen}
@@ -738,10 +851,12 @@ export function TeamsTable({ leagueId, isHost, isGovernor }: TeamsTableProps) {
           teamName={selectedTeam.team_name}
           teamCapacity={data?.league.league_capacity || 20}
           currentMemberCount={selectedTeam.member_count}
-          unallocatedMembers={(data?.members.unallocated || []).map((m: any) => ({
-            ...m,
-            points: pointsMap?.get(String(m.user_id)) ?? 0,
-          }))}
+          unallocatedMembers={(data?.members.unallocated || []).map(
+            (m: any) => ({
+              ...m,
+              points: pointsMap?.get(String(m.user_id)) ?? 0,
+            }),
+          )}
           onAddMember={handleAddMember}
         />
       )}
@@ -753,22 +868,37 @@ export function TeamsTable({ leagueId, isHost, isGovernor }: TeamsTableProps) {
           teamId={selectedTeam.team_id}
           teamName={selectedTeam.team_name}
           members={teamMembers}
-          currentCaptain={
-            teamMembers.find((m) => m.is_captain) || null
-          }
+          currentCaptain={teamMembers.find((m) => m.is_captain) || null}
           onAssignCaptain={handleAssignCaptain}
+        />
+      )}
+
+      {selectedTeam && (
+        <AssignViceCaptainDialog
+          open={assignViceCaptainDialogOpen}
+          onOpenChange={(open) => {
+            setAssignViceCaptainDialogOpen(open);
+            if (!open) refetch();
+          }}
+          teamId={selectedTeam.team_id}
+          teamName={selectedTeam.team_name}
+          leagueId={leagueId}
+          members={teamMembers}
         />
       )}
 
       <AssignGovernorDialog
         open={assignGovernorDialogOpen}
         onOpenChange={setAssignGovernorDialogOpen}
-        members={[...(data?.members.allocated || []), ...(data?.members.unallocated || [])].map((m: any) => ({
+        members={[
+          ...(data?.members.allocated || []),
+          ...(data?.members.unallocated || []),
+        ].map((m: any) => ({
           ...m,
           points: pointsMap?.get(String(m.user_id)) ?? 0,
         }))}
         currentGovernors={data?.governors || []}
-        hostUserId={data?.league.host_user_id || ""}
+        hostUserId={data?.league.host_user_id || ''}
         onAssignGovernor={handleAssignGovernor}
         onRemoveGovernor={handleRemoveGovernor}
       />
@@ -805,7 +935,10 @@ export function TeamsTable({ leagueId, isHost, isGovernor }: TeamsTableProps) {
       )}
 
       {/* Edit Team Name Dialog */}
-      <AlertDialog open={editNameDialogOpen} onOpenChange={setEditNameDialogOpen}>
+      <AlertDialog
+        open={editNameDialogOpen}
+        onOpenChange={setEditNameDialogOpen}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Edit Team Name</AlertDialogTitle>
@@ -826,7 +959,9 @@ export function TeamsTable({ leagueId, isHost, isGovernor }: TeamsTableProps) {
             }}
           />
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isSavingName}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isSavingName}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleEditNameConfirm}
               disabled={isSavingName || !editingTeamName.trim()}
@@ -853,9 +988,9 @@ export function TeamsTable({ leagueId, isHost, isGovernor }: TeamsTableProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Team</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{selectedTeam?.team_name}"? All members
-              will be unassigned and moved to the unallocated pool. This action cannot
-              be undone.
+              Are you sure you want to delete "{selectedTeam?.team_name}"? All
+              members will be unassigned and moved to the unallocated pool. This
+              action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -871,7 +1006,7 @@ export function TeamsTable({ leagueId, isHost, isGovernor }: TeamsTableProps) {
                   Deleting...
                 </>
               ) : (
-                "Delete"
+                'Delete'
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -71,7 +71,9 @@ export interface TeamMembershipMutationResult {
  * Get all teams for a specific league
  * Includes member count and captain info
  */
-export async function getTeamsForLeague(leagueId: string): Promise<TeamWithLeague[]> {
+export async function getTeamsForLeague(
+  leagueId: string,
+): Promise<TeamWithLeague[]> {
   try {
     const supabase = getSupabaseServiceRole();
 
@@ -87,7 +89,7 @@ export async function getTeamsForLeague(leagueId: string): Promise<TeamWithLeagu
 
     const teamIds = teamLinks.map((tl) => tl.team_id);
     const logoByTeamId = new Map<string, string | null>(
-      teamLinks.map((tl) => [tl.team_id, (tl as any).logo_url || null])
+      teamLinks.map((tl) => [tl.team_id, (tl as any).logo_url || null]),
     );
 
     // Get teams
@@ -113,10 +115,12 @@ export async function getTeamsForLeague(leagueId: string): Promise<TeamWithLeagu
         // Get captain (user with captain role in this league who is on this team)
         const { data: captainData } = await supabase
           .from('leaguemembers')
-          .select(`
+          .select(
+            `
             user_id,
             users!leaguemembers_user_id_fkey(username)
-          `)
+          `,
+          )
           .eq('team_id', team.team_id)
           .eq('league_id', leagueId);
 
@@ -149,7 +153,7 @@ export async function getTeamsForLeague(leagueId: string): Promise<TeamWithLeagu
           captain,
           logo_url: logoByTeamId.get(team.team_id) || team.logo_url || null,
         } as TeamWithLeague;
-      })
+      }),
     );
 
     return teamsWithDetails;
@@ -183,7 +187,7 @@ export async function getTeamCountForLeague(leagueId: string): Promise<number> {
 export async function createTeamForLeague(
   leagueId: string,
   teamName: string,
-  createdBy: string
+  createdBy: string,
 ): Promise<TeamWithLeague | null> {
   try {
     const supabase = getSupabaseServiceRole();
@@ -192,13 +196,16 @@ export async function createTeamForLeague(
     // Since teams can be in multiple leagues, we need to check the combination
     const { data: existingTeamsInLeague } = await supabase
       .from('teamleagues')
-      .select(`
+      .select(
+        `
         teams!inner(team_id, team_name)
-      `)
+      `,
+      )
       .eq('league_id', leagueId);
 
     const teamNameExists = (existingTeamsInLeague || []).some(
-      (tl: any) => tl.teams?.team_name?.toLowerCase() === teamName.toLowerCase()
+      (tl: any) =>
+        tl.teams?.team_name?.toLowerCase() === teamName.toLowerCase(),
     );
 
     if (teamNameExists) {
@@ -223,13 +230,11 @@ export async function createTeamForLeague(
     }
 
     // Link team to league via teamleagues
-    const { error: linkError } = await supabase
-      .from('teamleagues')
-      .insert({
-        team_id: team.team_id,
-        league_id: leagueId,
-        created_by: createdBy,
-      });
+    const { error: linkError } = await supabase.from('teamleagues').insert({
+      team_id: team.team_id,
+      league_id: leagueId,
+      created_by: createdBy,
+    });
 
     if (linkError) {
       console.error('Error linking team to league:', linkError);
@@ -258,7 +263,7 @@ export async function updateTeamLogoUrl(
   leagueId: string,
   teamId: string,
   userId: string,
-  logoUrl: string | null
+  logoUrl: string | null,
 ): Promise<boolean> {
   try {
     const supabase = getSupabaseServiceRole();
@@ -298,7 +303,7 @@ export async function updateTeamLogoUrl(
  */
 export async function deleteTeamFromLeague(
   teamId: string,
-  leagueId: string
+  leagueId: string,
 ): Promise<boolean> {
   try {
     const supabase = getSupabaseServiceRole();
@@ -353,7 +358,7 @@ export async function deleteTeamFromLeague(
 export async function updateTeam(
   teamId: string,
   teamName: string,
-  modifiedBy: string
+  modifiedBy: string,
 ): Promise<Team | null> {
   try {
     const { data, error } = await getSupabaseServiceRole()
@@ -388,20 +393,22 @@ export async function updateTeam(
  */
 export async function getTeamMembers(
   teamId: string,
-  leagueId: string
+  leagueId: string,
 ): Promise<TeamMember[]> {
   try {
     const supabase = getSupabaseServiceRole();
 
     const { data: members, error } = await supabase
       .from('leaguemembers')
-      .select(`
+      .select(
+        `
         league_member_id,
         user_id,
         team_id,
         league_id,
         users!leaguemembers_user_id_fkey(username, email, profile_picture_url)
-      `)
+      `,
+      )
       .eq('team_id', teamId)
       .eq('league_id', leagueId);
 
@@ -410,7 +417,7 @@ export async function getTeamMembers(
     }
 
     // Get member IDs for queries
-    const memberIds = members.map(m => m.league_member_id);
+    const memberIds = members.map((m) => m.league_member_id);
 
     // Get league start_date for filtering
     const { data: leagueData } = await supabase
@@ -466,7 +473,9 @@ export async function getTeamMembers(
           .eq('user_id', member.user_id)
           .eq('league_id', leagueId);
 
-        const roles = (rolesData || []).map((r: any) => r.roles?.role_name).filter(Boolean);
+        const roles = (rolesData || [])
+          .map((r: any) => r.roles?.role_name)
+          .filter(Boolean);
         const isCaptain = roles.includes('captain');
 
         const workoutCount = workoutCountMap.get(member.league_member_id) || 0;
@@ -480,14 +489,15 @@ export async function getTeamMembers(
           league_id: member.league_id,
           username: (member.users as any)?.username || 'Unknown',
           email: (member.users as any)?.email || '',
-          profile_picture_url: (member.users as any)?.profile_picture_url || undefined,
+          profile_picture_url:
+            (member.users as any)?.profile_picture_url || undefined,
           is_captain: isCaptain,
           roles,
           rest_days_used: restDaysMap.get(member.league_member_id) || 0,
           workout_count: workoutCount,
           avg_rr: avgRr,
         } as TeamMember & { workout_count: number; avg_rr: number };
-      })
+      }),
     );
 
     return membersWithRoles;
@@ -502,21 +512,26 @@ export async function getTeamMembers(
  * Returns both allocated and unallocated members
  */
 export async function getLeagueMembersWithTeams(
-  leagueId: string
-): Promise<{ allocated: LeagueMemberWithDetails[]; unallocated: LeagueMemberWithDetails[] }> {
+  leagueId: string,
+): Promise<{
+  allocated: LeagueMemberWithDetails[];
+  unallocated: LeagueMemberWithDetails[];
+}> {
   try {
     const supabase = getSupabaseServiceRole();
 
     const { data: members, error } = await supabase
       .from('leaguemembers')
-      .select(`
+      .select(
+        `
         league_member_id,
         user_id,
         team_id,
         league_id,
         users!leaguemembers_user_id_fkey(username, email),
         teams(team_name)
-      `)
+      `,
+      )
       .eq('league_id', leagueId);
 
     if (error || !members) {
@@ -532,7 +547,9 @@ export async function getLeagueMembersWithTeams(
           .eq('user_id', member.user_id)
           .eq('league_id', leagueId);
 
-        const roles = (rolesData || []).map((r: any) => r.roles?.role_name).filter(Boolean);
+        const roles = (rolesData || [])
+          .map((r: any) => r.roles?.role_name)
+          .filter(Boolean);
 
         return {
           league_member_id: member.league_member_id,
@@ -544,7 +561,7 @@ export async function getLeagueMembersWithTeams(
           roles,
           team_name: (member.teams as any)?.team_name || null,
         } as LeagueMemberWithDetails;
-      })
+      }),
     );
 
     const allocated = membersWithDetails.filter((m) => m.team_id !== null);
@@ -563,7 +580,7 @@ export async function getLeagueMembersWithTeams(
 export async function assignMemberToTeam(
   leagueMemberId: string,
   teamId: string,
-  modifiedBy: string
+  modifiedBy: string,
 ): Promise<boolean> {
   try {
     const { error } = await getSupabaseServiceRole()
@@ -587,7 +604,7 @@ export async function assignMemberToTeam(
  */
 export async function removeMemberFromTeam(
   leagueMemberId: string,
-  modifiedBy: string
+  modifiedBy: string,
 ): Promise<TeamMembershipMutationResult> {
   try {
     const { data, error } = await getSupabaseServiceRole()
@@ -638,7 +655,7 @@ export async function assignCaptain(
   userId: string,
   teamId: string,
   leagueId: string,
-  assignedBy: string
+  assignedBy: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const supabase = getSupabaseServiceRole();
@@ -666,7 +683,10 @@ export async function assignCaptain(
       .maybeSingle();
 
     if (existingCaptainRole) {
-      return { success: false, error: 'User is already a captain in this league' };
+      return {
+        success: false,
+        error: 'User is already a captain in this league',
+      };
     }
 
     // Get captain role_id
@@ -682,7 +702,7 @@ export async function assignCaptain(
 
     // Remove captain role from current captain of this team (if any)
     const teamMembers = await getTeamMembers(teamId, leagueId);
-    const currentCaptain = teamMembers.find((m) => m.is_captain);
+    const currentCaptain = teamMembers.find((m) => m.roles.includes('captain'));
 
     if (currentCaptain) {
       await supabase
@@ -720,7 +740,7 @@ export async function assignCaptain(
  */
 export async function removeCaptain(
   userId: string,
-  leagueId: string
+  leagueId: string,
 ): Promise<boolean> {
   try {
     const supabase = getSupabaseServiceRole();
@@ -748,6 +768,112 @@ export async function removeCaptain(
 }
 
 /**
+ * Assign vice_captain role to a team member
+ * Rules:
+ * - Must be a member of the team
+ * - Multiple vice captains allowed per team
+ * - Cannot already be captain or vice_captain
+ */
+export async function assignViceCaptain(
+  userId: string,
+  teamId: string,
+  leagueId: string,
+  assignedBy: string,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = getSupabaseServiceRole();
+
+    const { data: memberCheck } = await supabase
+      .from('leaguemembers')
+      .select('league_member_id')
+      .eq('user_id', userId)
+      .eq('team_id', teamId)
+      .eq('league_id', leagueId)
+      .maybeSingle();
+
+    if (!memberCheck) {
+      return { success: false, error: 'User is not a member of this team' };
+    }
+
+    // Check if already captain or vice_captain
+    const { data: existingRoles } = await supabase
+      .from('assignedrolesforleague')
+      .select('id, roles!inner(role_name)')
+      .eq('user_id', userId)
+      .eq('league_id', leagueId);
+
+    const roleNames = (existingRoles || []).map((r: any) => r.roles?.role_name);
+    if (roleNames.includes('captain')) {
+      return { success: false, error: 'User is already the captain' };
+    }
+    if (roleNames.includes('vice_captain')) {
+      return { success: false, error: 'User is already a vice captain' };
+    }
+
+    const { data: vcRole } = await supabase
+      .from('roles')
+      .select('role_id')
+      .eq('role_name', 'vice_captain')
+      .single();
+
+    if (!vcRole) {
+      return { success: false, error: 'Vice captain role not found' };
+    }
+
+    const { error: assignError } = await supabase
+      .from('assignedrolesforleague')
+      .insert({
+        user_id: userId,
+        league_id: leagueId,
+        role_id: vcRole.role_id,
+        created_by: assignedBy,
+      });
+
+    if (assignError) {
+      console.error('Error assigning vice captain role:', assignError);
+      return { success: false, error: 'Failed to assign vice captain role' };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error('Error in assignViceCaptain:', err);
+    return { success: false, error: 'An error occurred' };
+  }
+}
+
+/**
+ * Remove vice_captain role from a user
+ */
+export async function removeViceCaptain(
+  userId: string,
+  leagueId: string,
+): Promise<boolean> {
+  try {
+    const supabase = getSupabaseServiceRole();
+
+    const { data: vcRole } = await supabase
+      .from('roles')
+      .select('role_id')
+      .eq('role_name', 'vice_captain')
+      .single();
+
+    if (!vcRole) return false;
+
+    const { error } = await supabase
+      .from('assignedrolesforleague')
+      .delete()
+      .eq('user_id', userId)
+      .eq('league_id', leagueId)
+      .eq('role_id', vcRole.role_id);
+
+    return !error;
+  } catch (err) {
+    console.error('Error removing vice captain:', err);
+    return false;
+  }
+}
+
+/**
  * Assign governor role to a user
  * Rules:
  * - Multiple governors can be assigned per league
@@ -757,7 +883,7 @@ export async function removeCaptain(
 export async function assignGovernor(
   userId: string,
   leagueId: string,
-  assignedBy: string
+  assignedBy: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const supabase = getSupabaseServiceRole();
@@ -838,7 +964,7 @@ export async function assignGovernor(
  */
 export async function removeGovernor(
   userId: string,
-  leagueId: string
+  leagueId: string,
 ): Promise<boolean> {
   try {
     const supabase = getSupabaseServiceRole();
@@ -869,7 +995,7 @@ export async function removeGovernor(
  * Get all current governors of a league
  */
 export async function getLeagueGovernors(
-  leagueId: string
+  leagueId: string,
 ): Promise<{ user_id: string; username: string }[]> {
   try {
     const supabase = getSupabaseServiceRole();
@@ -890,7 +1016,7 @@ export async function getLeagueGovernors(
 
     if (!governors || governors.length === 0) return [];
 
-    const userIds = governors.map(g => g.user_id);
+    const userIds = governors.map((g) => g.user_id);
     const { data: users } = await supabase
       .from('users')
       .select('user_id, username')
@@ -898,7 +1024,7 @@ export async function getLeagueGovernors(
 
     if (!users) return [];
 
-    return users.map(user => ({
+    return users.map((user) => ({
       user_id: user.user_id,
       username: user.username || 'Unknown',
     }));
@@ -912,7 +1038,9 @@ export async function getLeagueGovernors(
 // Legacy exports for backward compatibility
 // ============================================================================
 
-export async function getTeamNameForUser(userId: string): Promise<string | null> {
+export async function getTeamNameForUser(
+  userId: string,
+): Promise<string | null> {
   try {
     const { data, error } = await getSupabaseServiceRole()
       .from('leaguemembers')

@@ -65,7 +65,11 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { DumbbellLoading } from '@/components/ui/dumbbell-loading';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -89,7 +93,12 @@ interface TeamSubmission {
   steps: number | null;
   holes: number | null;
   rr_value: number | null;
-  status: 'pending' | 'approved' | 'rejected' | 'rejected_resubmit' | 'rejected_permanent';
+  status:
+    | 'pending'
+    | 'approved'
+    | 'rejected'
+    | 'rejected_resubmit'
+    | 'rejected_permanent';
   proof_url: string | null;
   notes: string | null;
   created_date: string;
@@ -158,7 +167,12 @@ function StatsCards({ stats }: { stats: SubmissionStats }) {
           key={card.label}
           className="flex items-center gap-3 p-4 rounded-lg border bg-card"
         >
-          <div className={cn('flex size-10 items-center justify-center rounded-lg', card.color)}>
+          <div
+            className={cn(
+              'flex size-10 items-center justify-center rounded-lg',
+              card.color,
+            )}
+          >
             <card.icon className="size-5" />
           </div>
           <div>
@@ -180,12 +194,14 @@ function StatusBadge({ status }: { status: TeamSubmission['status'] }) {
     pending: {
       label: 'Pending',
       icon: Clock3,
-      className: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+      className:
+        'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
     },
     approved: {
       label: 'Approved',
       icon: CheckCircle2,
-      className: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+      className:
+        'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
     },
     rejected: {
       label: 'Rejected',
@@ -195,7 +211,8 @@ function StatusBadge({ status }: { status: TeamSubmission['status'] }) {
     rejected_resubmit: {
       label: 'Rejected (Retry)',
       icon: RefreshCw,
-      className: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
+      className:
+        'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
     },
     rejected_permanent: {
       label: 'Rejected (Final)',
@@ -228,7 +245,7 @@ export default function TeamSubmissionsPage({
   const rrFormula = (activeLeague as any)?.rr_config?.formula || 'standard';
   const showRR = rrFormula === 'standard';
   const pointsUnit = showRR ? 'RR' : 'pts';
-  const { isCaptain } = useRole();
+  const { isCaptain, isViceCaptain } = useRole();
   const { data: session } = useSession();
   const currentUserId = (session?.user as any)?.id as string | undefined;
 
@@ -242,9 +259,13 @@ export default function TeamSubmissionsPage({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [validatingId, setValidatingId] = useState<string | null>(null);
-  const [tableAwardedPoints, setTableAwardedPoints] = useState<Record<string, number | ''>>({});
+  const [tableAwardedPoints, setTableAwardedPoints] = useState<
+    Record<string, number | ''>
+  >({});
 
-  const [sorting, setSorting] = useState<SortingState>([{ id: 'date', desc: true }]);
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: 'date', desc: true },
+  ]);
   const [globalFilter, setGlobalFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<Date | undefined>(undefined);
@@ -253,7 +274,8 @@ export default function TeamSubmissionsPage({
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
 
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
-  const [selectedSubmission, setSelectedSubmission] = useState<TeamSubmission | null>(null);
+  const [selectedSubmission, setSelectedSubmission] =
+    useState<TeamSubmission | null>(null);
 
   // Fetch submissions
   const fetchSubmissions = async () => {
@@ -261,7 +283,9 @@ export default function TeamSubmissionsPage({
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/leagues/${leagueId}/my-team/submissions`);
+      const response = await fetch(
+        `/api/leagues/${leagueId}/my-team/submissions`,
+      );
       const result = await response.json();
 
       if (!response.ok) {
@@ -274,7 +298,9 @@ export default function TeamSubmissionsPage({
       }
     } catch (err) {
       console.error('Error fetching team submissions:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load submissions');
+      setError(
+        err instanceof Error ? err.message : 'Failed to load submissions',
+      );
     } finally {
       setIsLoading(false);
     }
@@ -288,7 +314,7 @@ export default function TeamSubmissionsPage({
   const handleValidate = async (
     submissionId: string,
     newStatus: 'approved' | 'rejected_resubmit',
-    awardedPoints?: number | null
+    awardedPoints?: number | null,
   ) => {
     try {
       setValidatingId(submissionId);
@@ -296,11 +322,14 @@ export default function TeamSubmissionsPage({
       const body: any = { status: newStatus };
       if (awardedPoints !== undefined) body.awardedPoints = awardedPoints;
 
-      const response = await fetch(`/api/submissions/${submissionId}/validate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
+      const response = await fetch(
+        `/api/submissions/${submissionId}/validate`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        },
+      );
 
       const result = await response.json();
 
@@ -308,16 +337,23 @@ export default function TeamSubmissionsPage({
         throw new Error(result.error || 'Failed to validate submission');
       }
 
-      toast.success(newStatus === 'approved' ? 'Submission Approved' : 'Submission Rejected');
+      toast.success(
+        newStatus === 'approved'
+          ? 'Submission Approved'
+          : 'Submission Rejected',
+      );
 
       // Update local state
       setSubmissions((prev) =>
-        prev.map((s) => (s.id === submissionId ? { ...s, status: newStatus } : s))
+        prev.map((s) =>
+          s.id === submissionId ? { ...s, status: newStatus } : s,
+        ),
       );
       setStats((prev) => ({
         ...prev,
         pending: prev.pending - 1,
-        [newStatus === 'rejected_resubmit' ? 'rejected' : newStatus]: prev[newStatus === 'rejected_resubmit' ? 'rejected' : newStatus] + 1,
+        [newStatus === 'rejected_resubmit' ? 'rejected' : newStatus]:
+          prev[newStatus === 'rejected_resubmit' ? 'rejected' : newStatus] + 1,
       }));
     } catch (err) {
       console.error('Error validating submission:', err);
@@ -380,7 +416,9 @@ export default function TeamSubmissionsPage({
       accessorKey: 'date',
       header: 'Date',
       cell: ({ row }) => {
-        const isTrial = activeLeague?.start_date && row.original.date < activeLeague.start_date;
+        const isTrial =
+          activeLeague?.start_date &&
+          row.original.date < activeLeague.start_date;
         return (
           <div className="flex flex-col">
             <span className="text-sm">
@@ -400,7 +438,8 @@ export default function TeamSubmissionsPage({
       header: 'Type',
       cell: ({ row }) => {
         const isWorkout = row.original.type === 'workout';
-        const isExemption = row.original.type === 'rest' &&
+        const isExemption =
+          row.original.type === 'rest' &&
           row.original.notes?.includes('[EXEMPTION_REQUEST]');
         return (
           <div className="flex items-center gap-2">
@@ -426,9 +465,15 @@ export default function TeamSubmissionsPage({
       accessorKey: 'rr_value',
       header: 'Points',
       cell: ({ row }) => {
-        const value = (row.original as any).effective_points ?? row.original.rr_value;
-        if (value === null) return <span className="text-muted-foreground">-</span>;
-        return <span className="font-semibold text-primary">{value} {pointsUnit}</span>;
+        const value =
+          (row.original as any).effective_points ?? row.original.rr_value;
+        if (value === null)
+          return <span className="text-muted-foreground">-</span>;
+        return (
+          <span className="font-semibold text-primary">
+            {value} {pointsUnit}
+          </span>
+        );
       },
     },
     {
@@ -436,25 +481,40 @@ export default function TeamSubmissionsPage({
       header: 'Status',
       cell: ({ row }) => {
         const role = row.original.graded_by_role;
-        const showGradedBy = row.original.status !== 'pending' && (role === 'host' || role === 'governor' || role === 'captain');
-        const roleLabel = role ? role.charAt(0).toUpperCase() + role.slice(1) : '';
-        const isOwnSubmission = !!currentUserId && row.original.member.user_id === currentUserId;
+        const showGradedBy =
+          row.original.status !== 'pending' &&
+          (role === 'host' ||
+            role === 'governor' ||
+            role === 'captain' ||
+            role === 'vice_captain');
+        const roleLabel = role
+          ? role.charAt(0).toUpperCase() + role.slice(1)
+          : '';
+        const isOwnSubmission =
+          !!currentUserId && row.original.member.user_id === currentUserId;
         return (
           <div className="flex flex-col gap-0.5">
             <div className="flex items-center gap-1.5 flex-wrap">
               <StatusBadge status={row.original.status} />
-              {(Boolean(row.original.reupload_of)) && (
-                <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800">
+              {Boolean(row.original.reupload_of) && (
+                <Badge
+                  variant="outline"
+                  className="text-xs bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800"
+                >
                   <RefreshCw className="size-2.5 mr-1" />
                   Re-submitted
                 </Badge>
               )}
             </div>
             {showGradedBy ? (
-              <span className="text-xs text-muted-foreground">Graded by {roleLabel}</span>
+              <span className="text-xs text-muted-foreground">
+                Graded by {roleLabel}
+              </span>
             ) : null}
             {isOwnSubmission ? (
-              <span className="text-xs text-muted-foreground">Your submission</span>
+              <span className="text-xs text-muted-foreground">
+                Your submission
+              </span>
             ) : null}
           </div>
         );
@@ -465,7 +525,8 @@ export default function TeamSubmissionsPage({
       cell: ({ row }) => {
         const isPending = row.original.status === 'pending';
         const isValidating = validatingId === row.original.id;
-        const isOwnSubmission = !!currentUserId && row.original.member.user_id === currentUserId;
+        const isOwnSubmission =
+          !!currentUserId && row.original.member.user_id === currentUserId;
 
         return (
           <div className="flex items-center gap-1">
@@ -487,14 +548,28 @@ export default function TeamSubmissionsPage({
                   min={0}
                   placeholder="Pts"
                   value={tableAwardedPoints[row.original.id] ?? ''}
-                  onChange={(e) => setTableAwardedPoints((p) => ({ ...p, [row.original.id]: e.target.value === '' ? '' : Number(e.target.value) }))}
+                  onChange={(e) =>
+                    setTableAwardedPoints((p) => ({
+                      ...p,
+                      [row.original.id]:
+                        e.target.value === '' ? '' : Number(e.target.value),
+                    }))
+                  }
                   className="w-20"
                 />
                 <Button
                   variant="ghost"
                   size="icon"
                   className="size-8 text-green-600 hover:text-green-700 hover:bg-green-50"
-                  onClick={() => handleValidate(row.original.id, 'approved', tableAwardedPoints[row.original.id] === '' ? undefined : (tableAwardedPoints[row.original.id] as number))}
+                  onClick={() =>
+                    handleValidate(
+                      row.original.id,
+                      'approved',
+                      tableAwardedPoints[row.original.id] === ''
+                        ? undefined
+                        : (tableAwardedPoints[row.original.id] as number),
+                    )
+                  }
                   disabled={isValidating}
                 >
                   {isValidating ? (
@@ -507,7 +582,9 @@ export default function TeamSubmissionsPage({
                   variant="ghost"
                   size="icon"
                   className="size-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-                  onClick={() => handleValidate(row.original.id, 'rejected_resubmit')}
+                  onClick={() =>
+                    handleValidate(row.original.id, 'rejected_resubmit')
+                  }
                   disabled={isValidating}
                 >
                   <X className="size-4" />
@@ -535,7 +612,7 @@ export default function TeamSubmissionsPage({
   });
 
   // Access check
-  if (!isCaptain) {
+  if (!isCaptain && !isViceCaptain) {
     return (
       <div className="@container/main flex flex-1 flex-col gap-4 lg:gap-6">
         <div className="px-4 lg:px-6">
@@ -564,7 +641,9 @@ export default function TeamSubmissionsPage({
             <ClipboardCheck className="size-7 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Team Submissions</h1>
+            <h1 className="text-2xl font-bold tracking-tight">
+              Team Submissions
+            </h1>
             <p className="text-muted-foreground">
               Validate submissions from your team members
             </p>
@@ -638,12 +717,16 @@ export default function TeamSubmissionsPage({
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-full sm:w-[200px] justify-start text-left font-normal flex-1",
-                      !dateFilter && "text-muted-foreground"
+                      'w-full sm:w-[200px] justify-start text-left font-normal flex-1',
+                      !dateFilter && 'text-muted-foreground',
                     )}
                   >
                     <CalendarIcon className="mr-2 size-4" />
-                    {dateFilter ? format(dateFilter, "PPP") : <span>Pick a date</span>}
+                    {dateFilter ? (
+                      format(dateFilter, 'PPP')
+                    ) : (
+                      <span>Pick a date</span>
+                    )}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -696,7 +779,10 @@ export default function TeamSubmissionsPage({
                     <TableHead key={header.id}>
                       {header.isPlaceholder
                         ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
                     </TableHead>
                   ))}
                 </TableRow>
@@ -708,7 +794,10 @@ export default function TeamSubmissionsPage({
                   <TableRow key={row.id}>
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
+                        )}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -743,10 +832,14 @@ export default function TeamSubmissionsPage({
               const submission = row.original;
               const isPending = submission.status === 'pending';
               const isValidating = validatingId === submission.id;
-              const isOwnSubmission = !!currentUserId && submission.member.user_id === currentUserId;
+              const isOwnSubmission =
+                !!currentUserId && submission.member.user_id === currentUserId;
 
               return (
-                <div key={submission.id} className="rounded-lg border bg-card p-3 shadow-sm flex flex-col gap-2">
+                <div
+                  key={submission.id}
+                  className="rounded-lg border bg-card p-3 shadow-sm flex flex-col gap-2"
+                >
                   {/* Top Row: Identity + Date + Points */}
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
@@ -755,13 +848,27 @@ export default function TeamSubmissionsPage({
                         size={32}
                       />
                       <div className="min-w-0">
-                        <p className="font-semibold text-sm leading-none truncate">{submission.member.username}</p>
-                        {isOwnSubmission && <span className="text-[10px] text-muted-foreground bg-secondary px-1 py-0 rounded-sm inline-block mt-0.5">You</span>}
+                        <p className="font-semibold text-sm leading-none truncate">
+                          {submission.member.username}
+                        </p>
+                        {isOwnSubmission && (
+                          <span className="text-[10px] text-muted-foreground bg-secondary px-1 py-0 rounded-sm inline-block mt-0.5">
+                            You
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="text-right shrink-0 ml-2">
-                      <div className="text-sm font-bold text-primary">{(submission as any).effective_points != null ? `${(submission as any).effective_points} ${pointsUnit}` : (submission.rr_value !== null ? `${submission.rr_value.toFixed(1)} ${pointsUnit}` : '-')}</div>
-                      <div className="text-[10px] text-muted-foreground">{format(parseISO(submission.date), 'MMM d')}</div>
+                      <div className="text-sm font-bold text-primary">
+                        {(submission as any).effective_points != null
+                          ? `${(submission as any).effective_points} ${pointsUnit}`
+                          : submission.rr_value !== null
+                            ? `${submission.rr_value.toFixed(1)} ${pointsUnit}`
+                            : '-'}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">
+                        {format(parseISO(submission.date), 'MMM d')}
+                      </div>
                     </div>
                   </div>
 
@@ -770,7 +877,8 @@ export default function TeamSubmissionsPage({
                     <div className="flex items-center gap-1.5 text-muted-foreground">
                       {submission.type === 'workout' ? (
                         <Dumbbell className="size-3.5" />
-                      ) : submission.type === 'rest' && submission.notes?.includes('[EXEMPTION_REQUEST]') ? (
+                      ) : submission.type === 'rest' &&
+                        submission.notes?.includes('[EXEMPTION_REQUEST]') ? (
                         <ShieldAlert className="size-3.5 text-amber-500" />
                       ) : (
                         <Moon className="size-3.5" />
@@ -794,7 +902,10 @@ export default function TeamSubmissionsPage({
                       variant="outline"
                       size="sm"
                       className="flex-1 h-8 text-xs bg-background"
-                      onClick={() => { setSelectedSubmission(submission); setDetailDialogOpen(true); }}
+                      onClick={() => {
+                        setSelectedSubmission(submission);
+                        setDetailDialogOpen(true);
+                      }}
                     >
                       <Eye className="size-3.5 mr-1.5" /> View
                     </Button>
@@ -803,13 +914,17 @@ export default function TeamSubmissionsPage({
                       variant="default"
                       size="sm"
                       className={cn(
-                        "h-8 text-xs px-3",
+                        'h-8 text-xs px-3',
                         submission.status === 'approved'
                           ? 'bg-gray-300 text-gray-600 hover:bg-gray-300 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400'
-                          : 'bg-green-600 hover:bg-green-700 text-white'
+                          : 'bg-green-600 hover:bg-green-700 text-white',
                       )}
-                      onClick={() => handleValidate(submission.id, 'approved', undefined)}
-                      disabled={isValidating || submission.status === 'approved'}
+                      onClick={() =>
+                        handleValidate(submission.id, 'approved', undefined)
+                      }
+                      disabled={
+                        isValidating || submission.status === 'approved'
+                      }
                     >
                       <Check className="size-3.5" />
                     </Button>
@@ -818,7 +933,9 @@ export default function TeamSubmissionsPage({
                         variant="destructive"
                         size="sm"
                         className="h-8 text-xs px-3 bg-red-600 hover:bg-red-700 text-white"
-                        onClick={() => handleValidate(submission.id, 'rejected_resubmit')}
+                        onClick={() =>
+                          handleValidate(submission.id, 'rejected_resubmit')
+                        }
                         disabled={isValidating}
                       >
                         <X className="size-3.5" />
@@ -840,8 +957,16 @@ export default function TeamSubmissionsPage({
           onOpenChange={setDetailDialogOpen}
           submission={selectedSubmission as any}
           canOverride={false} // Captains cannot override, so actions hidden in dialog? Wait, typically captains validate via table. If dialog has actions, enable them.
-          onApprove={isCaptain ? (id) => handleValidate(id, 'approved', undefined) : undefined}
-          onReject={isCaptain ? (id) => handleValidate(id, 'rejected_resubmit') : undefined}
+          onApprove={
+            isCaptain || isViceCaptain
+              ? (id) => handleValidate(id, 'approved', undefined)
+              : undefined
+          }
+          onReject={
+            isCaptain || isViceCaptain
+              ? (id) => handleValidate(id, 'rejected_resubmit')
+              : undefined
+          }
           isValidating={!!validatingId}
         />
       </div>

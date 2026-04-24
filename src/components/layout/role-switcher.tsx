@@ -70,7 +70,6 @@ export function RoleSwitcher() {
                 Switch Role
               </div>
               {availableRoles.map((role) => {
-
                 const Icon = roleIcons[role];
                 const isActive = role === activeRole;
 
@@ -82,25 +81,34 @@ export function RoleSwitcher() {
                       setIsOpen(false);
                       if (activeLeague?.league_id) {
                         if (role === 'host') {
-                          router.push(`/leagues/${activeLeague.league_id}/settings`);
+                          router.push(
+                            `/leagues/${activeLeague.league_id}/settings`,
+                          );
                         } else if (role === 'governor') {
-                          router.push(`/leagues/${activeLeague.league_id}/submissions`);
-                        } else if (role === 'player' || role === 'captain') {
+                          router.push(
+                            `/leagues/${activeLeague.league_id}/submissions`,
+                          );
+                        } else if (
+                          role === 'player' ||
+                          role === 'captain' ||
+                          role === 'vice_captain'
+                        ) {
                           router.push(`/leagues/${activeLeague.league_id}`);
                         }
                       }
                     }}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors ${isActive
-                      ? 'bg-primary text-white'
-                      : 'hover:bg-gray-100'
-                      }`}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors ${
+                      isActive ? 'bg-primary text-white' : 'hover:bg-gray-100'
+                    }`}
                   >
                     <Icon className="w-4 h-4" />
                     <div className="text-left flex-1">
                       <div className="text-sm font-medium">
                         {getRoleDisplayName(role)}
                       </div>
-                      <div className={`text-xs ${isActive ? 'text-white/80' : 'text-gray-500'}`}>
+                      <div
+                        className={`text-xs ${isActive ? 'text-white/80' : 'text-gray-500'}`}
+                      >
                         {getRoleDescription(role).split(' - ')[1]}
                       </div>
                     </div>

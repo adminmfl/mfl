@@ -59,6 +59,8 @@ const updateLeagueSchema = z
     rr_config: rrConfigSchema,
     branding: brandingSchema,
     league_mode: z.enum(['standard', 'challenges_only']).optional(),
+    player_team_workout_visibility: z.boolean().optional(),
+    player_league_workout_visibility: z.boolean().optional(),
   })
   .transform((input) => {
     const {
