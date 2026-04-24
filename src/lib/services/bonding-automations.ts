@@ -558,5 +558,5 @@ export async function sendFirstDayMotivation(leagueId: string): Promise<void> {
         console.error('[Bonding] Error sending first day motivation:', error);
     }
 }
- 
- 
+
+

@@ -295,7 +295,7 @@ export async function calculateLeaderboard(leagueId: string, options: Leaderboar
   Array.from(uniqueEntriesMap.values()).forEach((entry) => {
     const teamId = memberToUser.get(entry.league_member_id)?.team_id;
     const teamStat = teamStats.get(teamId);
-    if (!teamStat || (league.status !== 'completed' && pendingWindowDates.includes(entry.date))) return;
+    if (!teamStat) return;
     teamStat.submission_count++;
     teamStat.points += getEntryPoints(entry);
     if (entry.rr_value > 0) { teamStat.total_rr += entry.rr_value; teamStat.rr_count++; }
