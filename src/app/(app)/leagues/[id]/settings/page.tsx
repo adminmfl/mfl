@@ -132,6 +132,8 @@ export default function LeagueSettingsPage({
     branding_tagline: '',
     branding_primary_color: '',
     branding_powered_by: true,
+    player_team_workout_visibility: false,
+    player_league_workout_visibility: false,
   });
 
   const canEditStructure = formData.status === 'draft';
@@ -245,6 +247,10 @@ export default function LeagueSettingsPage({
           branding_tagline: brand.tagline || '',
           branding_primary_color: brand.primary_color || '',
           branding_powered_by: brand.powered_by_visible !== false,
+          player_team_workout_visibility:
+            !!league.player_team_workout_visibility,
+          player_league_workout_visibility:
+            !!league.player_league_workout_visibility,
         });
         setLogoUrl(league.logo_url || null);
       } catch (err) {
@@ -322,6 +328,9 @@ export default function LeagueSettingsPage({
         max_team_capacity: Number(formData.max_team_capacity),
         rr_config: { formula: formData.rr_formula },
         league_mode: formData.league_mode,
+        player_team_workout_visibility: formData.player_team_workout_visibility,
+        player_league_workout_visibility:
+          formData.player_league_workout_visibility,
         branding:
           formData.branding_display_name ||
           formData.branding_tagline ||
@@ -374,6 +383,10 @@ export default function LeagueSettingsPage({
           end_date: league.end_date,
           status: league.status,
           league_mode: league.league_mode || prev.league_mode,
+          player_team_workout_visibility:
+            !!league.player_team_workout_visibility,
+          player_league_workout_visibility:
+            !!league.player_league_workout_visibility,
         }));
       }
 
@@ -855,6 +868,44 @@ export default function LeagueSettingsPage({
                     </SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Player Workout Visibility */}
+              <div className="flex items-center justify-between gap-3 py-5">
+                <div className="flex-1 min-w-0 space-y-1">
+                  <Label>Team Workout Visibility</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Players can view their teammates&apos; last 5 approved
+                    workouts
+                  </p>
+                </div>
+                <Switch
+                  checked={formData.player_team_workout_visibility}
+                  onCheckedChange={(v) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      player_team_workout_visibility: v,
+                    }))
+                  }
+                />
+              </div>
+              <div className="flex items-center justify-between gap-3 py-5">
+                <div className="flex-1 min-w-0 space-y-1">
+                  <Label>Cross-Team Workout Visibility</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Players can search and view other teams&apos; member
+                    workouts
+                  </p>
+                </div>
+                <Switch
+                  checked={formData.player_league_workout_visibility}
+                  onCheckedChange={(v) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      player_league_workout_visibility: v,
+                    }))
+                  }
+                />
               </div>
 
               {/* White-Label Branding */}

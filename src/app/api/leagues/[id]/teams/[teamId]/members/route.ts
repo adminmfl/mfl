@@ -14,10 +14,16 @@ import {
 import { getLeagueById } from '@/lib/services/leagues';
 import { userHasAnyRole } from '@/lib/services/roles';
 import { getSupabaseServiceRole } from '@/lib/supabase/client';
-import { sendWelcomeMessage, sendTeamAnnouncement } from '@/lib/services/bonding-automations';
+import {
+  sendWelcomeMessage,
+  sendTeamAnnouncement,
+} from '@/lib/services/bonding-automations';
 
 // Helper to check if user is league member
-async function isLeagueMember(userId: string, leagueId: string): Promise<boolean> {
+async function isLeagueMember(
+  userId: string,
+  leagueId: string,
+): Promise<boolean> {
   const supabase = getSupabaseServiceRole();
   const { data } = await supabase
     .from('leaguemembers')
@@ -38,7 +44,7 @@ const removeMemberSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string; teamId: string }> }
+  { params }: { params: Promise<{ id: string; teamId: string }> },
 ) {
   try {
     const { id: leagueId, teamId } = await params;
@@ -58,13 +64,13 @@ export async function GET(
         'captain',
         'player',
       ]),
-      getTeamMembers(teamId, leagueId)
+      getTeamMembers(teamId, leagueId),
     ]);
 
     if (!isMember && !hasRole) {
       return NextResponse.json(
         { error: 'You are not a member of this league' },
-        { status: 403 }
+        { status: 403 },
       );
     }
     console.log('[Team Members API] Fetched members:', members);
@@ -77,14 +83,14 @@ export async function GET(
     console.error('Error fetching team members:', error);
     return NextResponse.json(
       { error: 'Failed to fetch team members' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string; teamId: string }> }
+  { params }: { params: Promise<{ id: string; teamId: string }> },
 ) {
   try {
     const { id: leagueId, teamId } = await params;
@@ -105,9 +111,12 @@ export async function POST(
 
     // Captains can only add members to their own team
     if (!canAssign) {
-      const isCaptain = await userHasAnyRole(userId, leagueId, ['captain']);
-      if (isCaptain) {
-        // Verify the captain is on this specific team
+      const isCaptainLevel = await userHasAnyRole(userId, leagueId, [
+        'captain',
+        'vice_captain',
+      ]);
+      if (isCaptainLevel) {
+        // Verify the captain/VC is on this specific team
         const supabaseCheck = getSupabaseServiceRole();
         const { data: captainMembership } = await supabaseCheck
           .from('leaguemembers')
@@ -124,8 +133,11 @@ export async function POST(
 
     if (!canAssign) {
       return NextResponse.json(
-        { error: 'Only host, governor, or the team captain can assign members to this team' },
-        { status: 403 }
+        {
+          error:
+            'Only host, governor, or the team captain can assign members to this team',
+        },
+        { status: 403 },
       );
     }
 
@@ -136,12 +148,14 @@ export async function POST(
     }
 
     // Get current team size - use a reasonable per-team limit (league_capacity / num_teams or 5)
-    const perTeamCapacity = Math.ceil((league.league_capacity || 20) / (league.num_teams || 4));
+    const perTeamCapacity = Math.ceil(
+      (league.league_capacity || 20) / (league.num_teams || 4),
+    );
     const currentMembers = await getTeamMembers(teamId, leagueId);
     if (currentMembers.length >= perTeamCapacity) {
       return NextResponse.json(
         { error: `Team is full. Maximum ${perTeamCapacity} members allowed.` },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -160,37 +174,39 @@ export async function POST(
     if (!member) {
       return NextResponse.json(
         { error: 'Member not found in this league' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     if (member.team_id) {
       return NextResponse.json(
         { error: 'Member is already assigned to a team' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const success = await assignMemberToTeam(
       validated.league_member_id,
       teamId,
-      userId
+      userId,
     );
 
     if (!success) {
       return NextResponse.json(
         { error: 'Failed to assign member to team' },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
     // Get the newly added member's details for bonding messages
     const { data: newMember } = await supabase
       .from('leaguemembers')
-      .select(`
+      .select(
+        `
         user_id,
         users!leaguemembers_user_id_fkey(username)
-      `)
+      `,
+      )
       .eq('league_member_id', validated.league_member_id)
       .single();
 
@@ -200,8 +216,8 @@ export async function POST(
       // Send automated bonding messages (don't block response on these)
       Promise.all([
         sendWelcomeMessage(leagueId, teamId, newMember.user_id, memberName),
-        sendTeamAnnouncement(leagueId, teamId, memberName)
-      ]).catch(error => {
+        sendTeamAnnouncement(leagueId, teamId, memberName),
+      ]).catch((error) => {
         console.error('[Bonding] Error sending automated messages:', error);
       });
     }
@@ -215,19 +231,19 @@ export async function POST(
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Validation failed', details: error.errors },
-        { status: 400 }
+        { status: 400 },
       );
     }
     return NextResponse.json(
       { error: 'Failed to assign member to team' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string; teamId: string }> }
+  { params }: { params: Promise<{ id: string; teamId: string }> },
 ) {
   try {
     const { id: leagueId, teamId } = await params;
@@ -252,14 +268,14 @@ export async function DELETE(
     if (!targetMember) {
       return NextResponse.json(
         { error: 'Member not found in this league' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     if (targetMember.team_id !== teamId) {
       return NextResponse.json(
         { error: 'Member is not assigned to this team' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -271,8 +287,11 @@ export async function DELETE(
     let canRemove = isHostOrGovernor;
 
     if (!canRemove) {
-      const isCaptain = await userHasAnyRole(userId, leagueId, ['captain']);
-      if (isCaptain) {
+      const isCaptainLevel = await userHasAnyRole(userId, leagueId, [
+        'captain',
+        'vice_captain',
+      ]);
+      if (isCaptainLevel) {
         const { data: captainMembership } = await supabase
           .from('leaguemembers')
           .select('team_id')
@@ -288,20 +307,23 @@ export async function DELETE(
 
     if (!canRemove) {
       return NextResponse.json(
-        { error: 'Only host, governor, or the team captain can remove members from this team' },
-        { status: 403 }
+        {
+          error:
+            'Only host, governor, or the team captain can remove members from this team',
+        },
+        { status: 403 },
       );
     }
 
     const removalResult = await removeMemberFromTeam(
       validated.league_member_id,
-      userId
+      userId,
     );
 
     if (!removalResult.success) {
       return NextResponse.json(
         { error: removalResult.error || 'Failed to remove member from team' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -315,12 +337,12 @@ export async function DELETE(
       const validationMessage = error.errors[0]?.message || 'Validation failed';
       return NextResponse.json(
         { error: validationMessage, details: error.errors },
-        { status: 400 }
+        { status: 400 },
       );
     }
     return NextResponse.json(
       { error: 'Failed to remove member from team' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

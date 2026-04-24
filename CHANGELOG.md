@@ -28,12 +28,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - First day of league motivational message to all teams (automated via cron)
   - Messages are configurable per league (host can enable/disable via bonding_automations_enabled)
 - Add suspicious-proof strike tracking system with warning UI and 3-strike logic (#157)
+- **Player profile pictures with gradient fallback (#162)**
+  - Two-level profile picture system: Standard MFL pic + League Custom pic overrides
+  - League Custom pic per-league override (removable, reverts to Standard MFL pic)
+  - Gradient circle with initials as fallback when no picture uploaded
+  - Multiple display sizes: 32px (chat), 64px (team roster), 80px (awards), 200px (profile)
+  - Captain crown badge overlay for team captains
+  - Auto-crop to circle with compression on upload (JPG/PNG support)
+  - Player-controlled uploads (Host/Admin cannot upload on behalf)
+  - Storage in Supabase profile-pictures bucket with organized folder structure
 
 ### Changed
 
 - Client feedback: filter dropdown, instant messaging UX, left-aligned dropdowns, mobile nav, league info title, and tour flow improvements
 - AI Coach v2.5: inline intelligence replaces standalone AI components
 - Disable submission actions and enforce read-only mode for ended leagues (#150)
+- Improve Lighthouse mobile performance with server component migration and dynamic imports on leaderboard page (#129)
 
 ### Fixed
 

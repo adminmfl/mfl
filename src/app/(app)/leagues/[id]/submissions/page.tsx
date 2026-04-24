@@ -81,6 +81,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { DumbbellLoading } from '@/components/ui/dumbbell-loading';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { ProfilePicture } from '@/components/ui/profile-picture';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import {
@@ -505,8 +506,7 @@ export default function AllSubmissionsPage({
         else if (oldStatus === 'approved') newStats.approved--;
         else if (isOldRejected) newStats.rejected--;
 
-        if (newStatus === 'pending') newStats.pending++;
-        else if (newStatus === 'approved') newStats.approved++;
+        if (newStatus === 'approved') newStats.approved++;
         else if (isNewRejected) newStats.rejected++;
 
         return newStats;
@@ -997,9 +997,10 @@ export default function AllSubmissionsPage({
                 <div key={submission.id} className="rounded-lg border bg-card p-3 shadow-sm flex flex-col gap-2">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
-                      <Avatar className="size-8">
-                        <AvatarFallback className="text-[10px]">{submission.member.username.slice(0, 2).toUpperCase()}</AvatarFallback>
-                      </Avatar>
+                      <ProfilePicture
+                        username={submission.member.username}
+                        size={32}
+                      />
                       <div className="min-w-0">
                         <p className="font-semibold text-sm leading-none truncate">{submission.member.username}</p>
                         <p className="text-xs text-muted-foreground">{submission.member.team_name || 'Unassigned'}</p>
