@@ -34,7 +34,14 @@ interface Challenge {
   name: string;
   challenge_type: 'individual' | 'team' | 'sub_team';
   total_points: number;
-  status?: 'draft' | 'scheduled' | 'active' | 'submission_closed' | 'published' | 'closed' | string;
+  status?:
+    | 'draft'
+    | 'scheduled'
+    | 'active'
+    | 'submission_closed'
+    | 'published'
+    | 'closed'
+    | string;
   start_date?: string | null;
   end_date?: string | null;
 }
@@ -89,14 +96,20 @@ function RankBadge({ rank }: { rank: number }) {
 // Main Component
 // ============================================================================
 
-export function ChallengeSpecificLeaderboard({ leagueId, renderViewSwitcher }: ChallengeSpecificLeaderboardProps) {
+export function ChallengeSpecificLeaderboard({
+  leagueId,
+  renderViewSwitcher,
+}: ChallengeSpecificLeaderboardProps) {
   const [challenges, setChallenges] = React.useState<Challenge[]>([]);
-  const [selectedChallengeId, setSelectedChallengeId] = React.useState<string>('');
+  const [selectedChallengeId, setSelectedChallengeId] =
+    React.useState<string>('');
   const [scores, setScores] = React.useState<ChallengeScore[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  const selectedChallenge = challenges.find((c) => c.id === selectedChallengeId);
+  const selectedChallenge = challenges.find(
+    (c) => c.id === selectedChallengeId,
+  );
 
   // Fetch challenges (from leagueschallenges + any special-challenge-only entries)
   React.useEffect(() => {
@@ -105,7 +118,7 @@ export function ChallengeSpecificLeaderboard({ leagueId, renderViewSwitcher }: C
         // Fetch standard challenges and special challenges in parallel
         const [res, scRes] = await Promise.all([
           fetch(`/api/leagues/${leagueId}/challenges`),
-          fetch(`/api/leagues/${leagueId}/special-challenge-scores`)
+          fetch(`/api/leagues/${leagueId}/special-challenge-scores`),
         ]);
 
         const json = await res.json();
@@ -113,7 +126,11 @@ export function ChallengeSpecificLeaderboard({ leagueId, renderViewSwitcher }: C
         if (json.success && json.data?.active) {
           // Filter to show challenges that are at least active
           const fromLeague = (json.data.active as Challenge[]).filter(
-            (c) => c.status === 'active' || c.status === 'submission_closed' || c.status === 'published' || c.status === 'closed'
+            (c) =>
+              c.status === 'active' ||
+              c.status === 'submission_closed' ||
+              c.status === 'published' ||
+              c.status === 'closed',
           );
           visible.push(...fromLeague);
         }
@@ -122,8 +139,12 @@ export function ChallengeSpecificLeaderboard({ leagueId, renderViewSwitcher }: C
         if (scRes.ok) {
           const scJson = await scRes.json();
           if (scJson.success && scJson.data) {
-            const existingIds = new Set(visible.map((c) => (c as any).template_id || ''));
-            (scJson.data as Array<{ challenge_id: string; name: string }>).forEach((sc) => {
+            const existingIds = new Set(
+              visible.map((c) => (c as any).template_id || ''),
+            );
+            (
+              scJson.data as Array<{ challenge_id: string; name: string }>
+            ).forEach((sc) => {
               if (!existingIds.has(sc.challenge_id)) {
                 visible.push({
                   id: `sc_${sc.challenge_id}`,
@@ -157,7 +178,7 @@ export function ChallengeSpecificLeaderboard({ leagueId, renderViewSwitcher }: C
     };
 
     const sortByRecent = (a: Challenge, b: Challenge) =>
-      (toTime(b.end_date || b.start_date) - toTime(a.end_date || a.start_date));
+      toTime(b.end_date || b.start_date) - toTime(a.end_date || a.start_date);
 
     const defaultChallenge = [...challenges].sort(sortByRecent)[0];
     if (defaultChallenge?.id) {
@@ -230,7 +251,10 @@ export function ChallengeSpecificLeaderboard({ leagueId, renderViewSwitcher }: C
       </div>
 
       <div className="space-y-4">
-        <Select value={selectedChallengeId} onValueChange={setSelectedChallengeId}>
+        <Select
+          value={selectedChallengeId}
+          onValueChange={setSelectedChallengeId}
+        >
           <SelectTrigger>
             <SelectValue placeholder="Select challenge..." />
           </SelectTrigger>
@@ -268,9 +292,7 @@ export function ChallengeSpecificLeaderboard({ leagueId, renderViewSwitcher }: C
         )}
 
         {selectedChallengeId && error && (
-          <div className="text-center py-12 text-destructive">
-            {error}
-          </div>
+          <div className="text-center py-12 text-destructive">{error}</div>
         )}
 
         {selectedChallengeId && !loading && !error && scores.length === 0 && (

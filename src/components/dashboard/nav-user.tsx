@@ -1,19 +1,9 @@
-"use client";
+'use client';
 
-import { signOut } from "next-auth/react";
-import {
-  CreditCard,
-  LogOut,
-  Bell,
-  User,
-  MoreVertical,
-} from "lucide-react";
+import { signOut } from 'next-auth/react';
+import { CreditCard, LogOut, Bell, User, MoreVertical } from 'lucide-react';
 
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,13 +12,13 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu';
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/ui/sidebar";
+} from '@/components/ui/sidebar';
 
 // ============================================================================
 // Types
@@ -52,9 +42,9 @@ interface NavUserProps {
  */
 function getInitials(name: string): string {
   return name
-    .split(" ")
+    .split(' ')
     .map((part) => part[0])
-    .join("")
+    .join('')
     .toUpperCase()
     .slice(0, 2);
 }
@@ -79,13 +69,18 @@ export function NavUser({ user }: NavUserProps) {
     // Clear all client-side caches to prevent data leaking across sessions
     try {
       localStorage.removeItem('activeLeagueId');
+      localStorage.removeItem('mfl_last_league_id');
       // Clear all role_* keys
-      Object.keys(localStorage).filter(k => k.startsWith('role_')).forEach(k => localStorage.removeItem(k));
+      Object.keys(localStorage)
+        .filter((k) => k.startsWith('role_'))
+        .forEach((k) => localStorage.removeItem(k));
       // Clear service worker page cache
       const cacheKeys = await caches.keys();
-      await Promise.all(cacheKeys.map(k => caches.delete(k)));
-    } catch { /* ignore */ }
-    signOut({ callbackUrl: "/" });
+      await Promise.all(cacheKeys.map((k) => caches.delete(k)));
+    } catch {
+      /* ignore */
+    }
+    signOut({ callbackUrl: '/' });
   };
 
   return (
@@ -114,7 +109,7 @@ export function NavUser({ user }: NavUserProps) {
           </DropdownMenuTrigger>
           <DropdownMenuContent
             className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-            side={isMobile ? "bottom" : "right"}
+            side={isMobile ? 'bottom' : 'right'}
             align="end"
             sideOffset={4}
           >

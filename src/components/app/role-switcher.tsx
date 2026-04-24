@@ -78,7 +78,10 @@ export function RoleSwitcher() {
       const config = roleConfigs[activeRole];
       const Icon = config.icon;
       return (
-        <Badge variant="outline" className={`${config.bgColor} ${config.color} gap-1`}>
+        <Badge
+          variant="outline"
+          className={`${config.bgColor} ${config.color} gap-1`}
+        >
           <Icon className="size-3" />
           {config.label}
         </Badge>
@@ -131,20 +134,30 @@ export function RoleSwitcher() {
                   if (role === 'host') {
                     router.push(`/leagues/${activeLeague.league_id}/settings`);
                   } else if (role === 'governor') {
-                    router.push(`/leagues/${activeLeague.league_id}/submissions`);
-                  } else if (role === 'player' || role === 'captain') {
+                    router.push(
+                      `/leagues/${activeLeague.league_id}/submissions`,
+                    );
+                  } else if (
+                    role === 'player' ||
+                    role === 'captain' ||
+                    role === 'vice_captain'
+                  ) {
                     router.push(`/leagues/${activeLeague.league_id}`);
                   }
                 }
               }}
               className="gap-3 p-2 cursor-pointer"
             >
-              <div className={`flex size-8 items-center justify-center rounded-md ${config.bgColor}`}>
+              <div
+                className={`flex size-8 items-center justify-center rounded-md ${config.bgColor}`}
+              >
                 <Icon className={`size-4 ${config.color}`} />
               </div>
               <div className="flex-1">
                 <div className="font-medium">{config.label}</div>
-                <div className="text-xs text-muted-foreground">{config.description}</div>
+                <div className="text-xs text-muted-foreground">
+                  {config.description}
+                </div>
               </div>
               {isActive && <div className="size-2 rounded-full bg-primary" />}
             </DropdownMenuItem>
@@ -164,7 +177,10 @@ export function RoleBadge({ role }: { role: Role }) {
   const Icon = config.icon;
 
   return (
-    <Badge variant="outline" className={`${config.bgColor} ${config.color} gap-1`}>
+    <Badge
+      variant="outline"
+      className={`${config.bgColor} ${config.color} gap-1`}
+    >
       <Icon className="size-3" />
       {config.label}
     </Badge>

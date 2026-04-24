@@ -100,7 +100,7 @@ export default function MyTeamPage({
 }) {
   const { id: leagueId } = use(params);
   const { activeLeague } = useLeague();
-  const { isCaptain, isHost } = useRole();
+  const { isCaptain, isViceCaptain, isHost } = useRole();
   const {
     data: teamsData,
     isLoading: teamsLoading,
@@ -300,7 +300,7 @@ export default function MyTeamPage({
   };
 
   // Check if user is captain or host
-  if (!isCaptain && !isHost) {
+  if (!isCaptain && !isViceCaptain && !isHost) {
     return (
       <div className="@container/main flex flex-1 flex-col gap-4 lg:gap-6">
         <div className="px-4 lg:px-6">

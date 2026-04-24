@@ -9,7 +9,6 @@ import {
   Phone,
   Save,
   Loader2,
-  Camera,
   Shield,
   Trophy,
   Activity,
@@ -42,6 +41,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ProfilePicture } from '@/components/ui/profile-picture';
+import { ProfilePictureUpload } from '@/components/profile/profile-picture-upload';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -76,9 +77,7 @@ export default function ProfilePage() {
   const { userLeagues, isLoading: leaguesLoading } = useLeague();
   const { theme, setTheme } = useTheme();
   const [saving, setSaving] = React.useState(false);
-  const [uploadingPhoto, setUploadingPhoto] = React.useState(false);
   const [profilePictureUrl, setProfilePictureUrl] = React.useState<string | null>(null);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const user = session?.user;
   const platformRole = (user as any)?.platform_role || 'user';
@@ -134,110 +133,6 @@ export default function ProfilePage() {
       toast.error(error.message || 'Failed to update profile');
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
-      toast.error('Invalid file type. Please upload JPG, PNG, GIF, or WebP');
-      return;
-    }
-
-    // Validate file size (5MB)
-    const maxSize = 5 * 1024 * 1024;
-    if (file.size > maxSize) {
-      toast.error('File too large. Maximum size is 5MB');
-      return;
-    }
-
-    setUploadingPhoto(true);
-    try {
-      const uploadFormData = new FormData();
-      uploadFormData.append('file', file);
-
-      const uploadRes = await fetch('/api/upload/profile-picture', {
-        method: 'POST',
-        body: uploadFormData,
-      });
-
-      const uploadData = await uploadRes.json();
-
-      if (!uploadRes.ok) {
-        throw new Error(uploadData.error || 'Failed to upload photo');
-      }
-
-      // Update profile with new photo URL
-      const updatePayload = {
-        name: formData.name,
-        phone: formData.phone,
-        profile_picture_url: uploadData.data.url,
-      };
-
-      console.log('Updating profile with:', updatePayload);
-
-      const updateRes = await fetch('/api/user/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatePayload),
-      });
-
-      const updateData = await updateRes.json();
-
-      console.log('Update response:', updateData);
-
-      if (!updateRes.ok) {
-        throw new Error(updateData.error || 'Failed to update profile');
-      }
-
-      setProfilePictureUrl(uploadData.data.url);
-      toast.success('Profile picture updated successfully');
-      window.location.reload();
-    } catch (error: any) {
-      console.error('Error uploading photo:', error);
-      toast.error(error.message || 'Failed to upload photo');
-    } finally {
-      setUploadingPhoto(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  };
-
-  const handlePhotoDelete = async () => {
-    if (!profilePictureUrl) return;
-
-    setUploadingPhoto(true);
-    try {
-      // Update profile to remove photo URL
-      const updateRes = await fetch('/api/user/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name,
-          phone: formData.phone,
-          profile_picture_url: null,
-        }),
-      });
-
-      const updateData = await updateRes.json();
-
-      if (!updateRes.ok) {
-        throw new Error(updateData.error || 'Failed to remove profile picture');
-      }
-
-      setProfilePictureUrl(null);
-      toast.success('Profile picture removed successfully');
-      window.location.reload();
-    } catch (error: any) {
-      console.error('Error removing photo:', error);
-      toast.error(error.message || 'Failed to remove profile picture');
-    } finally {
-      setUploadingPhoto(false);
     }
   };
 
@@ -632,75 +527,48 @@ export default function ProfilePage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Avatar Section */}
-            <div className="flex items-start gap-6 p-4 rounded-lg bg-muted/30 border">
-              <Avatar className="size-24 border-4 border-background shadow-lg">
-                <AvatarImage src={profilePictureUrl || user?.image || undefined} />
-                <AvatarFallback className="text-2xl bg-primary text-primary-foreground">
-                  {getInitials(user?.name)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-xl font-semibold truncate">
-                  {user?.name || 'User'}
-                </h3>
-                <p className="text-sm text-muted-foreground truncate">
-                  {user?.email}
-                </p>
-                <div className="flex items-center gap-2 mt-3">
-                  <Badge
-                    variant={platformRole === 'admin' ? 'default' : 'secondary'}
-                    className="gap-1"
-                  >
-                    <Shield className="size-3" />
-                    {platformRole === 'admin' ? 'Administrator' : 'Member'}
-                  </Badge>
-                  {leagueStats.hostingCount > 0 && (
-                    <Badge variant="outline" className="gap-1">
-                      <Crown className="size-3" />
-                      Host
-                    </Badge>
-                  )}
-                </div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/gif,image/webp"
-                  onChange={handlePhotoUpload}
-                  className="hidden"
+            {/* Profile Picture Section */}
+            <div className="p-4 rounded-lg bg-muted/30 border">
+              <div className="flex items-start gap-6">
+                <ProfilePicture
+                  username={user?.name || 'User'}
+                  profilePictureUrl={profilePictureUrl || user?.profile_picture_url}
+                  size={200}
                 />
-                <div className="flex flex-wrap gap-2 mt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploadingPhoto}
-                  >
-                    {uploadingPhoto ? (
-                      <>
-                        <Loader2 className="mr-2 size-4 animate-spin" />
-                        Uploading...
-                      </>
-                    ) : (
-                      <>
-                        <Camera className="mr-2 size-4" />
-                        {profilePictureUrl ? 'Change Photo' : 'Upload Photo'}
-                      </>
-                    )}
-                  </Button>
-                  {profilePictureUrl && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handlePhotoDelete}
-                      disabled={uploadingPhoto}
-                      className="text-destructive border-destructive/50 hover:bg-destructive/10"
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-xl font-semibold truncate">
+                    {user?.name || 'User'}
+                  </h3>
+                  <p className="text-sm text-muted-foreground truncate">
+                    {user?.email}
+                  </p>
+                  <div className="flex items-center gap-2 mt-3">
+                    <Badge
+                      variant={platformRole === 'admin' ? 'default' : 'secondary'}
+                      className="gap-1"
                     >
-                      Remove
-                    </Button>
-                  )}
+                      <Shield className="size-3" />
+                      {platformRole === 'admin' ? 'Administrator' : 'Member'}
+                    </Badge>
+                    {leagueStats.hostingCount > 0 && (
+                      <Badge variant="outline" className="gap-1">
+                        <Crown className="size-3" />
+                        Host
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="mt-4">
+                    <ProfilePictureUpload
+                      username={user?.name || 'User'}
+                      currentProfilePictureUrl={profilePictureUrl || user?.profile_picture_url}
+                      uploadType="standard"
+                      onUploadSuccess={(url) => {
+                        setProfilePictureUrl(url);
+                        // Refresh the page to update the session
+                        window.location.reload();
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
             </div>

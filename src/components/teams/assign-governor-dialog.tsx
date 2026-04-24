@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ProfilePicture } from "@/components/ui/profile-picture";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -83,10 +84,10 @@ export function AssignGovernorDialog({
     setIsLoading(true);
     try {
       const currentGovernorIds = new Set(currentGovernors.map(g => g.user_id));
-      
+
       // Find governors to add (selected but not currently assigned)
       const toAdd = Array.from(selectedUserIds).filter(id => !currentGovernorIds.has(id));
-      
+
       // Find governors to remove (currently assigned but not selected)
       const toRemove = Array.from(currentGovernorIds).filter(id => !selectedUserIds.has(id));
 
@@ -152,11 +153,10 @@ export function AssignGovernorDialog({
                   return (
                     <div
                       key={member.user_id}
-                      className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
-                        isSelected
-                          ? "bg-primary/5 border-primary"
-                          : "hover:bg-muted/50"
-                      }`}
+                      className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${isSelected
+                        ? "bg-primary/5 border-primary"
+                        : "hover:bg-muted/50"
+                        }`}
                     >
                       <Checkbox
                         id={`gov-${member.user_id}`}
@@ -168,16 +168,10 @@ export function AssignGovernorDialog({
                         className="flex items-center gap-3 flex-1 cursor-pointer"
                       >
                         <div className="relative">
-                          <Avatar className="size-9">
-                            <AvatarFallback>
-                              {member.username
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("")
-                                .toUpperCase()
-                                .slice(0, 2)}
-                            </AvatarFallback>
-                          </Avatar>
+                          <ProfilePicture
+                            username={member.username}
+                            size={64}
+                          />
                           {isGovernor && (
                             <div className="absolute -bottom-0.5 -right-0.5 size-4 rounded-full bg-blue-500 flex items-center justify-center ring-2 ring-background">
                               <Shield className="size-2.5 text-white" />
@@ -203,8 +197,8 @@ export function AssignGovernorDialog({
                                   role === "governor"
                                     ? "bg-blue-500/10 text-blue-600 border-blue-200"
                                     : role === "captain"
-                                    ? "bg-amber-500/10 text-amber-600 border-amber-200"
-                                    : ""
+                                      ? "bg-amber-500/10 text-amber-600 border-amber-200"
+                                      : ""
                                 }
                               >
                                 {role}

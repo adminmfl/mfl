@@ -74,9 +74,11 @@ export function MentionDropdown({
                 ? 'governor'
                 : roles.includes('captain')
                   ? 'captain'
-                  : roles.includes('player')
-                    ? 'player'
-                    : roles[0] || undefined;
+                  : roles.includes('vice_captain')
+                    ? 'vice_captain'
+                    : roles.includes('player')
+                      ? 'player'
+                      : roles[0] || undefined;
 
             return {
               user_id: m.user_id,
@@ -112,6 +114,7 @@ export function MentionDropdown({
 
   // Reset active index when filtered list changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setActiveIndex(0);
   }, [filtered.length, query]);
 
@@ -145,7 +148,11 @@ export function MentionDropdown({
     <div
       ref={listRef}
       className="absolute z-50 bg-popover border border-border rounded-lg shadow-lg py-1 w-56 max-h-48 overflow-y-auto"
-      style={position ? { bottom: position.top, left: position.left } : { bottom: '100%', left: 0 }}
+      style={
+        position
+          ? { bottom: position.top, left: position.left }
+          : { bottom: '100%', left: 0 }
+      }
     >
       {filtered.map((member, i) => (
         <button
@@ -153,7 +160,7 @@ export function MentionDropdown({
           type="button"
           className={cn(
             'w-full flex items-center gap-2 px-3 py-1.5 text-sm text-left hover:bg-accent transition-colors',
-            i === activeIndex && 'bg-accent'
+            i === activeIndex && 'bg-accent',
           )}
           onMouseDown={(e) => {
             e.preventDefault(); // prevent textarea blur
@@ -166,7 +173,7 @@ export function MentionDropdown({
             <span
               className={cn(
                 'text-[10px] capitalize ml-auto shrink-0',
-                ROLE_STYLE[member.role] ?? ROLE_STYLE.player
+                ROLE_STYLE[member.role] ?? ROLE_STYLE.player,
               )}
             >
               {member.role}

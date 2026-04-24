@@ -67,7 +67,12 @@ export interface CannedMessage {
   updated_at: string;
 }
 
-export type MessageFilter = 'all' | 'announcements' | 'important' | 'host_messages' | 'captains_only';
+export type MessageFilter =
+  | 'all'
+  | 'announcements'
+  | 'important'
+  | 'host_messages'
+  | 'captains_only';
 
 export interface GetMessagesOptions {
   cursor?: string; // created_at timestamp for pagination
@@ -104,7 +109,7 @@ export interface CannedMessageData {
  */
 export async function getUserRoleInLeague(
   userId: string,
-  leagueId: string
+  leagueId: string,
 ): Promise<string | null> {
   try {
     const supabase = getSupabaseServiceRole();
@@ -134,6 +139,7 @@ export async function getUserRoleInLeague(
     if (roleNames.includes('host')) return 'host';
     if (roleNames.includes('governor')) return 'governor';
     if (roleNames.includes('captain')) return 'captain';
+    if (roleNames.includes('vice_captain')) return 'captain'; // vice_captain has captain-level chat access
     if (roleNames.includes('player')) return 'player';
     return roleNames[0] || null;
   } catch (err) {
@@ -147,7 +153,7 @@ export async function getUserRoleInLeague(
  */
 export async function getUserTeamInLeague(
   userId: string,
-  leagueId: string
+  leagueId: string,
 ): Promise<string | null> {
   try {
     const { data, error } = await getSupabaseServiceRole()
@@ -174,7 +180,7 @@ async function getIntendedAudienceCount(
   leagueId: string,
   teamId: string | null,
   visibility: string,
-  senderId: string
+  senderId: string,
 ): Promise<number> {
   try {
     if (teamId && visibility === 'all') {
@@ -203,8 +209,8 @@ async function getIntendedAudienceCount(
         const roleName = r.roles?.role_name;
         if (roleName === 'host' || roleName === 'governor') {
           count++;
-        } else if (roleName === 'captain') {
-          // Check if this captain is on the target team
+        } else if (roleName === 'captain' || roleName === 'vice_captain') {
+          // Check if this captain/vc is on the target team
           const { data: membership } = await supabase
             .from('leaguemembers')
             .select('team_id')
@@ -238,7 +244,12 @@ async function getIntendedAudienceCount(
       if (!roles) return 0;
       return (roles as any[]).filter((r) => {
         const rn = r.roles?.role_name;
-        return rn === 'host' || rn === 'governor' || rn === 'captain';
+        return (
+          rn === 'host' ||
+          rn === 'governor' ||
+          rn === 'captain' ||
+          rn === 'vice_captain'
+        );
       }).length;
     }
 
@@ -262,7 +273,7 @@ async function getIntendedAudienceCount(
 export async function getMessagesForUser(
   leagueId: string,
   userId: string,
-  options: GetMessagesOptions = {}
+  options: GetMessagesOptions = {},
 ): Promise<MessageWithSender[]> {
   try {
     const supabase = getSupabaseServiceRole();
@@ -278,15 +289,17 @@ export async function getMessagesForUser(
 
     const effectiveTeamId = teamId || userTeamId;
     const isHostOrGovernor = role === 'host' || role === 'governor';
-    const isCaptain = role === 'captain';
+    const isCaptain = role === 'captain' || role === 'vice_captain';
 
     // Build the query
     let query = supabase
       .from('messages')
-      .select(`
+      .select(
+        `
         *,
         users:sender_id(username)
-      `)
+      `,
+      )
       .eq('league_id', leagueId)
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
@@ -320,18 +333,11 @@ export async function getMessagesForUser(
     // Apply role-based visibility filters
     if (isHostOrGovernor) {
       if (teamId) {
-        if (adminView) {
-          // Admin view enabled: see all messages for this team + broadcasts
-          query = query.or(`team_id.eq.${teamId},team_id.is.null`);
-        } else {
-          // Default: only broadcasts + captain-only messages for this team (not player chat)
-          query = query.or(
-            `team_id.is.null,and(team_id.eq.${teamId},visibility.eq.captains_only)`
-          );
-        }
+        // Show all messages for this team + broadcasts
+        query = query.or(`team_id.eq.${teamId},team_id.is.null`);
       } else {
-        // All Teams view: show only broadcasts
-        query = query.is('team_id', null);
+        // All Teams view: show all messages across all teams + broadcasts
+        // No team_id filter needed — host/governor can see everything
       }
     } else if (isCaptain) {
       // Captains see all visibility in their team + league-wide broadcasts
@@ -345,7 +351,7 @@ export async function getMessagesForUser(
       // Players see: team messages with visibility='all' + their OWN captains_only messages + broadcasts with visibility='all'
       if (effectiveTeamId) {
         query = query.or(
-          `and(team_id.eq.${effectiveTeamId},visibility.eq.all),and(team_id.eq.${effectiveTeamId},visibility.eq.captains_only,sender_id.eq.${userId}),and(team_id.is.null,visibility.eq.all)`
+          `and(team_id.eq.${effectiveTeamId},visibility.eq.all),and(team_id.eq.${effectiveTeamId},visibility.eq.captains_only,sender_id.eq.${userId}),and(team_id.is.null,visibility.eq.all)`,
         );
       } else {
         query = query.is('team_id', null).eq('visibility', 'all');
@@ -385,6 +391,8 @@ export async function getMessagesForUser(
           if (roles.includes('host')) senderRoles.set(uid, 'host');
           else if (roles.includes('governor')) senderRoles.set(uid, 'governor');
           else if (roles.includes('captain')) senderRoles.set(uid, 'captain');
+          else if (roles.includes('vice_captain'))
+            senderRoles.set(uid, 'vice_captain');
           else if (roles.includes('player')) senderRoles.set(uid, 'player');
           else senderRoles.set(uid, roles[0] || null);
         }
@@ -421,7 +429,10 @@ export async function getMessagesForUser(
           const msg = messages.find((m: any) => m.message_id === r.message_id);
           if (!msg) continue;
           if (msg.sender_id === userId && r.user_id !== userId) {
-            readCountByMsg.set(r.message_id, (readCountByMsg.get(r.message_id) || 0) + 1);
+            readCountByMsg.set(
+              r.message_id,
+              (readCountByMsg.get(r.message_id) || 0) + 1,
+            );
           }
           if (msg.sender_id !== userId && r.user_id === userId) {
             readSet.add(r.message_id);
@@ -441,7 +452,11 @@ export async function getMessagesForUser(
 
           if (audienceSize === undefined) {
             audienceSize = await getIntendedAudienceCount(
-              supabase, leagueId, msg.team_id, msg.visibility, userId
+              supabase,
+              leagueId,
+              msg.team_id,
+              msg.visibility,
+              userId,
             );
             audienceCache.set(cacheKey, audienceSize);
           }
@@ -455,7 +470,10 @@ export async function getMessagesForUser(
     }
 
     // Fetch reactions for all messages
-    const reactionsMap = new Map<string, { emoji: string; user_ids: string[] }[]>();
+    const reactionsMap = new Map<
+      string,
+      { emoji: string; user_ids: string[] }[]
+    >();
     if (messageIds.length > 0) {
       const { data: reactionsData } = await supabase
         .from('message_reactions')
@@ -477,8 +495,17 @@ export async function getMessagesForUser(
     }
 
     // Fetch parent message content for replies
-    const parentIds = [...new Set(messages.filter((m: any) => m.parent_message_id).map((m: any) => m.parent_message_id))];
-    const parentMap = new Map<string, { content: string; sender_username: string }>();
+    const parentIds = [
+      ...new Set(
+        messages
+          .filter((m: any) => m.parent_message_id)
+          .map((m: any) => m.parent_message_id),
+      ),
+    ];
+    const parentMap = new Map<
+      string,
+      { content: string; sender_username: string }
+    >();
     if (parentIds.length > 0) {
       const { data: parents } = await supabase
         .from('messages')
@@ -505,7 +532,9 @@ export async function getMessagesForUser(
       visibility: m.visibility,
       is_important: m.is_important,
       parent_message_id: m.parent_message_id,
-      parent_message: m.parent_message_id ? parentMap.get(m.parent_message_id) || null : null,
+      parent_message: m.parent_message_id
+        ? parentMap.get(m.parent_message_id) || null
+        : null,
       deep_link: m.deep_link,
       created_at: m.created_at,
       edited_at: m.edited_at,
@@ -529,7 +558,7 @@ export async function getMessagesForUser(
 export async function sendMessage(
   leagueId: string,
   senderId: string,
-  data: SendMessageData
+  data: SendMessageData,
 ): Promise<Message | null> {
   try {
     const supabase = getSupabaseServiceRole();
@@ -570,7 +599,11 @@ export async function sendMessage(
     }
 
     // Only host/governor can send announcements
-    if (messageType === 'announcement' && role !== 'host' && role !== 'governor') {
+    if (
+      messageType === 'announcement' &&
+      role !== 'host' &&
+      role !== 'governor'
+    ) {
       console.error('Only host/governor can send announcements');
       return null;
     }
@@ -615,7 +648,7 @@ export async function sendMessage(
 export async function editMessage(
   messageId: string,
   userId: string,
-  newContent: string
+  newContent: string,
 ): Promise<Message | null> {
   try {
     const supabase = getSupabaseServiceRole();
@@ -666,7 +699,7 @@ export async function editMessage(
 export async function deleteMessage(
   messageId: string,
   userId: string,
-  leagueId: string
+  leagueId: string,
 ): Promise<boolean> {
   try {
     const supabase = getSupabaseServiceRole();
@@ -720,7 +753,7 @@ export async function deleteMessage(
  */
 export async function markMessagesAsRead(
   messageIds: string[],
-  userId: string
+  userId: string,
 ): Promise<boolean> {
   try {
     if (messageIds.length === 0) return true;
@@ -755,7 +788,7 @@ export async function markMessagesAsRead(
  */
 export async function getUnreadCount(
   leagueId: string,
-  userId: string
+  userId: string,
 ): Promise<number> {
   const counts = await getMessageCounts(leagueId, userId);
   return counts.unread;
@@ -766,7 +799,7 @@ export async function getUnreadCount(
  */
 export async function getMessageCounts(
   leagueId: string,
-  userId: string
+  userId: string,
 ): Promise<{ unread: number; total: number }> {
   try {
     const supabase = getSupabaseServiceRole();
@@ -780,7 +813,7 @@ export async function getMessageCounts(
     if (!role) return { unread: 0, total: 0 };
 
     const isHostOrGovernor = role === 'host' || role === 'governor';
-    const isCaptain = role === 'captain';
+    const isCaptain = role === 'captain' || role === 'vice_captain';
 
     // Build query for visible messages
     let query = supabase
@@ -801,7 +834,7 @@ export async function getMessageCounts(
     } else {
       if (userTeamId) {
         query = query.or(
-          `and(team_id.eq.${userTeamId},visibility.eq.all),and(team_id.eq.${userTeamId},visibility.eq.captains_only,sender_id.eq.${userId}),and(team_id.is.null,visibility.eq.all)`
+          `and(team_id.eq.${userTeamId},visibility.eq.all),and(team_id.eq.${userTeamId},visibility.eq.captains_only,sender_id.eq.${userId}),and(team_id.is.null,visibility.eq.all)`,
         );
       } else {
         query = query.is('team_id', null).eq('visibility', 'all');
@@ -840,20 +873,22 @@ export async function getMessageCounts(
  * Get read receipts for a message with user details
  */
 export async function getReadReceipts(
-  messageId: string
+  messageId: string,
 ): Promise<ReadReceipt[]> {
   try {
     const supabase = getSupabaseServiceRole();
 
     const { data, error } = await supabase
       .from('message_read_receipts')
-      .select(`
+      .select(
+        `
         id,
         message_id,
         user_id,
         read_at,
         users!message_read_receipts_user_id_fkey(username)
-      `)
+      `,
+      )
       .eq('message_id', messageId)
       .order('read_at', { ascending: true });
 
@@ -885,7 +920,7 @@ export async function getReadReceipts(
  */
 export async function getCannedMessages(
   leagueId: string,
-  role: CannedMessageRoleTarget
+  role: CannedMessageRoleTarget,
 ): Promise<CannedMessage[]> {
   try {
     const { data, error } = await getSupabaseServiceRole()
@@ -914,7 +949,7 @@ export async function getCannedMessages(
 export async function createCannedMessage(
   leagueId: string,
   userId: string,
-  data: CannedMessageData
+  data: CannedMessageData,
 ): Promise<CannedMessage | null> {
   try {
     const { data: created, error } = await getSupabaseServiceRole()
@@ -948,13 +983,14 @@ export async function createCannedMessage(
 export async function updateCannedMessage(
   cannedMessageId: string,
   userId: string,
-  data: Partial<CannedMessageData>
+  data: Partial<CannedMessageData>,
 ): Promise<CannedMessage | null> {
   try {
     const updatePayload: Record<string, any> = {
       updated_at: new Date().toISOString(),
     };
-    if (data.roleTarget !== undefined) updatePayload.role_target = data.roleTarget;
+    if (data.roleTarget !== undefined)
+      updatePayload.role_target = data.roleTarget;
     if (data.title !== undefined) updatePayload.title = data.title;
     if (data.content !== undefined) updatePayload.content = data.content;
     if (data.isSystem !== undefined) updatePayload.is_system = data.isSystem;
@@ -983,7 +1019,7 @@ export async function updateCannedMessage(
  * Only non-system canned messages can be deleted
  */
 export async function deleteCannedMessage(
-  cannedMessageId: string
+  cannedMessageId: string,
 ): Promise<boolean> {
   try {
     const supabase = getSupabaseServiceRole();
@@ -1033,7 +1069,7 @@ export async function deleteCannedMessage(
 export async function toggleReaction(
   messageId: string,
   userId: string,
-  emoji: string
+  emoji: string,
 ): Promise<{ action: 'added' | 'removed' }> {
   const supabase = getSupabaseServiceRole();
 

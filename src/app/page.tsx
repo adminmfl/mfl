@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { PwaInstallPrompt } from '@/components/pwa-install-prompt';
 import {
   CorporateNav,
   CorporateBanner,
@@ -61,6 +62,7 @@ export default function RootPage() {
       <CorporateFinalCta />
       <CorporateFooter />
       <CorporateContactModal />
+      <PwaInstallPrompt />
     </div>
   );
 }

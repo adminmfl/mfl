@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ProfilePicture } from "@/components/ui/profile-picture";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { LeagueMember } from "@/hooks/use-league-teams";
@@ -135,9 +136,8 @@ export function AddMembersDialog({
                   return (
                     <div
                       key={member.league_member_id}
-                      className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
-                        isSelected ? "bg-primary/5 border-primary" : "hover:bg-muted/50"
-                      }`}
+                      className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${isSelected ? "bg-primary/5 border-primary" : "hover:bg-muted/50"
+                        }`}
                     >
                       <Checkbox
                         checked={isSelected}
@@ -145,16 +145,10 @@ export function AddMembersDialog({
                         disabled={!canAddMore && !isSelected}
                         className="border-2 border-black dark:border-white"
                       />
-                      <Avatar className="size-9">
-                        <AvatarFallback>
-                          {member.username
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")
-                            .toUpperCase()
-                            .slice(0, 2)}
-                        </AvatarFallback>
-                      </Avatar>
+                      <ProfilePicture
+                        username={member.username}
+                        size={64}
+                      />
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm truncate">
                           {member.username}

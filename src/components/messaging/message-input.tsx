@@ -112,7 +112,7 @@ export function MessageInput({
   const canSetVisibility = true;
   const canMarkImportant = isHostOrGovernor;
   const canAnnounce = isHostOrGovernor;
-  const isCaptain = currentRole === 'captain';
+  const isCaptain = currentRole === 'captain' || currentRole === 'vice_captain';
 
   // Memoized label for selected workout deep link
   const deepLinkLabel = useMemo(() => {
