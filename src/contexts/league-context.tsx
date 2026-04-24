@@ -17,13 +17,6 @@ import { useSession } from 'next-auth/react';
 // ============================================================================
 
 import { LeagueRole, LeagueWithRoles } from '@/lib/types/leagues';
-export type {
-  LeagueRole,
-  LeagueStatus,
-  LeagueBranding,
-  LeagueRRConfig,
-  LeagueWithRoles,
-} from '@/lib/types/leagues';
 
 interface LeagueContextType {
   // League state
@@ -237,9 +230,11 @@ export function LeagueProvider({
       }
 
       if (selectedLeague) {
+        setActiveLeagueState(selectedLeague);
+        // ... rest of the role restoration logic below is already handled by setActiveLeague
+
         setActiveLeague(selectedLeague);
       }
-
       return;
     }
 

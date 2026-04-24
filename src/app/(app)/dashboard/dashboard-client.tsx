@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import Link from 'next/link';
-import { useSession } from 'next-auth/react';
+import * as React from "react";
+import Link from "next/link";
+import { useSession } from "next-auth/react";
 import {
   Trophy,
   Users,
@@ -16,30 +16,28 @@ import {
   Target,
   Flame,
   Award,
-} from 'lucide-react';
+} from "lucide-react";
 
-import { useLeague } from '@/contexts/league-context';
-import { isLeagueEnded as isLeagueEndedByDate } from '@/lib/utils';
-
-import { LeagueWithRoles } from '@/lib/types/leagues';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { useLeague } from "@/contexts/league-context";
+import { LeagueWithRoles } from "@/lib/types/leagues";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
+} from "@/components/ui/card";
 import {
   Empty,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-} from '@/components/ui/empty';
-import { DumbbellLoading } from '@/components/ui/dumbbell-loading';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+} from "@/components/ui/empty";
+import { DumbbellLoading } from "@/components/ui/dumbbell-loading";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 // ============================================================================
 // Types
@@ -70,25 +68,20 @@ interface DashboardClientProps {
 // Main Dashboard Client Component
 // ============================================================================
 
-export default function DashboardClient({
-  initialLeagues,
-  initialSummary,
+export default function DashboardClient({ 
+  initialLeagues, 
+  initialSummary 
 }: DashboardClientProps) {
   const { data: session } = useSession();
-  const {
-    userLeagues: contextLeagues,
-    isLoading: contextLoading,
-    setActiveLeague,
-  } = useLeague();
-
+  const { userLeagues: contextLeagues, isLoading: contextLoading, setActiveLeague } = useLeague();
+  
   // Use pre-fetched leagues if available, fallback to context
-  const userLeagues =
-    initialLeagues.length > 0 ? initialLeagues : contextLeagues;
+  const userLeagues = initialLeagues.length > 0 ? initialLeagues : contextLeagues;
   const isLoading = initialLeagues.length > 0 ? false : contextLoading;
 
   const [isMounted, setIsMounted] = React.useState(false);
 
-  const userName = session?.user?.name?.split(' ')[0] || 'User';
+  const userName = session?.user?.name?.split(" ")[0] || "User";
 
   React.useEffect(() => {
     setIsMounted(true);
@@ -97,15 +90,14 @@ export default function DashboardClient({
   // League involvement stats
   const leagueStats = React.useMemo(() => {
     const activeLeagues = userLeagues.filter(
-      (l) => l.status === 'active' && !isLeagueEndedByDate(l.end_date),
+      (l) => l.status === "active",
     ).length;
-
     const hostingCount = userLeagues.filter((l) => l.is_host).length;
     const governorCount = userLeagues.filter((l) =>
-      (l.roles || []).includes('governor'),
+      (l.roles || []).includes("governor"),
     ).length;
     const captainCount = userLeagues.filter((l) =>
-      (l.roles || []).includes('captain'),
+      (l.roles || []).includes("captain"),
     ).length;
     return {
       totalLeagues: userLeagues.length,
@@ -117,38 +109,38 @@ export default function DashboardClient({
 
   const leagueStatCards: StatCard[] = [
     {
-      title: 'Total Leagues',
+      title: "Total Leagues",
       value: leagueStats.totalLeagues,
       change: 0,
       changeLabel:
-        leagueStats.totalLeagues > 0 ? 'Growing strong' : 'Join a league',
-      description: 'Leagues you are part of',
+        leagueStats.totalLeagues > 0 ? "Growing strong" : "Join a league",
+      description: "Leagues you are part of",
       icon: Trophy,
     },
     {
-      title: 'Active Leagues',
+      title: "Active Leagues",
       value: leagueStats.activeLeagues,
       change: 0,
       changeLabel:
-        leagueStats.activeLeagues > 0 ? 'In progress' : 'No active leagues',
-      description: 'Currently running leagues',
+        leagueStats.activeLeagues > 0 ? "In progress" : "No active leagues",
+      description: "Currently running leagues",
       icon: Target,
     },
     {
-      title: 'Hosting',
+      title: "Hosting",
       value: leagueStats.hostingCount,
       change: 0,
       changeLabel:
-        leagueStats.hostingCount > 0 ? 'League creator' : 'Create your first',
-      description: 'Leagues you created',
+        leagueStats.hostingCount > 0 ? "League creator" : "Create your first",
+      description: "Leagues you created",
       icon: Crown,
     },
     {
-      title: 'Leadership Roles',
+      title: "Leadership Roles",
       value: leagueStats.leadershipRoles,
       change: 0,
-      changeLabel: 'Governor & Captain',
-      description: 'Management positions',
+      changeLabel: "Governor & Captain",
+      description: "Management positions",
       icon: Shield,
     },
   ];
@@ -165,13 +157,13 @@ export default function DashboardClient({
     async function fetchSummary() {
       setSummaryLoading(true);
       try {
-        const response = await fetch('/api/user/dashboard-summary');
+        const response = await fetch("/api/user/dashboard-summary");
         const result = await response.json();
         if (mounted && result.success) {
           setSummaryData(result.data);
         }
       } catch (error) {
-        console.error('Error fetching dashboard summary:', error);
+        console.error("Error fetching dashboard summary:", error);
       } finally {
         if (mounted) setSummaryLoading(false);
       }
@@ -184,35 +176,35 @@ export default function DashboardClient({
 
   const activityStats: StatCard[] = [
     {
-      title: 'Activities Logged',
-      value: summaryLoading ? '...' : (summaryData?.activitiesLogged ?? 0),
+      title: "Activities Logged",
+      value: summaryLoading ? "..." : (summaryData?.activitiesLogged ?? 0),
       change: 0,
-      changeLabel: 'Start logging!',
-      description: 'Total workouts submitted',
+      changeLabel: "Start logging!",
+      description: "Total workouts submitted",
       icon: Dumbbell,
     },
     {
-      title: 'Total Points',
-      value: summaryLoading ? '...' : (summaryData?.totalPoints ?? 0),
+      title: "Total Points",
+      value: summaryLoading ? "..." : (summaryData?.totalPoints ?? 0),
       change: 0,
-      changeLabel: 'Earn points',
-      description: 'Points earned across leagues',
+      changeLabel: "Earn points",
+      description: "Points earned across leagues",
       icon: Award,
     },
     {
-      title: 'Current Streak',
-      value: summaryLoading ? '...' : `${summaryData?.currentStreak ?? 0} days`,
+      title: "Current Streak",
+      value: summaryLoading ? "..." : `${summaryData?.currentStreak ?? 0} days`,
       change: 0,
-      changeLabel: 'Build your streak',
-      description: 'Consecutive active days',
+      changeLabel: "Build your streak",
+      description: "Consecutive active days",
       icon: Flame,
     },
     {
-      title: 'Best Streak',
-      value: summaryLoading ? '...' : `${summaryData?.bestStreak ?? 0} days`,
+      title: "Best Streak",
+      value: summaryLoading ? "..." : `${summaryData?.bestStreak ?? 0} days`,
       change: 0,
-      changeLabel: 'Set a record',
-      description: 'Your longest streak ever',
+      changeLabel: "Set a record",
+      description: "Your longest streak ever",
       icon: Trophy,
     },
   ];
@@ -227,8 +219,8 @@ export default function DashboardClient({
           </h1>
           <p className="text-muted-foreground">
             {userLeagues.length > 0
-              ? `You're part of ${userLeagues.length} league${userLeagues.length !== 1 ? 's' : ''}. Here's your overview.`
-              : 'Get started by joining or creating a league to track your fitness journey.'}
+              ? `You're part of ${userLeagues.length} league${userLeagues.length !== 1 ? "s" : ""}. Here's your overview.`
+              : "Get started by joining or creating a league to track your fitness journey."}
           </p>
         </div>
         <div className="flex gap-2"></div>
@@ -260,7 +252,7 @@ export default function DashboardClient({
         ) : (
           <div className="grid gap-2 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3">
             {userLeagues
-              .filter((league) => league.status !== 'completed')
+              .filter((league) => league.status !== "completed")
               .map((league) => (
                 <LeagueCard
                   key={league.league_id}
@@ -367,13 +359,12 @@ function LeagueCard({
 }) {
   const statusColors: Record<string, string> = {
     draft:
-      'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+      "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
     launched:
-      'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+      "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
     active:
-      'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-    completed: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400',
-    ended: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400',
+      "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+    completed: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400",
   };
 
   const roleIcons: Record<string, React.ElementType> = {
@@ -390,27 +381,17 @@ function LeagueCard({
         <div className="relative h-16 lg:h-28 rounded-t-lg bg-linear-to-br from-primary/80 to-primary">
           <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent" />
           <div className="absolute top-1.5 right-1.5 lg:top-3 lg:right-3">
-            {(() => {
-              const isEnded = isLeagueEndedByDate(league.end_date);
-              const displayStatus = isEnded ? 'ended' : league.status;
-              return (
-                <Badge
-                  className={statusColors[displayStatus]}
-                  variant="secondary"
-                >
-                  {displayStatus === 'ended' ? 'League Ended' : displayStatus}
-                </Badge>
-              );
-            })()}
+            <Badge className={statusColors[league.status]} variant="secondary">
+              {league.status}
+            </Badge>
           </div>
-
           <div className="absolute top-1.5 left-1.5 lg:top-3 lg:left-3">
             <Avatar className="size-6 lg:size-10 border-2 border-white/70 shadow-sm">
               {league.logo_url ? (
                 <AvatarImage src={league.logo_url} alt={league.name} />
               ) : (
                 <AvatarFallback className="bg-white/20 text-white font-semibold uppercase">
-                  {league.name?.slice(0, 2) || 'LG'}
+                  {league.name?.slice(0, 2) || "LG"}
                 </AvatarFallback>
               )}
             </Avatar>
@@ -425,7 +406,7 @@ function LeagueCard({
         {/* Content */}
         <div className="p-2 lg:p-4">
           <p className="text-[11px] lg:text-sm text-muted-foreground line-clamp-1 lg:line-clamp-2 mb-1 lg:mb-3 min-h-[18px] lg:min-h-[40px]">
-            {league.description || 'No description'}
+            {league.description || "No description"}
           </p>
 
           {/* Creator Badge */}
