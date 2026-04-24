@@ -536,8 +536,6 @@ export async function updateLeague(
       // League name is always editable (league_id stays constant)
       if (data.league_name !== undefined)
         allowedUpdates.league_name = data.league_name;
-<<<<<<< HEAD
-=======
       // League mode is always editable
       if (data.league_mode !== undefined)
         allowedUpdates.league_mode = data.league_mode;
@@ -550,7 +548,6 @@ export async function updateLeague(
         (allowedUpdates as any).player_league_workout_visibility = (
           data as any
         ).player_league_workout_visibility;
->>>>>>> 9fc3aeb9f3e570cc345da98d0aa49ba12814cf7c
       // Allow date edits if the date hasn't passed yet
       const today = new Date().toISOString().slice(0, 10);
       if (data.start_date !== undefined) {
@@ -810,22 +807,6 @@ export async function removeRoleFromUser(
       .select('role_id')
       .eq('role_name', roleName)
       .single();
-
-    if (roleError || !roleData) return false;
-
-    const { error } = await getSupabaseServiceRole()
-      .from('assignedrolesforleague')
-      .delete()
-      .eq('user_id', userId)
-      .eq('league_id', leagueId)
-      .eq('role_id', roleData.role_id);
-
-    return !error;
-  } catch (err) {
-    console.error('Error removing role:', err);
-    return false;
-  }
-}
 
     if (roleError || !roleData) return false;
 
