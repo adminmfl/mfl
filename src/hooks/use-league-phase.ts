@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useState } from 'react';
 import type { LeaguePhase, LeaguePhaseInfo } from '@/lib/utils/league-phases';
 

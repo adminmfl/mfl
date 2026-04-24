@@ -4,6 +4,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth/config';
 import { getSupabaseServiceRole } from '@/lib/supabase/client';
 import { getLeaguePhase } from '@/lib/utils/league-phases';
 
@@ -13,7 +15,27 @@ export async function GET(
 ) {
   try {
     const { id: leagueId } = await params;
+    const session = (await getServerSession(authOptions as any)) as
+      | import('next-auth').Session
+      | null;
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const supabase = getSupabaseServiceRole();
+
+    // Ensure requester is a member of the league.
+    const { data: membership, error: membershipError } = await supabase
+      .from('leaguemembers')
+      .select('league_member_id')
+      .eq('league_id', leagueId)
+      .eq('user_id', session.user.id)
+      .maybeSingle();
+
+    if (membershipError || !membership) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     // Get league basic info
     const { data: league, error: leagueError } = await supabase

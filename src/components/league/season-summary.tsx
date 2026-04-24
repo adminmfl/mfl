@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import { Download, Share2, Award } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 
 interface SeasonSummaryProps {
   leagueId: string;
@@ -18,6 +17,7 @@ export function SeasonSummary({
   canDownload = true,
 }: SeasonSummaryProps) {
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
 
   const handleDownloadReport = async () => {
     try {
@@ -41,6 +41,29 @@ export function SeasonSummary({
       console.error('Error downloading report:', error);
     } finally {
       setIsDownloading(false);
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      setIsSharing(true);
+      const shareUrl = `${window.location.origin}/leagues/${leagueId}`;
+      const shareData = {
+        title: `${leagueName} Season Summary`,
+        text: `Check out my season summary for ${leagueName}.`,
+        url: shareUrl,
+      };
+
+      if (navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+
+      await navigator.clipboard.writeText(shareUrl);
+    } catch (error) {
+      console.error('Error sharing season summary:', error);
+    } finally {
+      setIsSharing(false);
     }
   };
 
@@ -94,9 +117,15 @@ export function SeasonSummary({
               {isDownloading ? 'Generating...' : 'Download PDF'}
             </Button>
           )}
-          <Button variant="outline" size="sm" className="flex-1">
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1"
+            onClick={handleShare}
+            disabled={isSharing}
+          >
             <Share2 className="size-4 mr-2" />
-            Share
+            {isSharing ? 'Sharing...' : 'Share'}
           </Button>
         </div>
 

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { AlertCircle, Calendar, Archive } from 'lucide-react';
+import { Calendar, Archive } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -66,7 +66,7 @@ export function ArchiveNotice({
             <div className="mt-4 pt-4 border-t border-orange-200">
               <p className="text-sm font-medium text-orange-900">
                 ⏰ {daysRemaining} day{daysRemaining === 1 ? '' : 's'} until
-                archival
+                deletion
               </p>
             </div>
           )}

@@ -103,17 +103,11 @@ export async function GET(
     }
 
     // 4. Get player stats
-    const { data: activities, error: activitiesError } = await supabase
+    const { data: activities } = await supabase
       .from('effortentry')
       .select('id, date')
       .eq('league_member_id', leagueMemberId)
       .in('status', ['approved', 'pending']);
-
-    const { data: submissions } = await supabase
-      .from('effortentry')
-      .select('value')
-      .eq('league_member_id', leagueMemberId)
-      .eq('status', 'approved');
 
     const { data: restDays } = await supabase
       .from('resdays')
@@ -213,7 +207,7 @@ export async function GET(
         // Get team rank (count teams with more points)
         const { data: allTeamStats } = await supabase
           .from('leaguemembers')
-          .select('team_id')
+          .select('team_id, total_points')
           .eq('league_id', leagueId);
 
         const teamTotals: Record<string, number> = {};
@@ -251,13 +245,38 @@ export async function GET(
         .length + 1;
 
     // 7. Get winner team
-    const { data: winnerTeam } = await supabase
+    const { data: winnerMembers } = await supabase
       .from('leaguemembers')
-      .select('team_id, teams(team_name)')
-      .eq('league_id', leagueId)
-      .order('total_points', { ascending: false })
-      .limit(1)
-      .single();
+      .select('team_id, total_points')
+      .eq('league_id', leagueId);
+
+    const winnerTotals: Record<string, number> = {};
+    (winnerMembers || []).forEach((member: any) => {
+      if (member.team_id) {
+        winnerTotals[member.team_id] =
+          (winnerTotals[member.team_id] || 0) + (member.total_points || 0);
+      }
+    });
+
+    let winnerTeam: { teamName: string; teamPoints: number } | null = null;
+    const winnerTeamId = Object.entries(winnerTotals).sort(
+      (a, b) => b[1] - a[1],
+    )[0]?.[0];
+
+    if (winnerTeamId) {
+      const { data: winnerTeamData } = await supabase
+        .from('teams')
+        .select('team_name')
+        .eq('team_id', winnerTeamId)
+        .maybeSingle();
+
+      winnerTeam = winnerTeamData
+        ? {
+            teamName: winnerTeamData.team_name,
+            teamPoints: winnerTotals[winnerTeamId] || 0,
+          }
+        : null;
+    }
 
     // 8. Get league stats
     const { data: leagueMembers } = await supabase
@@ -302,12 +321,7 @@ export async function GET(
         totalMembers: (leagueMembers || []).length,
         startDate: league.start_date,
         endDate: league.end_date,
-        winnerTeam: winnerTeam?.teams
-          ? {
-              teamName: (winnerTeam.teams as any).team_name,
-              teamPoints: winnerTeam.total_points || 0,
-            }
-          : null,
+        winnerTeam,
       },
     };
 

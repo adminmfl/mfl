@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { AlertCircle, Lock, Archive, Clock } from 'lucide-react';
+import { AlertCircle, Lock, Archive } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import type { LeaguePhase } from '@/lib/utils/league-phases';
 

@@ -14,7 +14,7 @@ import {
   StatsSkeleton,
 } from '@/components/leaderboard/leaderboard-skeletons';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Lock, Archive } from 'lucide-react';
+import { Lock } from 'lucide-react';
 
 export default async function LeaderboardPage({
   params,
@@ -22,7 +22,9 @@ export default async function LeaderboardPage({
   params: Promise<{ id: string }>;
 }) {
   const { id: leagueId } = await params;
-  const session = await getServerSession(authOptions as any);
+  const session = (await getServerSession(authOptions as any)) as
+    | import('next-auth').Session
+    | null;
 
   // Parallel fetch: roles, leaderboard data, and league info
   const [roles, initialData, league] = await Promise.all([
@@ -33,8 +35,11 @@ export default async function LeaderboardPage({
     getLeagueById(leagueId),
   ]);
 
-  const leagueData = initialData?.league || league;
-  const leaguePhase = getLeaguePhase(leagueData?.status, leagueData?.end_date);
+  const leagueData = league || initialData?.league;
+  const leaguePhase = getLeaguePhase(
+    (league as any)?.status,
+    (league as any)?.end_date || initialData?.league?.end_date,
+  );
   const isReadOnly = leaguePhase.isReadOnly;
 
   return (
@@ -62,7 +67,7 @@ export default async function LeaderboardPage({
                 <>
                   📦 <strong>Archived:</strong> This league has ended.
                   Leaderboard is read-only. {leaguePhase.daysRemaining} day
-                  {leaguePhase.daysRemaining === 1 ? '' : 's'} until archival.
+                  {leaguePhase.daysRemaining === 1 ? '' : 's'} until deletion.
                 </>
               ) : (
                 <>
@@ -91,9 +96,7 @@ export default async function LeaderboardPage({
           <LeaderboardClientContainer
             leagueId={leagueId}
             initialRoles={roles}
-            initialData={initialData}
-            isReadOnly={isReadOnly}
-            leaguePhase={leaguePhase.phase}
+            initialData={initialData as any}
           />
         </Suspense>
       </div>
