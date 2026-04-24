@@ -71,17 +71,22 @@ import { LeaderboardStats } from '@/components/leaderboard/leaderboard-stats';
 import { calculateWeekPresets } from '@/lib/utils/leaderboard-utils';
 import { LeaderboardControls } from './leaderboard-controls';
 import type { LeaderboardData } from '@/hooks/use-league-leaderboard';
+import type { LeaguePhase } from '@/lib/utils/league-phases';
 
 interface LeaderboardClientContainerProps {
   leagueId: string;
   initialRoles: string[];
   initialData?: LeaderboardData | null;
+  isReadOnly?: boolean;
+  leaguePhase?: LeaguePhase;
 }
 
 export function LeaderboardClientContainer({
   leagueId,
   initialRoles,
   initialData,
+  isReadOnly = false,
+  leaguePhase = 'active',
 }: LeaderboardClientContainerProps) {
   // AI inline insights
   const { insights: aiInsights } = useAiInsights(leagueId, 'leaderboard', [
@@ -280,7 +285,7 @@ export function LeaderboardClientContainer({
               <TabsContent value="challenges" className="mt-0">
                 <ChallengeSpecificLeaderboard
                   leagueId={leagueId}
-                  renderViewSwitcher={() => (
+                  renderViewSwitcher={
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
@@ -319,7 +324,7 @@ export function LeaderboardClientContainer({
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                  )}
+                  }
                 />
               </TabsContent>
             </Tabs>
