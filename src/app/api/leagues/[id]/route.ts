@@ -13,51 +13,72 @@ import {
 import { getAuthUser } from '@/lib/auth/get-auth-user';
 import { z } from 'zod';
 
-const rrConfigSchema = z.object({
-  formula: z.enum(['standard', 'simple', 'points_only']),
-  base_duration: z.number().optional(),
-  distance_divisor: z.number().optional(),
-  steps_min: z.number().optional(),
-  steps_max: z.number().optional(),
-  age_adjustments: z.boolean().optional(),
-}).optional();
+const rrConfigSchema = z
+  .object({
+    formula: z.enum(['standard', 'simple', 'points_only']),
+    base_duration: z.number().optional(),
+    distance_divisor: z.number().optional(),
+    steps_min: z.number().optional(),
+    steps_max: z.number().optional(),
+    age_adjustments: z.boolean().optional(),
+  })
+  .optional();
 
-const brandingSchema = z.object({
-  display_name: z.string().optional(),
-  tagline: z.string().optional(),
-  primary_color: z.string().optional(),
-  logo_url: z.string().nullable().optional(),
-  powered_by_visible: z.boolean().optional(),
-}).nullable().optional();
+const brandingSchema = z
+  .object({
+    display_name: z.string().optional(),
+    tagline: z.string().optional(),
+    primary_color: z.string().optional(),
+    logo_url: z.string().nullable().optional(),
+    powered_by_visible: z.boolean().optional(),
+  })
+  .nullable()
+  .optional();
 
-const updateLeagueSchema = z.object({
-  league_name: z.string().optional(),
-  start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  is_exclusive: z.boolean().optional(),
-  is_public: z.boolean().optional(),
-  num_teams: z.number().int().positive().optional(),
-  tier_id: z.string().optional(),
-  rest_days: z.number().int().min(0).optional(),
-  auto_rest_day_enabled: z.boolean().optional(),
-  normalize_points_by_capacity: z.boolean().optional(),
-  normalize_points_by_team_size: z.boolean().optional(),
-  max_team_capacity: z.number().int().min(1).optional(),
-  description: z.string().optional(),
-  rr_config: rrConfigSchema,
-  branding: brandingSchema,
-}).transform((input) => {
-  const { normalize_points_by_capacity, normalize_points_by_team_size, ...rest } = input;
-  return {
-    ...rest,
-    // Database column is normalize_points_by_team_size
-    normalize_points_by_team_size: normalize_points_by_team_size ?? normalize_points_by_capacity,
-  };
-});
+const updateLeagueSchema = z
+  .object({
+    league_name: z.string().optional(),
+    start_date: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .optional(),
+    end_date: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .optional(),
+    is_exclusive: z.boolean().optional(),
+    is_public: z.boolean().optional(),
+    num_teams: z.number().int().positive().optional(),
+    tier_id: z.string().optional(),
+    rest_days: z.number().int().min(0).optional(),
+    auto_rest_day_enabled: z.boolean().optional(),
+    normalize_points_by_capacity: z.boolean().optional(),
+    normalize_points_by_team_size: z.boolean().optional(),
+    max_team_capacity: z.number().int().min(1).optional(),
+    description: z.string().optional(),
+    rr_config: rrConfigSchema,
+    branding: brandingSchema,
+    league_mode: z.enum(['standard', 'challenges_only']).optional(),
+    player_team_workout_visibility: z.boolean().optional(),
+    player_league_workout_visibility: z.boolean().optional(),
+  })
+  .transform((input) => {
+    const {
+      normalize_points_by_capacity,
+      normalize_points_by_team_size,
+      ...rest
+    } = input;
+    return {
+      ...rest,
+      // Database column is normalize_points_by_team_size
+      normalize_points_by_team_size:
+        normalize_points_by_team_size ?? normalize_points_by_capacity,
+    };
+  });
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -76,14 +97,14 @@ export async function GET(
     console.error('Error fetching league:', error);
     return NextResponse.json(
       { error: 'Failed to fetch league' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -98,8 +119,11 @@ export async function PATCH(
     const updated = await updateLeague(id, authUser.id, validated);
     if (!updated) {
       return NextResponse.json(
-        { error: 'Failed to update league (host only; limited fields once launched)' },
-        { status: 403 }
+        {
+          error:
+            'Failed to update league (host only; limited fields once launched)',
+        },
+        { status: 403 },
       );
     }
 
@@ -109,19 +133,19 @@ export async function PATCH(
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Validation failed', details: error.errors },
-        { status: 400 }
+        { status: 400 },
       );
     }
     return NextResponse.json(
       { error: 'Failed to update league' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -133,8 +157,11 @@ export async function DELETE(
     const success = await deleteLeague(id, authUser.id);
     if (!success) {
       return NextResponse.json(
-        { error: 'Failed to delete league (must be host and league must be in draft status)' },
-        { status: 403 }
+        {
+          error:
+            'Failed to delete league (must be host and league must be in draft status)',
+        },
+        { status: 403 },
       );
     }
 
@@ -143,8 +170,7 @@ export async function DELETE(
     console.error('Error deleting league:', error);
     return NextResponse.json(
       { error: 'Failed to delete league' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

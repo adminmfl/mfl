@@ -10,7 +10,6 @@ import {
   useRef,
   ReactNode,
 } from 'react';
-
 import { useSession } from 'next-auth/react';
 
 // ============================================================================
@@ -63,7 +62,13 @@ const LeagueContext = createContext<LeagueContextType | undefined>(undefined);
 // Role Hierarchy
 // ============================================================================
 
-const ROLE_HIERARCHY: LeagueRole[] = ['host', 'governor', 'captain', 'player'];
+const ROLE_HIERARCHY: LeagueRole[] = [
+  'host',
+  'governor',
+  'captain',
+  'vice_captain',
+  'player',
+];
 
 /**
  * Get the highest permission role from a list of roles
@@ -186,11 +191,13 @@ export function LeagueProvider({
         const highestAvailableRole = sortedRoles[0] || null;
         const preferredRole = selectedRoles.includes('captain')
           ? 'captain'
-          : selectedRoles.includes('player')
-            ? 'player'
-            : null;
+          : selectedRoles.includes('vice_captain')
+            ? 'vice_captain'
+            : selectedRoles.includes('player')
+              ? 'player'
+              : null;
 
-        // Always land in player/captain view when available
+        // Always land in player/captain/vice_captain view when available
         const nextRole = preferredRole || highestAvailableRole;
 
         if (savedRole && selectedRoles.includes(savedRole as LeagueRole)) {
@@ -253,9 +260,11 @@ export function LeagueProvider({
       const highestAvailableRole = sortedRoles[0] || null;
       const preferredRole = roles.includes('captain')
         ? 'captain'
-        : roles.includes('player')
-          ? 'player'
-          : null;
+        : roles.includes('vice_captain')
+          ? 'vice_captain'
+          : roles.includes('player')
+            ? 'player'
+            : null;
 
       const nextRole = preferredRole || highestAvailableRole;
 
@@ -317,8 +326,9 @@ export function LeagueProvider({
     // Player role - always true
     if (currentRole === 'player') return true;
 
-    // Captain is always a player (per PRD: "All Captains are automatically Players")
-    if (currentRole === 'captain') return true;
+    // Captain/Vice Captain is always a player (per PRD: "All Captains are automatically Players")
+    if (currentRole === 'captain' || currentRole === 'vice_captain')
+      return true;
 
     // Host/Governor - check if they also have player role
     if (currentRole === 'host' || currentRole === 'governor') {

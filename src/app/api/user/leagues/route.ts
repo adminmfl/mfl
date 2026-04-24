@@ -23,6 +23,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ leagues });
   } catch (err) {
     console.error('Error in /api/user/leagues:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 },
+    );
   }
 }

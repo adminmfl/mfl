@@ -24,7 +24,12 @@ import { MessageInput } from './message-input';
 const PAGE_LIMIT = 50;
 const FALLBACK_POLL_INTERVAL = 30_000; // 30s fallback if realtime fails
 
-type MessageFilter = 'all' | 'announcements' | 'important' | 'host_messages' | 'captains_only';
+type MessageFilter =
+  | 'all'
+  | 'announcements'
+  | 'important'
+  | 'host_messages'
+  | 'captains_only';
 
 const FILTER_OPTIONS: { value: MessageFilter; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -49,7 +54,12 @@ interface ChatWindowProps {
 // Component
 // ---------------------------------------------------------------------------
 
-export function ChatWindow({ leagueId, teamId, teamName, adminView }: ChatWindowProps) {
+export function ChatWindow({
+  leagueId,
+  teamId,
+  teamName,
+  adminView,
+}: ChatWindowProps) {
   const { data: session } = useSession();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,7 +89,7 @@ export function ChatWindow({ leagueId, teamId, teamName, adminView }: ChatWindow
         if (adminView) params.set('admin_view', 'true');
 
         const res = await fetch(
-          `/api/leagues/${leagueId}/messages?${params.toString()}`
+          `/api/leagues/${leagueId}/messages?${params.toString()}`,
         );
         if (!res.ok) throw new Error('Failed to load messages');
 
@@ -107,7 +117,7 @@ export function ChatWindow({ leagueId, teamId, teamName, adminView }: ChatWindow
               // Notify badge to refetch immediately
               window.dispatchEvent(new Event('mfl:messages-read'));
             })
-            .catch(() => { });
+            .catch(() => {});
         }
       } catch {
         if (fetchId === latestFetchRef.current) {
@@ -119,7 +129,7 @@ export function ChatWindow({ leagueId, teamId, teamName, adminView }: ChatWindow
         }
       }
     },
-    [leagueId, teamId, currentUserId, filter, adminView]
+    [leagueId, teamId, currentUserId, filter, adminView],
   );
 
   // Initial fetch
@@ -157,14 +167,16 @@ export function ChatWindow({ leagueId, teamId, teamName, adminView }: ChatWindow
           // Check if this message belongs to the current view
           const isRelevant = teamId
             ? newMsg.team_id === teamId || newMsg.team_id === null // team messages + broadcasts
-            : newMsg.team_id === null; // broadcast-only view
+            : adminView
+              ? true // host/governor "All Teams" with admin view sees everything
+              : newMsg.team_id === null; // broadcast-only view
 
           if (!isRelevant) return;
 
           // Refetch to get full message with sender info, role, is_read
           // (the realtime payload only has raw DB columns)
           fetchMessages(false);
-        }
+        },
       )
       .subscribe((status) => {
         setRealtimeActive(status === 'SUBSCRIBED');
@@ -173,7 +185,7 @@ export function ChatWindow({ leagueId, teamId, teamName, adminView }: ChatWindow
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [leagueId, teamId, fetchMessages]);
+  }, [leagueId, teamId, adminView, fetchMessages]);
 
   // -----------------------------------------------------------------------
   // Fallback polling (only if realtime is not active)
@@ -184,7 +196,7 @@ export function ChatWindow({ leagueId, teamId, teamName, adminView }: ChatWindow
 
     const interval = setInterval(
       () => fetchMessages(false),
-      FALLBACK_POLL_INTERVAL
+      FALLBACK_POLL_INTERVAL,
     );
     return () => clearInterval(interval);
   }, [realtimeActive, fetchMessages]);
@@ -211,20 +223,23 @@ export function ChatWindow({ leagueId, teamId, teamName, adminView }: ChatWindow
     setReplyTo(msg);
   }, []);
 
-  const handleReact = useCallback(async (messageId: string, emoji: string) => {
-    try {
-      const res = await fetch(`/api/leagues/${leagueId}/messages/reactions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message_id: messageId, emoji }),
-      });
-      if (!res.ok) throw new Error('Failed to react');
-      // Refetch to update reaction counts
-      fetchMessages(false);
-    } catch {
-      toast.error('Failed to add reaction');
-    }
-  }, [leagueId, fetchMessages]);
+  const handleReact = useCallback(
+    async (messageId: string, emoji: string) => {
+      try {
+        const res = await fetch(`/api/leagues/${leagueId}/messages/reactions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message_id: messageId, emoji }),
+        });
+        if (!res.ok) throw new Error('Failed to react');
+        // Refetch to update reaction counts
+        fetchMessages(false);
+      } catch {
+        toast.error('Failed to add reaction');
+      }
+    },
+    [leagueId, fetchMessages],
+  );
 
   // -----------------------------------------------------------------------
   // Render
@@ -242,9 +257,14 @@ export function ChatWindow({ leagueId, teamId, teamName, adminView }: ChatWindow
           <div className="ml-auto">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-7 gap-1.5 text-xs">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 gap-1.5 text-xs"
+                >
                   <Filter className="size-3" />
-                  {FILTER_OPTIONS.find((o) => o.value === filter)?.label ?? 'All'}
+                  {FILTER_OPTIONS.find((o) => o.value === filter)?.label ??
+                    'All'}
                   <ChevronDown className="size-3" />
                 </Button>
               </DropdownMenuTrigger>
@@ -263,7 +283,10 @@ export function ChatWindow({ leagueId, teamId, teamName, adminView }: ChatWindow
           </div>
 
           {realtimeActive && (
-            <span className="size-2 rounded-full bg-green-500 shrink-0" title="Live" />
+            <span
+              className="size-2 rounded-full bg-green-500 shrink-0"
+              title="Live"
+            />
           )}
         </div>
       )}

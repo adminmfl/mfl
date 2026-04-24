@@ -28,7 +28,12 @@ import {
 // Types
 // ============================================================================
 
-export type LeagueRole = 'host' | 'governor' | 'captain' | 'player';
+export type LeagueRole =
+  | 'host'
+  | 'governor'
+  | 'captain'
+  | 'vice_captain'
+  | 'player';
 
 export interface NavItem {
   title: string;
@@ -103,7 +108,7 @@ export function getSidebarNavItems(
   options?: {
     /** Whether host/governor is also participating as a player */
     isAlsoPlayer?: boolean;
-  }
+  },
 ): NavSection[] {
   // No league selected - show base navigation
   if (!leagueId || !role) {
@@ -123,7 +128,7 @@ export function getSidebarNavItems(
   // ========================================
   // PLAYER Section (Player view + Captain view)
   // ========================================
-  if (role === 'player' || role === 'captain') {
+  if (role === 'player' || role === 'captain' || role === 'vice_captain') {
     const primaryItems: NavItem[] = [
       {
         title: 'My Activities',
@@ -224,7 +229,6 @@ export function getSidebarNavItems(
       },
     ];
 
-
     // Include league admin items here to keep all host/governor tools together
     sections.push({
       title: role === 'host' ? 'Host Actions' : 'Governor Actions',
@@ -236,7 +240,7 @@ export function getSidebarNavItems(
   // MY TEAM Section (Captain only)
   // Captain can only manage their own team
   // ========================================
-  if (role === 'captain') {
+  if (role === 'captain' || role === 'vice_captain') {
     sections.push({
       title: 'Captain Actions',
       items: [
@@ -284,7 +288,7 @@ export function getMobileTabItems(
   leagueId: string | null,
   options?: {
     isAlsoPlayer?: boolean;
-  }
+  },
 ): NavItem[] {
   // No league - basic tabs
   if (!leagueId || !role) {
@@ -304,7 +308,6 @@ export function getMobileTabItems(
         url: '/leagues/join',
         icon: Search,
       },
-
     ];
   }
 
@@ -312,7 +315,7 @@ export function getMobileTabItems(
 
   const tabs: NavItem[] = [];
 
-  if (role === 'player' || role === 'captain') {
+  if (role === 'player' || role === 'captain' || role === 'vice_captain') {
     tabs.push(
       {
         title: 'My Activity',
@@ -338,9 +341,9 @@ export function getMobileTabItems(
         title: 'Team Chat',
         url: leagueUrl('/messages'),
         icon: MessageCircle,
-      }
+      },
     );
-    if (role === 'captain') {
+    if (role === 'captain' || role === 'vice_captain') {
       tabs.push(
         {
           title: 'Team Logs',
@@ -351,7 +354,7 @@ export function getMobileTabItems(
           title: 'Donations',
           url: leagueUrl('/rest-day-donations'),
           icon: HeartHandshake,
-        }
+        },
       );
     }
   } else if (role === 'host' || role === 'governor') {
@@ -387,7 +390,7 @@ export function getMobileTabItems(
         title: 'Donations',
         url: leagueUrl('/rest-day-donations'),
         icon: HeartHandshake,
-      }
+      },
     );
   }
 
@@ -410,7 +413,12 @@ export function canManageLeague(role: LeagueRole | null): boolean {
  * Check if user can validate submissions
  */
 export function canValidateSubmissions(role: LeagueRole | null): boolean {
-  return role === 'host' || role === 'governor' || role === 'captain';
+  return (
+    role === 'host' ||
+    role === 'governor' ||
+    role === 'captain' ||
+    role === 'vice_captain'
+  );
 }
 
 /**
@@ -435,7 +443,10 @@ export function getRoleDisplay(role: LeagueRole): {
   icon: LucideIcon;
   color: string;
 } {
-  const roleConfig: Record<LeagueRole, { label: string; icon: LucideIcon; color: string }> = {
+  const roleConfig: Record<
+    LeagueRole,
+    { label: string; icon: LucideIcon; color: string }
+  > = {
     host: {
       label: 'Host',
       icon: Crown,
@@ -450,6 +461,11 @@ export function getRoleDisplay(role: LeagueRole): {
       label: 'Player (C)',
       icon: Target,
       color: 'text-amber-600 bg-amber-100 dark:bg-amber-900/30',
+    },
+    vice_captain: {
+      label: 'Player (VC)',
+      icon: Shield,
+      color: 'text-blue-600 bg-blue-100 dark:bg-blue-900/30',
     },
     player: {
       label: 'Player',

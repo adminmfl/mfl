@@ -54,7 +54,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { toast } from '@/lib/toast';
 import { useLeagueTeams } from '@/hooks/use-league-teams';
 import { useLeagueActivities } from '@/hooks/use-league-activities';
@@ -75,7 +79,10 @@ function FieldInfoButton({ text }: { text: string }) {
           <Info className="size-3" />
         </button>
       </PopoverTrigger>
-      <PopoverContent side="top" className="max-w-[200px] text-xs p-2 bg-popover border shadow-lg">
+      <PopoverContent
+        side="top"
+        className="max-w-[200px] text-xs p-2 bg-popover border shadow-lg"
+      >
         <p className="text-muted-foreground leading-relaxed">{text}</p>
       </PopoverContent>
     </Popover>
@@ -92,7 +99,8 @@ export default function LeagueSettingsPage({
   const { isHost } = useRole();
   const { activeLeague, refetch } = useLeague();
   const { data: teamsData, isLoading: teamsLoading } = useLeagueTeams(id);
-  const { data: activitiesData, isLoading: activitiesLoading } = useLeagueActivities(id);
+  const { data: activitiesData, isLoading: activitiesLoading } =
+    useLeagueActivities(id);
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -119,21 +127,30 @@ export default function LeagueSettingsPage({
     normalize_points_by_team_size: true,
     max_team_capacity: '10',
     rr_formula: 'standard' as 'standard' | 'simple' | 'points_only',
+    league_mode: 'standard' as 'standard' | 'challenges_only',
     branding_display_name: '',
     branding_tagline: '',
     branding_primary_color: '',
     branding_powered_by: true,
+    player_team_workout_visibility: false,
+    player_league_workout_visibility: false,
   });
 
   const canEditStructure = formData.status === 'draft';
   const today = new Date().toISOString().slice(0, 10);
-  const canEditStartDate = canEditStructure || !formData.start_date || formData.start_date >= today;
-  const canEditEndDate = canEditStructure || !formData.end_date || formData.end_date >= today;
+  const canEditStartDate =
+    canEditStructure || !formData.start_date || formData.start_date >= today;
+  const canEditEndDate =
+    canEditStructure || !formData.end_date || formData.end_date >= today;
   const isTeamsConfigured = (teamsData?.teams?.length ?? 0) > 0;
   const isActivitiesConfigured = (activitiesData?.activities?.length ?? 0) > 0;
-  const setupCompletedCount = Number(isTeamsConfigured) + Number(isActivitiesConfigured);
+  const setupCompletedCount =
+    Number(isTeamsConfigured) + Number(isActivitiesConfigured);
   const setupTotalCount = 2;
-  const showSetupChecklist = !teamsLoading && !activitiesLoading && setupCompletedCount < setupTotalCount;
+  const showSetupChecklist =
+    !teamsLoading &&
+    !activitiesLoading &&
+    setupCompletedCount < setupTotalCount;
 
   const handleLogoUpload = async (file: File) => {
     setLogoUploading(true);
@@ -156,13 +173,17 @@ export default function LeagueSettingsPage({
       await refetch();
     } catch (error) {
       console.error('[League Settings] logo upload', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to upload logo');
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to upload logo',
+      );
     } finally {
       setLogoUploading(false);
     }
   };
 
-  const handleLogoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = e.target.files?.[0];
     if (file) {
       await handleLogoUpload(file);
@@ -183,7 +204,9 @@ export default function LeagueSettingsPage({
       await refetch();
     } catch (error) {
       console.error('[League Settings] logo delete', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to delete logo');
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to delete logo',
+      );
     } finally {
       setLogoDeleting(false);
     }
@@ -219,14 +242,21 @@ export default function LeagueSettingsPage({
           normalize_points_by_team_size: !!league.normalize_points_by_team_size,
           max_team_capacity: String(league.max_team_capacity || '10'),
           rr_formula: rrCfg.formula || 'standard',
+          league_mode: league.league_mode || 'standard',
           branding_display_name: brand.display_name || '',
           branding_tagline: brand.tagline || '',
           branding_primary_color: brand.primary_color || '',
           branding_powered_by: brand.powered_by_visible !== false,
+          player_team_workout_visibility:
+            !!league.player_team_workout_visibility,
+          player_league_workout_visibility:
+            !!league.player_league_workout_visibility,
         });
         setLogoUrl(league.logo_url || null);
       } catch (err) {
-        setLoadError(err instanceof Error ? err.message : 'Failed to load league');
+        setLoadError(
+          err instanceof Error ? err.message : 'Failed to load league',
+        );
       } finally {
         setLoading(false);
       }
@@ -297,14 +327,21 @@ export default function LeagueSettingsPage({
         normalize_points_by_team_size: formData.normalize_points_by_team_size,
         max_team_capacity: Number(formData.max_team_capacity),
         rr_config: { formula: formData.rr_formula },
-        branding: (formData.branding_display_name || formData.branding_tagline || formData.branding_primary_color)
-          ? {
-              display_name: formData.branding_display_name || undefined,
-              tagline: formData.branding_tagline || undefined,
-              primary_color: formData.branding_primary_color || undefined,
-              powered_by_visible: formData.branding_powered_by,
-            }
-          : null,
+        league_mode: formData.league_mode,
+        player_team_workout_visibility: formData.player_team_workout_visibility,
+        player_league_workout_visibility:
+          formData.player_league_workout_visibility,
+        branding:
+          formData.branding_display_name ||
+          formData.branding_tagline ||
+          formData.branding_primary_color
+            ? {
+                display_name: formData.branding_display_name || undefined,
+                tagline: formData.branding_tagline || undefined,
+                primary_color: formData.branding_primary_color || undefined,
+                powered_by_visible: formData.branding_powered_by,
+              }
+            : null,
       };
 
       // Always send dates — backend will validate if they can be changed
@@ -345,6 +382,11 @@ export default function LeagueSettingsPage({
           start_date: league.start_date,
           end_date: league.end_date,
           status: league.status,
+          league_mode: league.league_mode || prev.league_mode,
+          player_team_workout_visibility:
+            !!league.player_team_workout_visibility,
+          player_league_workout_visibility:
+            !!league.player_league_workout_visibility,
         }));
       }
 
@@ -352,7 +394,9 @@ export default function LeagueSettingsPage({
 
       toast.success('League settings updated.');
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : 'Failed to save changes');
+      setSaveError(
+        err instanceof Error ? err.message : 'Failed to save changes',
+      );
     } finally {
       setSaving(false);
     }
@@ -370,7 +414,9 @@ export default function LeagueSettingsPage({
       await refetch();
       router.push('/dashboard');
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : 'Failed to delete league');
+      setSaveError(
+        err instanceof Error ? err.message : 'Failed to delete league',
+      );
     } finally {
       setDeleting(false);
     }
@@ -386,14 +432,18 @@ export default function LeagueSettingsPage({
           <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
             <Settings className="size-6 text-primary" />
             League Settings
-            <Badge variant={formData.status === 'active' ? 'default' : 'secondary'} className="capitalize">
+            <Badge
+              variant={formData.status === 'active' ? 'default' : 'secondary'}
+              className="capitalize"
+            >
               {formData.status}
             </Badge>
           </h1>
           <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
             <Calendar className="size-3.5" />
             <span>
-              {formData.start_date?.split('-').reverse().join('-') || '—'} to {formData.end_date?.split('-').reverse().join('-') || '—'}
+              {formData.start_date?.split('-').reverse().join('-') || '—'} to{' '}
+              {formData.end_date?.split('-').reverse().join('-') || '—'}
             </span>
           </div>
           <p className="text-muted-foreground mt-1">
@@ -413,16 +463,25 @@ export default function LeagueSettingsPage({
                   <div className="flex items-center gap-2">
                     <Label>Manage</Label>
                     {showSetupChecklist && (
-                      <Badge variant="outline" className="text-[10px] sm:text-xs">
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] sm:text-xs"
+                      >
                         {setupCompletedCount}/{setupTotalCount} completed
                       </Badge>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground">Manage teams and activities in separate screens.</p>
+                  <p className="text-xs text-muted-foreground">
+                    Manage teams and activities in separate screens.
+                  </p>
                   {showSetupChecklist && (
                     <div className="mt-3 rounded-lg border bg-muted/30 p-3 text-xs space-y-2">
-                      <p className="font-medium text-foreground">Required setup</p>
-                      <p className="text-muted-foreground">Must configure before season starts.</p>
+                      <p className="font-medium text-foreground">
+                        Required setup
+                      </p>
+                      <p className="text-muted-foreground">
+                        Must configure before season starts.
+                      </p>
                       <div className="space-y-2">
                         <div className="flex items-center justify-between rounded-md border bg-background/70 px-2 py-1.5">
                           <div className="flex items-center gap-2">
@@ -431,11 +490,22 @@ export default function LeagueSettingsPage({
                             ) : (
                               <Circle className="size-4 text-muted-foreground" />
                             )}
-                            <span className={isTeamsConfigured ? 'text-muted-foreground line-through' : 'text-foreground'}>
+                            <span
+                              className={
+                                isTeamsConfigured
+                                  ? 'text-muted-foreground line-through'
+                                  : 'text-foreground'
+                              }
+                            >
                               Team management
                             </span>
                           </div>
-                          <Button asChild size="sm" variant={isTeamsConfigured ? 'ghost' : 'outline'} className="h-7 text-[10px]">
+                          <Button
+                            asChild
+                            size="sm"
+                            variant={isTeamsConfigured ? 'ghost' : 'outline'}
+                            className="h-7 text-[10px]"
+                          >
                             <Link href={`/leagues/${id}/team`}>
                               {isTeamsConfigured ? 'View' : 'Set up'}
                             </Link>
@@ -448,11 +518,24 @@ export default function LeagueSettingsPage({
                             ) : (
                               <Circle className="size-4 text-muted-foreground" />
                             )}
-                            <span className={isActivitiesConfigured ? 'text-muted-foreground line-through' : 'text-foreground'}>
+                            <span
+                              className={
+                                isActivitiesConfigured
+                                  ? 'text-muted-foreground line-through'
+                                  : 'text-foreground'
+                              }
+                            >
                               Configure activities
                             </span>
                           </div>
-                          <Button asChild size="sm" variant={isActivitiesConfigured ? 'ghost' : 'outline'} className="h-7 text-[10px]">
+                          <Button
+                            asChild
+                            size="sm"
+                            variant={
+                              isActivitiesConfigured ? 'ghost' : 'outline'
+                            }
+                            className="h-7 text-[10px]"
+                          >
                             <Link href={`/leagues/${id}/activities`}>
                               {isActivitiesConfigured ? 'View' : 'Set up'}
                             </Link>
@@ -548,7 +631,10 @@ export default function LeagueSettingsPage({
                     type="date"
                     value={formData.start_date}
                     onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, start_date: e.target.value }))
+                      setFormData((prev) => ({
+                        ...prev,
+                        start_date: e.target.value,
+                      }))
                     }
                     disabled={!canEditStartDate}
                     className="flex-1 min-w-0 bg-black/10 border-2 border-muted-foreground/20 shadow-sm text-foreground text-[12px] sm:text-sm px-2.5"
@@ -557,7 +643,10 @@ export default function LeagueSettingsPage({
                     type="date"
                     value={formData.end_date}
                     onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, end_date: e.target.value }))
+                      setFormData((prev) => ({
+                        ...prev,
+                        end_date: e.target.value,
+                      }))
                     }
                     disabled={!canEditEndDate}
                     className="flex-1 min-w-0 bg-black/10 border-2 border-muted-foreground/20 shadow-sm text-foreground text-[12px] sm:text-sm px-2.5"
@@ -600,7 +689,9 @@ export default function LeagueSettingsPage({
                     <Label htmlFor="max_team_capacity">Max Team Capacity</Label>
                     <FieldInfoButton text="Maximum members allowed per team." />
                   </div>
-                  <p className="text-xs text-muted-foreground">Limits team size for joining.</p>
+                  <p className="text-xs text-muted-foreground">
+                    Limits team size for joining.
+                  </p>
                 </div>
                 <Input
                   id="max_team_capacity"
@@ -608,7 +699,10 @@ export default function LeagueSettingsPage({
                   min="1"
                   value={formData.max_team_capacity}
                   onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, max_team_capacity: e.target.value }))
+                    setFormData((prev) => ({
+                      ...prev,
+                      max_team_capacity: e.target.value,
+                    }))
                   }
                   placeholder="e.g. 10"
                   className="w-20 bg-black/10 border-2 border-muted-foreground/20 shadow-sm text-foreground text-center"
@@ -629,7 +723,10 @@ export default function LeagueSettingsPage({
                   min="0"
                   value={formData.rest_days}
                   onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, rest_days: e.target.value }))
+                    setFormData((prev) => ({
+                      ...prev,
+                      rest_days: e.target.value,
+                    }))
                   }
                   placeholder="e.g. 18"
                   className="w-20 bg-black/10 border-2 border-muted-foreground/20 shadow-sm text-foreground text-center"
@@ -647,7 +744,10 @@ export default function LeagueSettingsPage({
                 <Switch
                   checked={formData.auto_rest_day_enabled}
                   onCheckedChange={(checked) =>
-                    setFormData((prev) => ({ ...prev, auto_rest_day_enabled: checked }))
+                    setFormData((prev) => ({
+                      ...prev,
+                      auto_rest_day_enabled: checked,
+                    }))
                   }
                 />
               </div>
@@ -663,7 +763,10 @@ export default function LeagueSettingsPage({
                 <Switch
                   checked={formData.normalize_points_by_team_size}
                   onCheckedChange={(checked) =>
-                    setFormData((prev) => ({ ...prev, normalize_points_by_team_size: checked }))
+                    setFormData((prev) => ({
+                      ...prev,
+                      normalize_points_by_team_size: checked,
+                    }))
                   }
                 />
               </div>
@@ -679,10 +782,7 @@ export default function LeagueSettingsPage({
                     <FieldInfoButton text="Private leagues are not publicly discoverable. Members can only join via invite code." />
                   </div>
                 </div>
-                <Switch
-                  checked={true}
-                  disabled
-                />
+                <Switch checked={true} disabled />
               </div>
 
               {/* Invite Only */}
@@ -713,9 +813,12 @@ export default function LeagueSettingsPage({
                     <FieldInfoButton text="Controls how Run Rate (RR) is calculated. Standard: metric-based (duration/45min = 1 RR). Simple: binary 1 or 0. Points Only: always 1 RR, use points_per_session for scoring." />
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {formData.rr_formula === 'standard' && 'Metric-based RR calculation (default)'}
-                    {formData.rr_formula === 'simple' && 'Binary: 1.0 if activity done, 0 otherwise'}
-                    {formData.rr_formula === 'points_only' && 'Always 1.0 RR — scoring via points per session'}
+                    {formData.rr_formula === 'standard' &&
+                      'Metric-based RR calculation (default)'}
+                    {formData.rr_formula === 'simple' &&
+                      'Binary: 1.0 if activity done, 0 otherwise'}
+                    {formData.rr_formula === 'points_only' &&
+                      'Always 1.0 RR — scoring via points per session'}
                   </p>
                 </div>
                 <Select
@@ -735,6 +838,76 @@ export default function LeagueSettingsPage({
                 </Select>
               </div>
 
+              {/* League Mode */}
+              <div className="flex items-center justify-between gap-3 py-5">
+                <div className="flex-1 min-w-0 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Label>League Mode</Label>
+                    <FieldInfoButton text="Standard: members submit daily activities and participate in challenges. Challenges Only: no activity submissions — scoring is based entirely on challenges." />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {formData.league_mode === 'standard' &&
+                      'Activities + Challenges (default)'}
+                    {formData.league_mode === 'challenges_only' &&
+                      'Challenges only — activity submissions are disabled'}
+                  </p>
+                </div>
+                <Select
+                  value={formData.league_mode}
+                  onValueChange={(v) =>
+                    setFormData((prev) => ({ ...prev, league_mode: v as any }))
+                  }
+                >
+                  <SelectTrigger className="w-44 bg-black/10 border-2 border-muted-foreground/20 shadow-sm text-foreground">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="standard">Standard</SelectItem>
+                    <SelectItem value="challenges_only">
+                      Challenges Only
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Player Workout Visibility */}
+              <div className="flex items-center justify-between gap-3 py-5">
+                <div className="flex-1 min-w-0 space-y-1">
+                  <Label>Team Workout Visibility</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Players can view their teammates&apos; last 5 approved
+                    workouts
+                  </p>
+                </div>
+                <Switch
+                  checked={formData.player_team_workout_visibility}
+                  onCheckedChange={(v) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      player_team_workout_visibility: v,
+                    }))
+                  }
+                />
+              </div>
+              <div className="flex items-center justify-between gap-3 py-5">
+                <div className="flex-1 min-w-0 space-y-1">
+                  <Label>Cross-Team Workout Visibility</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Players can search and view other teams&apos; member
+                    workouts
+                  </p>
+                </div>
+                <Switch
+                  checked={formData.player_league_workout_visibility}
+                  onCheckedChange={(v) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      player_league_workout_visibility: v,
+                    }))
+                  }
+                />
+              </div>
+
               {/* White-Label Branding */}
               <div className="flex flex-col gap-4 py-5">
                 <div className="space-y-1">
@@ -742,53 +915,95 @@ export default function LeagueSettingsPage({
                     <Label>White-Label Branding</Label>
                     <FieldInfoButton text="Customize how your league appears. Override the default MFL branding with your own name, tagline, and colors." />
                   </div>
-                  <p className="text-xs text-muted-foreground">Leave blank to use default MFL branding.</p>
+                  <p className="text-xs text-muted-foreground">
+                    Leave blank to use default MFL branding.
+                  </p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <Label htmlFor="branding_display_name" className="text-xs text-muted-foreground">Display Name</Label>
+                    <Label
+                      htmlFor="branding_display_name"
+                      className="text-xs text-muted-foreground"
+                    >
+                      Display Name
+                    </Label>
                     <Input
                       id="branding_display_name"
                       value={formData.branding_display_name}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, branding_display_name: e.target.value }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          branding_display_name: e.target.value,
+                        }))
+                      }
                       placeholder="e.g. PowerFit Corporate"
                       className="bg-black/10 border-2 border-muted-foreground/20 shadow-sm text-foreground"
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor="branding_tagline" className="text-xs text-muted-foreground">Tagline</Label>
+                    <Label
+                      htmlFor="branding_tagline"
+                      className="text-xs text-muted-foreground"
+                    >
+                      Tagline
+                    </Label>
                     <Input
                       id="branding_tagline"
                       value={formData.branding_tagline}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, branding_tagline: e.target.value }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          branding_tagline: e.target.value,
+                        }))
+                      }
                       placeholder="e.g. Get Fit, Stay Strong"
                       className="bg-black/10 border-2 border-muted-foreground/20 shadow-sm text-foreground"
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor="branding_primary_color" className="text-xs text-muted-foreground">Brand Color</Label>
+                    <Label
+                      htmlFor="branding_primary_color"
+                      className="text-xs text-muted-foreground"
+                    >
+                      Brand Color
+                    </Label>
                     <div className="flex items-center gap-2">
                       <Input
                         id="branding_primary_color"
                         value={formData.branding_primary_color}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, branding_primary_color: e.target.value }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            branding_primary_color: e.target.value,
+                          }))
+                        }
                         placeholder="#1a5276"
                         className="bg-black/10 border-2 border-muted-foreground/20 shadow-sm text-foreground flex-1"
                       />
-                      {formData.branding_primary_color && /^#[0-9a-fA-F]{6}$/.test(formData.branding_primary_color) && (
-                        <div
-                          className="size-8 rounded-md border shrink-0"
-                          style={{ backgroundColor: formData.branding_primary_color }}
-                        />
-                      )}
+                      {formData.branding_primary_color &&
+                        /^#[0-9a-fA-F]{6}$/.test(
+                          formData.branding_primary_color,
+                        ) && (
+                          <div
+                            className="size-8 rounded-md border shrink-0"
+                            style={{
+                              backgroundColor: formData.branding_primary_color,
+                            }}
+                          />
+                        )}
                     </div>
                   </div>
                   <div className="flex items-center justify-between gap-2 self-end pb-1">
-                    <Label className="text-xs text-muted-foreground">"Powered by MFL"</Label>
+                    <Label className="text-xs text-muted-foreground">
+                      "Powered by MFL"
+                    </Label>
                     <Switch
                       checked={formData.branding_powered_by}
                       onCheckedChange={(checked) =>
-                        setFormData((prev) => ({ ...prev, branding_powered_by: checked }))
+                        setFormData((prev) => ({
+                          ...prev,
+                          branding_powered_by: checked,
+                        }))
                       }
                     />
                   </div>
@@ -802,16 +1017,24 @@ export default function LeagueSettingsPage({
                     <Label>League Logo</Label>
                     <FieldInfoButton text="logo for your league pages and invites." />
                   </div>
-                  <p className="text-xs text-muted-foreground">PNG/JPEG/WebP, max 2MB. Recommended 512×512.</p>
+                  <p className="text-xs text-muted-foreground">
+                    PNG/JPEG/WebP, max 2MB. Recommended 512×512.
+                  </p>
                 </div>
                 <div className="w-full sm:max-w-md">
                   <div className="flex items-center gap-3">
                     <div className="h-12 w-12 rounded-lg border bg-muted overflow-hidden flex items-center justify-center">
                       {logoUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={logoUrl} alt="League logo" className="h-full w-full object-cover" />
+                        <img
+                          src={logoUrl}
+                          alt="League logo"
+                          className="h-full w-full object-cover"
+                        />
                       ) : (
-                        <span className="text-[10px] text-muted-foreground">No logo</span>
+                        <span className="text-[10px] text-muted-foreground">
+                          No logo
+                        </span>
                       )}
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -872,7 +1095,10 @@ export default function LeagueSettingsPage({
                     <Label>Save Changes</Label>
                     <FieldInfoButton text="Apply your configuration updates." />
                   </div>
-                  <p className="text-xs text-muted-foreground">Some settings may not take effect immediately for active leagues.</p>
+                  <p className="text-xs text-muted-foreground">
+                    Some settings may not take effect immediately for active
+                    leagues.
+                  </p>
                 </div>
                 <div className="w-full sm:max-w-sm">
                   <Button
@@ -905,7 +1131,9 @@ export default function LeagueSettingsPage({
                     <Label className="text-destructive">Delete League</Label>
                     <FieldInfoButton text="Irreversible action. Deletes all data." />
                   </div>
-                  <p className="text-xs text-muted-foreground">This action cannot be undone.</p>
+                  <p className="text-xs text-muted-foreground">
+                    This action cannot be undone.
+                  </p>
                 </div>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -945,6 +1173,6 @@ export default function LeagueSettingsPage({
           </Card>
         </div>
       </div>
-    </div >
+    </div>
   );
 }

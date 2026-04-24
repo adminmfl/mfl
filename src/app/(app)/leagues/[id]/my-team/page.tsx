@@ -24,12 +24,14 @@ import {
   Camera,
   Upload,
   Trash2,
+  UserPlus,
 } from 'lucide-react';
 import { toast } from '@/lib/toast';
 
 import { useLeague } from '@/contexts/league-context';
 import { useRole } from '@/contexts/role-context';
 import { useLeagueTeams } from '@/hooks/use-league-teams';
+import { AddPlayersDialog } from '@/components/leagues/add-players-dialog';
 import {
   Card,
   CardContent,
@@ -98,8 +100,13 @@ export default function MyTeamPage({
 }) {
   const { id: leagueId } = use(params);
   const { activeLeague } = useLeague();
-  const { isCaptain } = useRole();
-  const { data: teamsData, isLoading: teamsLoading, assignMember, refetch: refetchTeams } = useLeagueTeams(leagueId);
+  const { isCaptain, isViceCaptain, isHost } = useRole();
+  const {
+    data: teamsData,
+    isLoading: teamsLoading,
+    assignMember,
+    refetch: refetchTeams,
+  } = useLeagueTeams(leagueId);
 
   console.debug('[MyTeamPage] render', { leagueId, activeLeague });
 
@@ -111,8 +118,12 @@ export default function MyTeamPage({
   const [isUnallocatedDialogOpen, setIsUnallocatedDialogOpen] = useState(false);
   // Team selector removed - captains can only add to their own team
   const [unallocatedSearchQuery, setUnallocatedSearchQuery] = useState('');
-  const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set());
-  const [assigningMembers, setAssigningMembers] = useState<Set<string>>(new Set());
+  const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [assigningMembers, setAssigningMembers] = useState<Set<string>>(
+    new Set(),
+  );
   const [isBulkAssigning, setIsBulkAssigning] = useState(false);
 
   const [teamRank, setTeamRank] = useState<string>('#--');
@@ -120,6 +131,9 @@ export default function MyTeamPage({
   const [teamAvgRR, setTeamAvgRR] = useState<string>('--');
   const [leaderboardError, setLeaderboardError] = useState<string | null>(null);
   const [teamLogoUrl, setTeamLogoUrl] = useState<string | null>(null);
+
+  // Add players dialog state
+  const [addPlayersOpen, setAddPlayersOpen] = useState(false);
 
   // Logo dialog state
   const [logoDialogOpen, setLogoDialogOpen] = useState(false);
@@ -158,36 +172,47 @@ export default function MyTeamPage({
         const [membersRes, lbRes, teamRes] = await Promise.all([
           fetch(`/api/leagues/${leagueId}/teams/${userTeamId}/members`),
           fetch(`/api/leagues/${leagueId}/leaderboard?full=true`),
-          fetch(`/api/leagues/${leagueId}/teams/${userTeamId}`)
+          fetch(`/api/leagues/${leagueId}/teams/${userTeamId}`),
         ]);
 
         const [membersJson, lbJson, teamJson] = await Promise.all([
           membersRes.json(),
           lbRes.json(),
-          teamRes.json()
+          teamRes.json(),
         ]);
 
         // 1. Process Team Members
-        if (!membersRes.ok) throw new Error(membersJson.error || 'Failed to fetch team members');
-        
+        if (!membersRes.ok)
+          throw new Error(membersJson.error || 'Failed to fetch team members');
+
         let membersData = membersJson.data || [];
-        
+
         // 2. Process Leaderboard (Individual Points + Team Stats)
         if (lbRes.ok && lbJson?.success) {
           // Individual points
           if (lbJson.data?.individuals) {
             const pts = new Map<string, number>(
-              lbJson.data.individuals.map((i: any) => [String(i.user_id), Number(i.points || 0)])
+              lbJson.data.individuals.map((i: any) => [
+                String(i.user_id),
+                Number(i.points || 0),
+              ]),
             );
-            membersData = membersData.map((m: any) => ({ ...m, points: pts.get(String(m.user_id)) || 0 }));
+            membersData = membersData.map((m: any) => ({
+              ...m,
+              points: pts.get(String(m.user_id)) || 0,
+            }));
           }
 
           // Team stats
           if (lbJson.data?.teams) {
-            const team = lbJson.data.teams.find((t: any) => String(t.team_id) === String(userTeamId));
+            const team = lbJson.data.teams.find(
+              (t: any) => String(t.team_id) === String(userTeamId),
+            );
             if (team) {
               // Include pending window points
-              const pendingTeam = (lbJson.data?.pendingWindow?.teams || []).find((t: any) => String(t.team_id) === String(userTeamId));
+              const pendingTeam = (
+                lbJson.data?.pendingWindow?.teams || []
+              ).find((t: any) => String(t.team_id) === String(userTeamId));
               const pendingPts = pendingTeam?.total_points ?? 0;
 
               setTeamRank(`#${team.rank ?? '--'}`);
@@ -207,10 +232,11 @@ export default function MyTeamPage({
         if (teamRes.ok && teamJson?.success && teamJson.data?.logo_url) {
           setTeamLogoUrl(`${teamJson.data.logo_url}?t=${Date.now()}`);
         }
-
       } catch (err) {
         console.error('Error fetching My Team data:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load team data');
+        setError(
+          err instanceof Error ? err.message : 'Failed to load team data',
+        );
       } finally {
         setIsLoading(false);
       }
@@ -229,12 +255,16 @@ export default function MyTeamPage({
       const formData = new FormData();
       formData.append('file', file);
 
-      const res = await fetch(`/api/leagues/${leagueId}/teams/${userTeamId}/logo`, {
-        method: 'POST',
-        body: formData,
-      });
+      const res = await fetch(
+        `/api/leagues/${leagueId}/teams/${userTeamId}/logo`,
+        {
+          method: 'POST',
+          body: formData,
+        },
+      );
       const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json.error || 'Upload failed');
+      if (!res.ok || !json.success)
+        throw new Error(json.error || 'Upload failed');
       // Add cache-busting timestamp to prevent browser from showing cached old image
       const urlWithCacheBust = `${json.data.url}?t=${Date.now()}`;
       setTeamLogoUrl(urlWithCacheBust);
@@ -251,11 +281,15 @@ export default function MyTeamPage({
     if (!userTeamId) return;
     setLogoDeleting(true);
     try {
-      const res = await fetch(`/api/leagues/${leagueId}/teams/${userTeamId}/logo`, {
-        method: 'DELETE',
-      });
+      const res = await fetch(
+        `/api/leagues/${leagueId}/teams/${userTeamId}/logo`,
+        {
+          method: 'DELETE',
+        },
+      );
       const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json.error || 'Delete failed');
+      if (!res.ok || !json.success)
+        throw new Error(json.error || 'Delete failed');
       setTeamLogoUrl(null);
       toast.success('Team logo removed');
     } catch (err) {
@@ -265,8 +299,8 @@ export default function MyTeamPage({
     }
   };
 
-  // Check if user is captain
-  if (!isCaptain) {
+  // Check if user is captain or host
+  if (!isCaptain && !isViceCaptain && !isHost) {
     return (
       <div className="@container/main flex flex-1 flex-col gap-4 lg:gap-6">
         <div className="px-4 lg:px-6">
@@ -274,8 +308,9 @@ export default function MyTeamPage({
             <AlertCircle className="size-4" />
             <AlertTitle>Access Restricted</AlertTitle>
             <AlertDescription>
-              This page is only accessible to team captains. If you believe
-              you should have access, please contact your league administrator.
+              This page is only accessible to team captains and league hosts. If
+              you believe you should have access, please contact your league
+              administrator.
             </AlertDescription>
           </Alert>
         </div>
@@ -285,6 +320,38 @@ export default function MyTeamPage({
 
   // User not assigned to a team
   if (!userTeamId || !userTeamName) {
+    // Hosts can still add players even without a team assignment
+    if (isHost) {
+      return (
+        <div className="@container/main flex flex-1 flex-col items-center justify-center gap-4 min-h-[400px]">
+          <div className="flex size-16 items-center justify-center rounded-full bg-primary/10">
+            <UserPlus className="size-8 text-primary" />
+          </div>
+          <div className="text-center">
+            <h2 className="text-xl font-semibold">Manage Players</h2>
+            <p className="text-muted-foreground mt-1 max-w-md">
+              You're not assigned to a team, but as host you can add players to
+              the league.
+            </p>
+          </div>
+          <Button onClick={() => setAddPlayersOpen(true)} className="gap-2">
+            <UserPlus className="size-4" />
+            Add Players
+          </Button>
+          <AddPlayersDialog
+            open={addPlayersOpen}
+            onOpenChange={setAddPlayersOpen}
+            leagueId={leagueId}
+            teams={
+              teamsData?.teams?.map((t) => ({
+                team_id: t.team_id,
+                team_name: t.team_name,
+              })) || []
+            }
+          />
+        </div>
+      );
+    }
     return (
       <div className="@container/main flex flex-1 flex-col items-center justify-center gap-4 min-h-[400px]">
         <div className="flex size-16 items-center justify-center rounded-full bg-muted">
@@ -293,8 +360,8 @@ export default function MyTeamPage({
         <div className="text-center">
           <h2 className="text-xl font-semibold">Not Assigned to a Team</h2>
           <p className="text-muted-foreground mt-1 max-w-md">
-            You haven't been assigned to a team yet. Please wait for the host
-            or governor to assign you to a team.
+            You haven't been assigned to a team yet. Please wait for the host or
+            governor to assign you to a team.
           </p>
         </div>
       </div>
@@ -328,10 +395,10 @@ export default function MyTeamPage({
             </div>
           )}
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">{userTeamName}</h1>
-            <p className="text-muted-foreground">
-              Manage your team as captain
-            </p>
+            <h1 className="text-2xl font-bold tracking-tight">
+              {userTeamName}
+            </h1>
+            <p className="text-muted-foreground">Manage your team as captain</p>
             {aiInsights.team_strip && (
               <p className="text-xs text-primary/80 mt-1 flex items-center gap-1">
                 <Sparkles className="size-3 shrink-0" />
@@ -342,16 +409,28 @@ export default function MyTeamPage({
         </div>
 
         <div className="flex items-center gap-2">
-          {teamsData?.members?.unallocated && teamsData.members.unallocated.length > 0 && (
+          {isHost && (
             <Button
               variant="outline"
-              onClick={() => setIsUnallocatedDialogOpen(true)}
+              size="sm"
+              onClick={() => setAddPlayersOpen(true)}
               className="gap-2"
             >
-              <Users className="size-4" />
-              Unallocated Members ({teamsData.members.unallocated.length})
+              <UserPlus className="size-4" />
+              Add Players
             </Button>
           )}
+          {teamsData?.members?.unallocated &&
+            teamsData.members.unallocated.length > 0 && (
+              <Button
+                variant="outline"
+                onClick={() => setIsUnallocatedDialogOpen(true)}
+                className="gap-2"
+              >
+                <Users className="size-4" />
+                Unallocated Members ({teamsData.members.unallocated.length})
+              </Button>
+            )}
           <Badge
             variant="outline"
             className="bg-amber-500/10 text-amber-600 border-amber-200"
@@ -428,7 +507,8 @@ export default function MyTeamPage({
           <div>
             <h2 className="text-lg font-semibold">Team Members</h2>
             <p className="text-sm text-muted-foreground">
-              {members.length} member{members.length !== 1 ? 's' : ''} in your team
+              {members.length} member{members.length !== 1 ? 's' : ''} in your
+              team
             </p>
           </div>
 
@@ -450,8 +530,12 @@ export default function MyTeamPage({
               <TableRow>
                 <TableHead className="w-8 text-center">#</TableHead>
                 <TableHead>Member</TableHead>
-                {showRR && <TableHead className="w-16 text-center">Avg RR</TableHead>}
-                {showRestDays && <TableHead className="w-16 text-center">Rest Days</TableHead>}
+                {showRR && (
+                  <TableHead className="w-16 text-center">Avg RR</TableHead>
+                )}
+                {showRestDays && (
+                  <TableHead className="w-16 text-center">Rest Days</TableHead>
+                )}
                 <TableHead className="w-16 text-center">Points</TableHead>
               </TableRow>
             </TableHeader>
@@ -481,18 +565,20 @@ export default function MyTeamPage({
                             </div>
                           )}
                         </div>
-                        <span className="font-medium text-sm truncate">{member.username}</span>
+                        <span className="font-medium text-sm truncate">
+                          {member.username}
+                        </span>
                       </div>
                     </TableCell>
                     {showRR && (
-                    <TableCell className="text-center text-sm tabular-nums">
-                      {((member as any).avg_rr ?? 0).toFixed(1)}
-                    </TableCell>
+                      <TableCell className="text-center text-sm tabular-nums">
+                        {((member as any).avg_rr ?? 0).toFixed(1)}
+                      </TableCell>
                     )}
                     {showRestDays && (
-                    <TableCell className="text-center text-sm tabular-nums">
-                      {(member as any).rest_days_used ?? 0}
-                    </TableCell>
+                      <TableCell className="text-center text-sm tabular-nums">
+                        {(member as any).rest_days_used ?? 0}
+                      </TableCell>
                     )}
                     <TableCell className="text-center text-sm font-medium tabular-nums">
                       {(member as any).points ?? 0}
@@ -604,7 +690,10 @@ export default function MyTeamPage({
       </div>
 
       {/* Unallocated Members Dialog */}
-      <Dialog open={isUnallocatedDialogOpen} onOpenChange={setIsUnallocatedDialogOpen}>
+      <Dialog
+        open={isUnallocatedDialogOpen}
+        onOpenChange={setIsUnallocatedDialogOpen}
+      >
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -612,7 +701,8 @@ export default function MyTeamPage({
               Unallocated Members
             </DialogTitle>
             <DialogDescription>
-              These members have joined the league but are not yet assigned to any team. ({teamsData?.members?.unallocated?.length || 0} total)
+              These members have joined the league but are not yet assigned to
+              any team. ({teamsData?.members?.unallocated?.length || 0} total)
             </DialogDescription>
           </DialogHeader>
 
@@ -620,7 +710,10 @@ export default function MyTeamPage({
             {/* Add to own team action */}
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                Add members to <span className="font-medium text-foreground">{userTeamName}</span>
+                Add members to{' '}
+                <span className="font-medium text-foreground">
+                  {userTeamName}
+                </span>
               </p>
               <Button
                 onClick={handleBulkAssignMembers}
@@ -660,7 +753,11 @@ export default function MyTeamPage({
                   onClick={toggleSelectAll}
                   disabled={isBulkAssigning}
                 >
-                  {selectedMemberIds.size === filteredUnallocatedMembers.length && filteredUnallocatedMembers.length > 0 ? 'Deselect All' : 'Select All'}
+                  {selectedMemberIds.size ===
+                    filteredUnallocatedMembers.length &&
+                  filteredUnallocatedMembers.length > 0
+                    ? 'Deselect All'
+                    : 'Select All'}
                 </Button>
               )}
             </div>
@@ -670,16 +767,23 @@ export default function MyTeamPage({
               {filteredUnallocatedMembers.length > 0 ? (
                 filteredUnallocatedMembers.map((member) => {
                   const isHost = member.roles?.includes('host');
-                  const isSelected = selectedMemberIds.has(member.league_member_id);
+                  const isSelected = selectedMemberIds.has(
+                    member.league_member_id,
+                  );
                   return (
                     <div
                       key={member.league_member_id}
                       className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors overflow-hidden cursor-pointer"
-                      onClick={() => !isBulkAssigning && toggleMemberSelection(member.league_member_id)}
+                      onClick={() =>
+                        !isBulkAssigning &&
+                        toggleMemberSelection(member.league_member_id)
+                      }
                     >
                       <Checkbox
                         checked={isSelected}
-                        onCheckedChange={() => toggleMemberSelection(member.league_member_id)}
+                        onCheckedChange={() =>
+                          toggleMemberSelection(member.league_member_id)
+                        }
                         disabled={isBulkAssigning}
                         className="shrink-0"
                       />
@@ -694,7 +798,9 @@ export default function MyTeamPage({
                         </span>
                       </div>
                       <div className="min-w-0 flex-1 overflow-hidden">
-                        <div className="font-medium truncate">{member.username}</div>
+                        <div className="font-medium truncate">
+                          {member.username}
+                        </div>
                       </div>
                       {isHost && (
                         <Badge variant="secondary" className="text-xs shrink-0">
@@ -722,7 +828,8 @@ export default function MyTeamPage({
           <DialogHeader>
             <DialogTitle>Team Logo</DialogTitle>
             <DialogDescription>
-              Upload or change your team's logo. Max 2MB. Supported: PNG, JPG, WebP.
+              Upload or change your team's logo. Max 2MB. Supported: PNG, JPG,
+              WebP.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col items-center gap-4 py-4">
@@ -740,7 +847,11 @@ export default function MyTeamPage({
                   onClick={handleLogoDelete}
                   disabled={logoDeleting}
                 >
-                  {logoDeleting ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+                  {logoDeleting ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="size-4" />
+                  )}
                 </Button>
               </div>
             ) : (
@@ -764,19 +875,40 @@ export default function MyTeamPage({
                 disabled={logoUploading}
               >
                 {logoUploading ? (
-                  <><Loader2 className="size-4 animate-spin" /> Uploading...</>
+                  <>
+                    <Loader2 className="size-4 animate-spin" /> Uploading...
+                  </>
                 ) : (
-                  <><Upload className="size-4" /> {teamLogoUrl ? 'Change Logo' : 'Upload Logo'}</>
+                  <>
+                    <Upload className="size-4" />{' '}
+                    {teamLogoUrl ? 'Change Logo' : 'Upload Logo'}
+                  </>
                 )}
               </Button>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setLogoDialogOpen(false)}>Close</Button>
+            <Button variant="outline" onClick={() => setLogoDialogOpen(false)}>
+              Close
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Add Players Dialog (Host only) */}
+      {isHost && (
+        <AddPlayersDialog
+          open={addPlayersOpen}
+          onOpenChange={setAddPlayersOpen}
+          leagueId={leagueId}
+          teams={
+            teamsData?.teams?.map((t) => ({
+              team_id: t.team_id,
+              team_name: t.team_name,
+            })) || []
+          }
+        />
+      )}
     </div>
   );
 }
-

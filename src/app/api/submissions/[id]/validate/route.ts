@@ -160,8 +160,6 @@ export async function POST(
             .eq('user_id', userId)
             .eq('league_id', leagueId)
             .eq('role_id', captainRole.role_id)
-
-            // In rare cases duplicate rows can exist; any row means captain.
             .limit(1);
 
           if (captainRowsError) {
@@ -169,6 +167,27 @@ export async function POST(
           }
 
           isCaptainOfTeam = !!(captainRows && captainRows.length > 0);
+        }
+
+        // Also check vice_captain role
+        if (!isCaptainOfTeam) {
+          const { data: vcRole } = await supabase
+            .from('roles')
+            .select('role_id')
+            .eq('role_name', 'vice_captain')
+            .single();
+
+          if (vcRole) {
+            const { data: vcRows } = await supabase
+              .from('assignedrolesforleague')
+              .select('id')
+              .eq('user_id', userId)
+              .eq('league_id', leagueId)
+              .eq('role_id', vcRole.role_id)
+              .limit(1);
+
+            isCaptainOfTeam = !!(vcRows && vcRows.length > 0);
+          }
         }
       }
     }

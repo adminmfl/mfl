@@ -10,6 +10,7 @@ import { AppSidebar } from '@/components/app/app-sidebar';
 import { AppHeader } from '@/components/app/app-header';
 import { MobileBottomTabs } from '@/components/app/mobile-bottom-tabs';
 import { GuidedTour } from '@/components/onboarding/guided-tour';
+import { PwaInstallPrompt } from '@/components/pwa-install-prompt';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ShieldAlert, LogOut } from 'lucide-react';
@@ -148,6 +149,8 @@ export default function AppLayoutClient({
             </SidebarInset>
             <MobileBottomTabs />
             <GuidedTour />
+            {/* PWA Install Prompt (mobile only) */}
+            <PwaInstallPrompt />
           </SidebarProvider>
         </LeagueBrandingProvider>
       </RoleProvider>

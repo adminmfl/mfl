@@ -72,13 +72,16 @@ export default function JoinLeaguePage() {
 
       if (!res.ok) {
         // If league join fails, try team invite join
-        const teamRes = await fetch(`/api/invite/team/${encodeURIComponent(normalizedCode)}`, {
-          method: 'POST',
-        });
+        const teamRes = await fetch(
+          `/api/invite/team/${encodeURIComponent(normalizedCode)}`,
+          {
+            method: 'POST',
+          },
+        );
         const teamData = await teamRes.json();
 
         if (!teamRes.ok) {
-          throw new Error(teamData.error || data.error || 'Invalid invite code');
+          throw new Error('Invalid invite code. Please check and try again.');
         }
 
         setJoinedLeagueName(teamData.leagueName || 'the league');
@@ -117,7 +120,9 @@ export default function JoinLeaguePage() {
                   <Trophy className="size-10 dark:text-white text-black" />
                 </div>
                 <h2 className="text-2xl font-bold mb-1">Welcome Aboard!</h2>
-                <p className="dark:text-white text-black">You've successfully joined the league</p>
+                <p className="dark:text-white text-black">
+                  You've successfully joined the league
+                </p>
               </div>
             </div>
 
@@ -127,7 +132,8 @@ export default function JoinLeaguePage() {
                   {joinedLeagueName}
                 </h3>
                 <p className="text-muted-foreground">
-                  Your fitness journey starts now. Get ready to compete, stay active, and earn rewards!
+                  Your fitness journey starts now. Get ready to compete, stay
+                  active, and earn rewards!
                 </p>
               </div>
 
@@ -139,7 +145,9 @@ export default function JoinLeaguePage() {
                 </div>
                 <div className="p-3 rounded-xl bg-gradient-to-br from-green-500/10 to-green-500/5 border">
                   <Sparkles className="size-5 mx-auto mb-1 text-green-600" />
-                  <p className="text-xs text-muted-foreground">Log Activities</p>
+                  <p className="text-xs text-muted-foreground">
+                    Log Activities
+                  </p>
                 </div>
                 <div className="p-3 rounded-xl bg-gradient-to-br from-amber-500/10 to-amber-500/5 border">
                   <Trophy className="size-5 mx-auto mb-1 text-amber-600" />
@@ -149,12 +157,13 @@ export default function JoinLeaguePage() {
 
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button variant="outline" asChild className="flex-1">
-                  <Link href="/dashboard">
-                    Go to Dashboard
-                  </Link>
+                  <Link href="/dashboard">Go to Dashboard</Link>
                 </Button>
                 {joinedLeagueId && (
-                  <Button asChild className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700">
+                  <Button
+                    asChild
+                    className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+                  >
                     <Link href={`/leagues/${joinedLeagueId}`}>
                       Enter League
                       <ArrowRight className="ml-2 size-4" />
@@ -203,16 +212,24 @@ export default function JoinLeaguePage() {
               <CardContent className="flex-1">
                 <form onSubmit={handleJoinByCode} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="inviteCode" className="text-sm font-medium">Invite Code</Label>
+                    <Label htmlFor="inviteCode" className="text-sm font-medium">
+                      Invite Code
+                    </Label>
                     <Input
                       id="inviteCode"
                       placeholder="Enter your invite code"
                       value={inviteCode}
-                      onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                      onChange={(e) =>
+                        setInviteCode(e.target.value.toUpperCase())
+                      }
                       className="font-mono text-lg py-5 tracking-tight"
                     />
                   </div>
-                  <Button type="submit" disabled={loading} className="w-full py-5">
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-5"
+                  >
                     {loading ? (
                       <Loader2 className="size-4 animate-spin" />
                     ) : (
@@ -222,9 +239,7 @@ export default function JoinLeaguePage() {
                       </>
                     )}
                   </Button>
-                  {error && (
-                    <p className="text-sm text-destructive">{error}</p>
-                  )}
+                  {error && <p className="text-sm text-destructive">{error}</p>}
                 </form>
               </CardContent>
             </Card>
@@ -267,9 +282,13 @@ export default function JoinLeaguePage() {
                 <div className="text-center space-y-3">
                   <div className="flex items-center justify-center gap-3 text-muted-foreground">
                     <Users className="size-5" />
-                    <span className="text-sm font-medium">Join the community</span>
+                    <span className="text-sm font-medium">
+                      Join the community
+                    </span>
                   </div>
-                  <p className="text-3xl font-extrabold tracking-tight text-primary">1,000+</p>
+                  <p className="text-3xl font-extrabold tracking-tight text-primary">
+                    1,000+
+                  </p>
                   <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                     Active members across leagues
                   </p>
@@ -295,7 +314,9 @@ export default function JoinLeaguePage() {
                       <span className="text-xl font-bold text-primary">1</span>
                     </div>
                     <div className="pt-0.5">
-                      <p className="font-bold text-lg leading-tight">Get Code</p>
+                      <p className="font-bold text-lg leading-tight">
+                        Get Code
+                      </p>
                       <p className="text-sm text-muted-foreground leading-relaxed">
                         Ask your league host for their invite code.
                       </p>
@@ -306,7 +327,9 @@ export default function JoinLeaguePage() {
                       <span className="text-xl font-bold text-primary">2</span>
                     </div>
                     <div className="pt-0.5">
-                      <p className="font-bold text-lg leading-tight">Enter Code</p>
+                      <p className="font-bold text-lg leading-tight">
+                        Enter Code
+                      </p>
                       <p className="text-sm text-muted-foreground leading-relaxed">
                         Type the code above and click Join.
                       </p>
@@ -342,7 +365,8 @@ export default function JoinLeaguePage() {
                   </div>
                   <h3 className="text-xl font-bold">Discovery Coming Soon</h3>
                   <p className="text-sm text-muted-foreground text-center leading-relaxed">
-                    Public league discovery is coming soon! Use an invite code for now.
+                    Public league discovery is coming soon! Use an invite code
+                    for now.
                   </p>
                 </div>
               </CardContent>

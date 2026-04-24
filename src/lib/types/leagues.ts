@@ -1,4 +1,4 @@
-export type LeagueRole = 'host' | 'governor' | 'captain' | 'player';
+export type LeagueRole = 'host' | 'governor' | 'captain' | 'vice_captain' | 'player';
 export type LeagueStatus = 'draft' | 'launched' | 'active' | 'completed';
 
 export interface LeagueBranding {
@@ -40,4 +40,7 @@ export interface LeagueWithRoles {
   branding?: LeagueBranding | null;
   rr_config?: LeagueRRConfig | null;
   rest_days?: number;
+  league_mode?: 'standard' | 'challenges_only';
+  player_team_workout_visibility?: boolean;
+  player_league_workout_visibility?: boolean;
 }

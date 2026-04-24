@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ProfilePicture } from "@/components/ui/profile-picture";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import {
@@ -257,21 +258,11 @@ export function ViewTeamMembersDialog({
                       }`}
                   >
                     <div className="relative">
-                      <Avatar className="size-10">
-                        <AvatarFallback>
-                          {member.username
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")
-                            .toUpperCase()
-                            .slice(0, 2)}
-                        </AvatarFallback>
-                      </Avatar>
-                      {member.is_captain && (
-                        <div className="absolute -bottom-0.5 -right-0.5 size-5 rounded-full bg-amber-500 flex items-center justify-center ring-2 ring-background">
-                          <Crown className="size-3 text-white" />
-                        </div>
-                      )}
+                      <ProfilePicture
+                        username={member.username}
+                        size={64}
+                        isCaptain={member.is_captain}
+                      />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm truncate">
