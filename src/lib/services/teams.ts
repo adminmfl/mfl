@@ -511,9 +511,7 @@ export async function getTeamMembers(
  * Get all league members with their team assignments
  * Returns both allocated and unallocated members
  */
-export async function getLeagueMembersWithTeams(
-  leagueId: string,
-): Promise<{
+export async function getLeagueMembersWithTeams(leagueId: string): Promise<{
   allocated: LeagueMemberWithDetails[];
   unallocated: LeagueMemberWithDetails[];
 }> {
@@ -583,8 +581,6 @@ export async function assignMemberToTeam(
   modifiedBy: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    console.log('[assignMemberToTeam] Attempting to assign:', { leagueMemberId, teamId, modifiedBy });
-
     const { data, error } = await getSupabaseServiceRole()
       .from('leaguemembers')
       .update({
@@ -595,21 +591,19 @@ export async function assignMemberToTeam(
       .eq('league_member_id', leagueMemberId)
       .select();
 
-    console.log('[assignMemberToTeam] Update result:', { data, error });
-
     if (error) {
-      console.error('[assignMemberToTeam] Database error:', error);
-      return { success: false, error: error.message };
+      console.error('Error assigning member to team:', error);
+      return { success: false, error: 'Failed to assign member to team' };
     }
 
     if (!data || data.length === 0) {
-      return { success: false, error: 'No rows were updated - member may not exist' };
+      return { success: false, error: 'Member not found' };
     }
 
     return { success: true };
   } catch (err) {
-    console.error('[assignMemberToTeam] Exception:', err);
-    return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
+    console.error('Error in assignMemberToTeam:', err);
+    return { success: false, error: 'Failed to assign member to team' };
   }
 }
 

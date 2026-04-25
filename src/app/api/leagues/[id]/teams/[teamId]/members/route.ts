@@ -73,7 +73,6 @@ export async function GET(
         { status: 403 },
       );
     }
-    console.log('[Team Members API] Fetched members:', members);
 
     return NextResponse.json({
       success: true,
@@ -166,16 +165,16 @@ export async function POST(
 
     // Verify the team exists and belongs to this league
     const { data: team, error: teamError } = await supabase
-      .from('teams')
-      .select('team_id, league_id')
+      .from('teamleagues')
+      .select('team_id')
       .eq('team_id', teamId)
       .eq('league_id', leagueId)
       .maybeSingle();
 
     if (teamError) {
-      console.error('[Add Member] Team lookup error:', teamError);
+      console.error('Error verifying team:', teamError);
       return NextResponse.json(
-        { error: 'Database error while looking up team', details: teamError.message },
+        { error: 'Failed to verify team' },
         { status: 500 },
       );
     }
@@ -190,17 +189,15 @@ export async function POST(
     // Verify the member exists and belongs to this league
     const { data: member, error: memberError } = await supabase
       .from('leaguemembers')
-      .select('league_member_id, team_id, league_id, user_id')
+      .select('league_member_id, team_id, league_id')
       .eq('league_member_id', validated.league_member_id)
       .eq('league_id', leagueId)
       .maybeSingle();
 
-    console.log('[Add Member] Member lookup result:', { member, memberError, league_member_id: validated.league_member_id, leagueId });
-
     if (memberError) {
-      console.error('[Add Member] Database error:', memberError);
+      console.error('Error verifying member:', memberError);
       return NextResponse.json(
-        { error: 'Database error while looking up member', details: memberError.message },
+        { error: 'Failed to verify member' },
         { status: 500 },
       );
     }
@@ -212,7 +209,7 @@ export async function POST(
       );
     }
 
-    if (member.team_id && member.team_id !== null) {
+    if (member.team_id) {
       return NextResponse.json(
         { error: 'Member is already assigned to a team' },
         { status: 400 },
@@ -226,7 +223,6 @@ export async function POST(
     );
 
     if (!assignResult.success) {
-      console.error('[Add Member] Assignment failed:', assignResult.error);
       return NextResponse.json(
         { error: assignResult.error || 'Failed to assign member to team' },
         { status: 500 },
@@ -307,7 +303,7 @@ export async function DELETE(
       );
     }
 
-    if (targetMember.team_id !== teamId) {
+    if (!targetMember.team_id || targetMember.team_id !== teamId) {
       return NextResponse.json(
         { error: 'Member is not assigned to this team' },
         { status: 400 },
