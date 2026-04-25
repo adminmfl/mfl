@@ -198,8 +198,11 @@ export function useLeagueTeams(leagueId: string | null): UseLeagueTeamsReturn {
       await fetchTeams();
       return true;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to assign member");
+      const errorMessage = err instanceof Error ? err.message : "Failed to assign member";
+      console.error('[assignMember] Error:', err);
+      setError(errorMessage);
       return false;
+  
     }
   };
 
@@ -222,6 +225,8 @@ export function useLeagueTeams(leagueId: string | null): UseLeagueTeamsReturn {
       const result = await response.json();
 
       if (!response.ok) {
+        const errorMessage = result.error || "Failed to assign member";
+        console.error('[assignMember] API error:', { status: response.status, error: errorMessage, details: result.details });
         throw new Error(result.error || "Failed to remove member");
       }
 

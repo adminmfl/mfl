@@ -71,11 +71,29 @@ export function AddMembersDialog({
 
     setIsLoading(true);
     try {
+      let successCount = 0;
+      let errorMessages: string[] = [];
+
       for (const memberId of selectedMembers) {
-        if (currentMemberCount + selectedMembers.indexOf(memberId) >= teamCapacity) break;
-        await onAddMember(teamId, memberId);
+        if (currentMemberCount + successCount >= teamCapacity) break;
+
+        const success = await onAddMember(teamId, memberId);
+        if (success) {
+          successCount++;
+        } else {
+          // Get the error from the hook's error state
+          errorMessages.push(`Failed to add member ${memberId}`);
+        }
       }
-      onOpenChange(false);
+
+      if (successCount > 0) {
+        onOpenChange(false);
+      }
+
+      if (errorMessages.length > 0) {
+        console.error('Some members could not be added:', errorMessages);
+        // The error will be shown via the hook's error state
+      }
     } finally {
       setIsLoading(false);
     }

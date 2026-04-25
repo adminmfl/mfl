@@ -73,6 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix rest day donation sync, availability, and donor balance logic (#152)
 - Fix auto-assignment inconsistencies and submission conflicts (#152)
 - Fix chat workout links to display readable labels (#132)
+- Fix add unassigned member to team failing with error (#125)
 
 ## [2.0.0] — 2026-04-01
 
