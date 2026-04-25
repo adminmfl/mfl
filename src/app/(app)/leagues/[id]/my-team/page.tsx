@@ -209,15 +209,10 @@ export default function MyTeamPage({
               (t: any) => String(t.team_id) === String(userTeamId),
             );
             if (team) {
-              // Include pending window points
-              const pendingTeam = (
-                lbJson.data?.pendingWindow?.teams || []
-              ).find((t: any) => String(t.team_id) === String(userTeamId));
-              const pendingPts = pendingTeam?.total_points ?? 0;
-
               setTeamRank(`#${team.rank ?? '--'}`);
               const mainPts = team.total_points ?? team.points ?? 0;
-              setTeamPoints(String(mainPts + pendingPts));
+              setTeamPoints(String(mainPts));
+
               setTeamAvgRR(String(team.avg_rr ?? 0));
               if (team.team_name) setFreshTeamName(team.team_name);
             }

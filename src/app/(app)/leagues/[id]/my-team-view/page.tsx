@@ -73,8 +73,12 @@ export default function MyTeamViewPage({
   const [teamRank, setTeamRank] = useState<string>('#--');
   const [teamPoints, setTeamPoints] = useState<string>('--');
   const [teamAvgRR, setTeamAvgRR] = useState<string>('--');
-  const [teamActivityPoints, setTeamActivityPoints] = useState<number | null>(null);
-  const [teamChallengePoints, setTeamChallengePoints] = useState<number | null>(null);
+  const [teamActivityPoints, setTeamActivityPoints] = useState<number | null>(
+    null,
+  );
+  const [teamChallengePoints, setTeamChallengePoints] = useState<number | null>(
+    null,
+  );
   const [teamLogoUrl, setTeamLogoUrl] = useState<string | null>(null);
   const [teamMissedDays, setTeamMissedDays] = useState<number | null>(null);
   const [teamRestUsed, setTeamRestUsed] = useState<number | null>(null);
@@ -95,7 +99,7 @@ export default function MyTeamViewPage({
         setIsLoading(true);
         setError(null);
         const response = await fetch(
-          `/api/leagues/${leagueId}/teams/${userTeamId}/members`
+          `/api/leagues/${leagueId}/teams/${userTeamId}/members`,
         );
         const result = await response.json();
 
@@ -111,14 +115,22 @@ export default function MyTeamViewPage({
           }));
 
           try {
-            const lbRes = await fetch(`/api/leagues/${leagueId}/leaderboard?full=true`);
+            const lbRes = await fetch(
+              `/api/leagues/${leagueId}/leaderboard?full=true`,
+            );
             const lbJson = await lbRes.json();
             if (lbRes.ok && lbJson?.success && lbJson.data?.individuals) {
-              const statsMap = new Map<string, { points: number; avg_rr: number }>(
+              const statsMap = new Map<
+                string,
+                { points: number; avg_rr: number }
+              >(
                 lbJson.data.individuals.map((i: any) => [
                   String(i.user_id),
-                  { points: Number(i.points || 0), avg_rr: Number(i.avg_rr || 0) },
-                ])
+                  {
+                    points: Number(i.points || 0),
+                    avg_rr: Number(i.avg_rr || 0),
+                  },
+                ]),
               );
               membersWithPoints = membersWithPoints.map((m: any) => ({
                 ...m,
@@ -176,36 +188,60 @@ export default function MyTeamViewPage({
       description: 'Total score',
       icon: Target,
     },
-    ...(showRR ? [{
-      title: 'RR',
-      value: parseFloat(teamAvgRR).toFixed(1),
-      description: 'Run Rate',
-      icon: Flame,
-    }] : []),
+    ...(showRR
+      ? [
+          {
+            title: 'RR',
+            value: parseFloat(teamAvgRR).toFixed(1),
+            description: 'Run Rate',
+            icon: Flame,
+          },
+        ]
+      : []),
     {
       title: 'Activity Points',
-      value: typeof teamActivityPoints === 'number' ? teamActivityPoints.toLocaleString() : '—',
+      value:
+        typeof teamActivityPoints === 'number'
+          ? teamActivityPoints.toLocaleString()
+          : '—',
       description: 'Activity points',
       icon: Star,
     },
     {
       title: 'Challenge Points',
-      value: typeof teamChallengePoints === 'number' ? teamChallengePoints.toLocaleString() : '—',
+      value:
+        typeof teamChallengePoints === 'number'
+          ? teamChallengePoints.toLocaleString()
+          : '—',
       description: 'Bonus points',
       icon: Star,
     },
-    ...(showRestDays ? [{
-      title: 'Rest Days Used',
-      value: typeof teamRestUsed === 'number' ? teamRestUsed.toLocaleString() : '—',
-      description: 'Team total',
-      icon: Moon,
-    }] : []),
-    ...(showRestDays ? [{
-      title: 'Days Missed',
-      value: typeof teamMissedDays === 'number' ? teamMissedDays.toLocaleString() : '—',
-      description: 'No submission',
-      icon: XCircle,
-    }] : []),
+    ...(showRestDays
+      ? [
+          {
+            title: 'Rest Days Used',
+            value:
+              typeof teamRestUsed === 'number'
+                ? teamRestUsed.toLocaleString()
+                : '—',
+            description: 'Team total',
+            icon: Moon,
+          },
+        ]
+      : []),
+    ...(showRestDays
+      ? [
+          {
+            title: 'Days Missed',
+            value:
+              typeof teamMissedDays === 'number'
+                ? teamMissedDays.toLocaleString()
+                : '—',
+            description: 'No submission',
+            icon: XCircle,
+          },
+        ]
+      : []),
   ];
 
   // Fetch leaderboard stats for this team
@@ -216,24 +252,30 @@ export default function MyTeamViewPage({
         const res = await fetch(`/api/leagues/${leagueId}/leaderboard`);
         const json = await res.json();
         if (res.ok && json?.success && json.data?.teams) {
-          const team = (json.data.teams || []).find((t: any) => String(t.team_id) === String(userTeamId));
+          const team = (json.data.teams || []).find(
+            (t: any) => String(t.team_id) === String(userTeamId),
+          );
           if (team) {
-            // Include pending window points so recently submitted entries are visible
-            const pendingTeam = (json.data?.pendingWindow?.teams || []).find((t: any) => String(t.team_id) === String(userTeamId));
-            const pendingPts = pendingTeam?.total_points ?? 0;
-
             setTeamRank(`#${team.rank ?? '--'}`);
             const mainPts = team.total_points ?? team.points ?? 0;
-            setTeamPoints(String(mainPts + pendingPts));
+            setTeamPoints(String(mainPts));
             setTeamAvgRR(String(team.avg_rr ?? 0));
-            const activityPts = typeof team.points === 'number' ? Math.max(0, team.points) : 0;
-            setTeamActivityPoints(activityPts + pendingPts);
-            setTeamChallengePoints(typeof team.challenge_bonus === 'number' ? Math.max(0, team.challenge_bonus) : null);
+            const activityPts =
+              typeof team.points === 'number' ? Math.max(0, team.points) : 0;
+            setTeamActivityPoints(activityPts);
+
+            setTeamChallengePoints(
+              typeof team.challenge_bonus === 'number'
+                ? Math.max(0, team.challenge_bonus)
+                : null,
+            );
           }
         }
 
         // Fetch team logo
-        const logoRes = await fetch(`/api/leagues/${leagueId}/teams/${userTeamId}`);
+        const logoRes = await fetch(
+          `/api/leagues/${leagueId}/teams/${userTeamId}`,
+        );
         const logoJson = await logoRes.json();
         if (logoRes.ok && logoJson?.success && logoJson.data?.logo_url) {
           setTeamLogoUrl(logoJson.data.logo_url);
@@ -241,7 +283,9 @@ export default function MyTeamViewPage({
 
         // Fetch team summary (rest days used + missed days)
         try {
-          const summaryRes = await fetch(`/api/leagues/${leagueId}/my-team/summary`);
+          const summaryRes = await fetch(
+            `/api/leagues/${leagueId}/my-team/summary`,
+          );
           const summaryJson = await summaryRes.json();
           if (summaryRes.ok && summaryJson?.success && summaryJson.data) {
             if (typeof summaryJson.data.restUsed === 'number') {
@@ -271,8 +315,8 @@ export default function MyTeamViewPage({
             <AlertCircle className="size-4" />
             <AlertTitle>Access Restricted</AlertTitle>
             <AlertDescription>
-              You are currently viewing as {activeRole}. To view your team,
-              you need to be participating as a player in this league.
+              You are currently viewing as {activeRole}. To view your team, you
+              need to be participating as a player in this league.
             </AlertDescription>
           </Alert>
         </div>
@@ -290,8 +334,8 @@ export default function MyTeamViewPage({
         <div className="text-center">
           <h2 className="text-xl font-semibold">Not Assigned to a Team</h2>
           <p className="text-muted-foreground mt-1 max-w-md">
-            You haven't been assigned to a team yet. Please wait for the host
-            or governor to assign you to a team.
+            You haven't been assigned to a team yet. Please wait for the host or
+            governor to assign you to a team.
           </p>
         </div>
       </div>
@@ -319,7 +363,9 @@ export default function MyTeamViewPage({
             </div>
           )}
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">{userTeamName}</h1>
+            <h1 className="text-2xl font-bold tracking-tight">
+              {userTeamName}
+            </h1>
             <p className="text-muted-foreground">
               View your team members and performance
             </p>
@@ -386,7 +432,8 @@ export default function MyTeamViewPage({
         <div className="mb-4">
           <h2 className="text-lg font-semibold">Team Members</h2>
           <p className="text-sm text-muted-foreground">
-            {members.length} member{members.length !== 1 ? 's' : ''} in your team
+            {members.length} member{members.length !== 1 ? 's' : ''} in your
+            team
           </p>
         </div>
 
@@ -397,7 +444,9 @@ export default function MyTeamViewPage({
                 <TableHead className="w-12">#</TableHead>
                 <TableHead>Member</TableHead>
                 <TableHead className="hidden sm:table-cell">Role</TableHead>
-                {showRestDays && <TableHead className="text-center">Rest Days</TableHead>}
+                {showRestDays && (
+                  <TableHead className="text-center">Rest Days</TableHead>
+                )}
                 <TableHead className="text-center">Points</TableHead>
                 {showRR && <TableHead className="text-center">RR</TableHead>}
               </TableRow>
@@ -414,7 +463,10 @@ export default function MyTeamViewPage({
                         <div className="relative">
                           <Avatar className="size-10">
                             {(member as any).profile_picture_url && (
-                              <AvatarImage src={(member as any).profile_picture_url} alt={member.username} />
+                              <AvatarImage
+                                src={(member as any).profile_picture_url}
+                                alt={member.username}
+                              />
                             )}
                             <AvatarFallback>
                               {member.username
@@ -432,7 +484,9 @@ export default function MyTeamViewPage({
                           )}
                         </div>
                         <div>
-                          <span className="font-medium">{capitalizeName(member.username)}</span>
+                          <span className="font-medium">
+                            {capitalizeName(member.username)}
+                          </span>
                         </div>
                       </div>
                     </TableCell>
@@ -447,20 +501,20 @@ export default function MyTeamViewPage({
                       )}
                     </TableCell>
                     {showRestDays && (
-                    <TableCell className="text-center text-muted-foreground tabular-nums">
-                      {(member as any).rest_days_used ?? 0}
-                    </TableCell>
+                      <TableCell className="text-center text-muted-foreground tabular-nums">
+                        {(member as any).rest_days_used ?? 0}
+                      </TableCell>
                     )}
                     <TableCell className="text-center font-medium tabular-nums">
                       {(member as any).points ?? 0}
                     </TableCell>
                     {showRR && (
-                    <TableCell className="text-center font-medium tabular-nums">
-                      <div className="flex items-center justify-center gap-1">
-                        <Star className="size-3 text-yellow-500" />
-                        {((member as any).avg_rr ?? 0).toFixed(2)}
-                      </div>
-                    </TableCell>
+                      <TableCell className="text-center font-medium tabular-nums">
+                        <div className="flex items-center justify-center gap-1">
+                          <Star className="size-3 text-yellow-500" />
+                          {((member as any).avg_rr ?? 0).toFixed(2)}
+                        </div>
+                      </TableCell>
                     )}
                   </TableRow>
                 ))
