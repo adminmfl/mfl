@@ -7,6 +7,19 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth/config';
 import { getMessagesForUser, sendMessage, type MessageFilter } from '@/lib/services/messages';
 
+
+function isValidPhotoUrl(url: string | undefined): boolean {
+  if (!url) return true; // No photo is valid
+  // Validate that URL is from Supabase storage with expected path
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!supabaseUrl) return false;
+  
+  const expectedPrefix = `${supabaseUrl}/storage/v1/object/public/team-chat-photos/`;
+  return url.startsWith(expectedPrefix) && 
+         url.includes('/') && 
+         !url.includes('javascript:') && 
+         !url.includes('data:');
+}
 // ============================================================================
 // GET Handler - Fetch messages
 // ============================================================================
@@ -73,23 +86,32 @@ export async function POST(
 
     const userId = session.user.id;
     const body = await request.json();
-    const { content, team_id, message_type, visibility, is_important, deep_link, parent_message_id } = body;
+    const { content, team_id, message_type, visibility, is_important, deep_link, parent_message_id, photo_url } = body;
 
-    if (!content || typeof content !== 'string' || content.trim().length === 0) {
-      return NextResponse.json(
-        { error: 'Message content cannot be empty' },
-        { status: 400 }
-      );
-    }
+if ((!content || typeof content !== 'string' || content.trim().length === 0) && !photo_url) {
+  return NextResponse.json(
+    { error: 'Message must contain text or photo' },
+    { status: 400 }
+  );
+}
+
+// Validate photo_url if provided
+if (photo_url && !isValidPhotoUrl(photo_url)) {
+  return NextResponse.json(
+    { error: 'Invalid photo URL' },
+    { status: 400 }
+  );
+}
 
     const message = await sendMessage(leagueId, userId, {
-      content: content.trim(),
+      content: content?.trim() || '',
       teamId: team_id,
       messageType: message_type,
       visibility,
       isImportant: is_important,
       parentMessageId: parent_message_id,
       deepLink: deep_link,
+      photoUrl: photo_url,
     });
 
     return NextResponse.json({

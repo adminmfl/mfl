@@ -15,6 +15,7 @@ import {
   Zap,
   Loader2,
   Link2,
+  ImageIcon,
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { toast } from '@/lib/toast';
@@ -33,6 +34,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { compressImage } from '@/lib/utils/image-compression';
 import { CannedMessagePicker } from './canned-message-picker';
 import { RecentWorkoutPicker } from './recent-workout-picker';
 import { MentionDropdown, type MentionMember } from './mention-dropdown';
@@ -101,6 +103,12 @@ export function MessageInput({
   const [motivating, setMotivating] = useState(false);
   const [attachMenuOpen, setAttachMenuOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Photo attachment state
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   // Mention state
   const [mentionVisible, setMentionVisible] = useState(false);
@@ -214,12 +222,47 @@ export function MessageInput({
   };
 
   // -------------------------------------------------------------------------
+  // Photo attachment
+  // -------------------------------------------------------------------------
+
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowed.includes(file.type)) {
+      toast.error('Only JPG, PNG, and WebP images are supported');
+      return;
+    }
+
+    try {
+      const result = await compressImage(file, {
+        maxSizeBytes: 1024 * 1024,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        quality: 0.8,
+      });
+      setPhotoFile(result.file);
+      setPhotoPreview(URL.createObjectURL(result.file));
+    } catch {
+      toast.error('Failed to process image');
+    }
+  };
+
+  const clearPhoto = () => {
+    setPhotoFile(null);
+    if (photoPreview) URL.revokeObjectURL(photoPreview);
+    setPhotoPreview(null);
+    if (photoInputRef.current) photoInputRef.current.value = '';
+  };
+
+  // -------------------------------------------------------------------------
   // Send
   // -------------------------------------------------------------------------
 
   const handleSend = useCallback(async () => {
     const trimmed = content.trim();
-    if (!trimmed || sending) return;
+    if ((!trimmed && !photoFile) || sending) return;
 
     setSending(true);
 
@@ -232,19 +275,20 @@ export function MessageInput({
         sender_id: session.user.id,
         sender_name: session.user.name || '',
         sender_username: session.user.name || '',
-        content: trimmed,
+        content: trimmed || (photoFile ? '📷 Photo' : ''),
         message_type: isAnnouncement ? 'announcement' : 'chat',
         visibility,
         is_important: isImportant,
         is_read: true,
         deep_link: deepLink || null,
+        photo_url: photoPreview || null,
         parent_message_id: replyTo?.message_id || null,
         parent_message: replyTo
           ? {
-              sender_username:
-                replyTo.sender_username || replyTo.sender_name || '',
-              content: replyTo.content,
-            }
+            sender_username:
+              replyTo.sender_username || replyTo.sender_name || '',
+            content: replyTo.content,
+          }
           : null,
         created_at: new Date().toISOString(),
         edited_at: null,
@@ -255,8 +299,28 @@ export function MessageInput({
     }
 
     try {
+      // Upload photo first if attached
+      let photoUrl: string | null = null;
+      if (photoFile && teamId) {
+        setPhotoUploading(true);
+        const fd = new FormData();
+        fd.append('file', photoFile);
+        fd.append('leagueId', leagueId);
+        fd.append('teamId', teamId);
+        const upRes = await fetch('/api/upload/team-chat-photo', {
+          method: 'POST',
+          body: fd,
+        });
+        const upJson = await upRes.json();
+        if (!upRes.ok || !upJson.success) {
+          throw new Error(upJson.error || 'Photo upload failed');
+        }
+        photoUrl = upJson.data.url;
+        setPhotoUploading(false);
+      }
+
       const body: Record<string, unknown> = {
-        content: trimmed,
+        content: trimmed || (photoUrl ? '📷 Photo' : ''),
         visibility,
         is_important: isImportant,
         message_type: isAnnouncement ? 'announcement' : 'chat',
@@ -264,6 +328,7 @@ export function MessageInput({
       if (teamId) body.team_id = teamId;
       if (replyTo) body.parent_message_id = replyTo.message_id;
       if (deepLink) body.deep_link = deepLink;
+      if (photoUrl) body.photo_url = photoUrl;
 
       const res = await fetch(`/api/leagues/${leagueId}/messages`, {
         method: 'POST',
@@ -280,6 +345,7 @@ export function MessageInput({
       setIsImportant(false);
       setIsAnnouncement(false);
       setDeepLink(null);
+      clearPhoto();
       onMessageSent();
       textareaRef.current?.focus();
     } catch (err) {
@@ -288,9 +354,11 @@ export function MessageInput({
       );
     } finally {
       setSending(false);
+      setPhotoUploading(false);
     }
   }, [
     content,
+    photoFile,
     sending,
     visibility,
     isImportant,
@@ -384,6 +452,27 @@ export function MessageInput({
         </div>
       )}
 
+      {/* Photo preview */}
+      {photoPreview && (
+        <div className="flex items-center gap-2 mb-2 px-2 py-1.5 rounded-lg bg-muted/50 border-l-2 border-primary/40">
+          <img
+            src={photoPreview}
+            alt="preview"
+            className="size-10 rounded object-cover shrink-0"
+          />
+          <span className="text-[11px] text-muted-foreground flex-1 truncate">
+            {photoFile?.name}
+          </span>
+          <button
+            type="button"
+            onClick={clearPhoto}
+            className="p-0.5 rounded hover:bg-accent text-muted-foreground"
+          >
+            <X className="size-3.5" />
+          </button>
+        </div>
+      )}
+
       {(visibility === 'captains_only' || isImportant || isAnnouncement) && (
         <div className="flex flex-wrap items-center gap-1.5 mb-2">
           {isAnnouncement && (
@@ -422,7 +511,7 @@ export function MessageInput({
                   (isAnnouncement ||
                     isImportant ||
                     visibility === 'captains_only') &&
-                    'border-amber-400 text-amber-600 dark:text-amber-400',
+                  'border-amber-400 text-amber-600 dark:text-amber-400',
                 )}
               >
                 {isAnnouncement ? (
@@ -515,6 +604,30 @@ export function MessageInput({
           </Button>
         )}
 
+        {/* Photo attachment button */}
+        <input
+          ref={photoInputRef}
+          type="file"
+          accept="image/jpeg,image/jpg,image/png,image/webp"
+          onChange={handlePhotoSelect}
+          className="hidden"
+        />
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className={cn('size-8 shrink-0', photoFile && 'text-primary')}
+          onClick={() => photoInputRef.current?.click()}
+          disabled={sending || photoUploading}
+          title="Attach photo"
+        >
+          {photoUploading ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <ImageIcon className="size-4" />
+          )}
+        </Button>
+
         {/* Attach workout — explicit selection via picker */}
         <Popover open={attachMenuOpen} onOpenChange={setAttachMenuOpen}>
           <PopoverTrigger asChild>
@@ -554,7 +667,7 @@ export function MessageInput({
               className={cn(
                 'w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent',
                 deepLink === `/leagues/${leagueId}/challenges` &&
-                  'bg-accent font-medium',
+                'bg-accent font-medium',
               )}
               onClick={() => {
                 setDeepLink(`/leagues/${leagueId}/challenges`);
@@ -569,7 +682,7 @@ export function MessageInput({
               className={cn(
                 'w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent',
                 deepLink === `/leagues/${leagueId}/leaderboard` &&
-                  'bg-accent font-medium',
+                'bg-accent font-medium',
               )}
               onClick={() => {
                 setDeepLink(`/leagues/${leagueId}/leaderboard`);
@@ -584,7 +697,7 @@ export function MessageInput({
               className={cn(
                 'w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent',
                 deepLink === `/leagues/${leagueId}/activities` &&
-                  'bg-accent font-medium',
+                'bg-accent font-medium',
               )}
               onClick={() => {
                 setDeepLink(`/leagues/${leagueId}/activities`);

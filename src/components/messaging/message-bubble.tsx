@@ -11,8 +11,10 @@ import {
   CheckCheck,
   Reply,
   SmilePlus,
+  X,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
@@ -41,6 +43,7 @@ export interface Message {
   parent_message_id?: string | null;
   parent_message?: ParentMessagePreview | null;
   deep_link: string | null;
+  photo_url?: string | null;
   created_at: string;
   edited_at: string | null;
   sender_name?: string;
@@ -229,6 +232,7 @@ export function MessageBubble({
   onReact,
 }: MessageBubbleProps) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const relativeTime = useMemo(
     () => formatRelativeTime(message.created_at),
     [message.created_at],
@@ -343,8 +347,18 @@ export function MessageBubble({
           </div>
         )}
 
+        {/* Photo attachment */}
+        {message.photo_url && (
+          <img
+            src={message.photo_url}
+            alt="shared photo"
+            className="max-w-full max-h-48 rounded-lg mb-2 cursor-pointer hover:opacity-90 transition-opacity"
+            onClick={() => setLightboxOpen(true)}
+          />
+        )}
+
         {/* Content */}
-        <p>{renderContent(message.content)}</p>
+        {message.content && <p>{renderContent(message.content)}</p>}
 
         {/* Deep link card — show friendly label, never raw URLs/UUIDs */}
         {message.deep_link && (
@@ -474,6 +488,26 @@ export function MessageBubble({
             );
           })}
         </div>
+      )}
+
+      {/* Photo lightbox */}
+      {message.photo_url && (
+        <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
+          <DialogContent className="max-w-3xl p-2 bg-black/90 border-0">
+            <button
+              type="button"
+              onClick={() => setLightboxOpen(false)}
+              className="absolute top-2 right-2 z-10 p-1 rounded-full bg-black/50 text-white hover:bg-black/70"
+            >
+              <X className="size-5" />
+            </button>
+            <img
+              src={message.photo_url}
+              alt="full size"
+              className="w-full h-auto max-h-[85vh] object-contain rounded"
+            />
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
