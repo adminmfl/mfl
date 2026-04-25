@@ -90,6 +90,7 @@ export interface SendMessageData {
   isImportant?: boolean;
   parentMessageId?: string;
   deepLink?: string;
+  photoUrl?: string;
 }
 
 export interface CannedMessageData {
@@ -536,6 +537,7 @@ export async function getMessagesForUser(
         ? parentMap.get(m.parent_message_id) || null
         : null,
       deep_link: m.deep_link,
+      photo_url: m.photo_url || null,
       created_at: m.created_at,
       edited_at: m.edited_at,
       deleted_at: m.deleted_at,
@@ -571,6 +573,7 @@ export async function sendMessage(
       isImportant = false,
       parentMessageId,
       deepLink,
+      photoUrl,
     } = data;
 
     // Validate sender is a member of the league
@@ -626,6 +629,7 @@ export async function sendMessage(
         is_important: isImportant,
         parent_message_id: parentMessageId || null,
         deep_link: deepLink || null,
+        photo_url: photoUrl || null,
       })
       .select()
       .single();
