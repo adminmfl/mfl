@@ -78,7 +78,6 @@ export interface PendingTeamWindowRanking {
 
 export interface PendingWindow {
   dates: string[];
-  teams: PendingTeamWindowRanking[];
 }
 
 export interface LeagueInfo {
@@ -117,7 +116,7 @@ export interface UseLeagueLeaderboardOptions {
 export interface UseLeagueLeaderboardReturn {
   data: LeaderboardData | null;
   rawTeams?: TeamRanking[];
-  rawPendingWindow?: PendingWindow;
+
   isLoading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
@@ -147,9 +146,6 @@ export function useLeagueLeaderboard(
   const [rawTeams, setRawTeams] = useState<TeamRanking[] | undefined>(
     options?.initialData?.teams,
   );
-  const [rawPendingWindow, setRawPendingWindow] = useState<
-    PendingWindow | undefined
-  >(options?.initialData?.pendingWindow);
 
   const fetchLeaderboard = useCallback(
     async (force = false) => {
@@ -193,13 +189,12 @@ export function useLeagueLeaderboard(
           const cached = getClientCache<{
             data: LeaderboardData | null;
             rawTeams?: TeamRanking[];
-            rawPendingWindow?: PendingWindow;
           }>(cacheKey);
 
           if (cached && cached.data) {
             setData(cached.data);
             setRawTeams(cached.rawTeams);
-            setRawPendingWindow(cached.rawPendingWindow);
+
             setIsLoading(false);
             return;
           }
@@ -232,7 +227,6 @@ export function useLeagueLeaderboard(
           ? fetchedData.teams
           : undefined;
         setRawTeams(initialTeams);
-        setRawPendingWindow(fetchedData?.pendingWindow);
 
         if (teamsResp.ok) {
           const teamsJson = await teamsResp.json();
@@ -267,15 +261,6 @@ export function useLeagueLeaderboard(
               ...t,
               logo_url: logoByTeamId[t.team_id] || null,
             }));
-          }
-          if (Array.isArray(fetchedData?.pendingWindow?.teams)) {
-            fetchedData.pendingWindow = {
-              ...fetchedData.pendingWindow,
-              teams: fetchedData.pendingWindow.teams.map((t) => ({
-                ...t,
-                logo_url: logoByTeamId[t.team_id] || null,
-              })),
-            };
           }
 
           // Compute normalized points when active and variance exists
@@ -312,39 +297,6 @@ export function useLeagueLeaderboard(
               rank: idx + 1,
             }));
 
-            // Normalize pending window (today/yesterday) pointsByDate using team member counts
-            let normalizedPending = fetchedData.pendingWindow;
-            if (
-              fetchedData.pendingWindow &&
-              fetchedData.pendingWindow.dates?.length
-            ) {
-              const dates = fetchedData.pendingWindow.dates;
-              const todayKey = dates[0]; // pendingWindowEnd first in list
-              const teamsPW = fetchedData.pendingWindow.teams.map((pw) => {
-                const memberCount = Math.max(1, teamMemberMap[pw.team_id] ?? 0);
-                const normalizedPointsByDate: Record<string, number> = {};
-                Object.entries(pw.pointsByDate || {}).forEach(([k, v]) => {
-                  normalizedPointsByDate[k] = Math.round(
-                    (v || 0) * (variance.maxSize / memberCount),
-                  );
-                });
-                return {
-                  ...pw,
-                  pointsByDate: normalizedPointsByDate,
-                };
-              });
-              // Rank by today's normalized points
-              teamsPW.sort(
-                (a, b) =>
-                  (b.pointsByDate?.[todayKey] ?? 0) -
-                  (a.pointsByDate?.[todayKey] ?? 0),
-              );
-              normalizedPending = {
-                dates,
-                teams: teamsPW.map((t, idx) => ({ ...t, rank: idx + 1 })),
-              };
-            }
-
             fetchedData = {
               ...fetchedData,
               normalization: {
@@ -355,7 +307,6 @@ export function useLeagueLeaderboard(
                 maxSize: variance.maxSize,
               },
               teams: reRanked,
-              pendingWindow: normalizedPending,
             };
           } else {
             fetchedData = {
@@ -406,7 +357,6 @@ export function useLeagueLeaderboard(
       setClientCache(cacheKey, {
         data: options.initialData,
         rawTeams: options.initialData.teams,
-        rawPendingWindow: options.initialData.pendingWindow,
       });
     }
   }, [leagueId, options?.initialData]); // only runs when leagueId or initialData changes
@@ -419,7 +369,7 @@ export function useLeagueLeaderboard(
   return {
     data,
     rawTeams,
-    rawPendingWindow,
+
     isLoading,
     error,
     refetch: () => fetchLeaderboard(true),
