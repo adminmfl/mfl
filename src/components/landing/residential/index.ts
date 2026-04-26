@@ -1,0 +1,17 @@
+export { ResidentialNav } from './residential-nav';
+export { ResidentialBanner } from './residential-banner';
+export { ResidentialHero } from './residential-hero';
+export { ResidentialDifferences } from './residential-differences';
+export { ResidentialPhotoRow } from './residential-photo-row';
+export { ResidentialHowItWorks } from './residential-how-it-works';
+export { ResidentialEventPhotos } from './residential-event-photos';
+export { ResidentialOutcomes } from './residential-outcomes';
+export { ResidentialTestimonials } from './residential-testimonials';
+export { ResidentialAiCoach } from './residential-ai-coach';
+export { ResidentialActivities } from './residential-activities';
+export { ResidentialPricing } from './residential-pricing';
+export { ResidentialFaq } from './residential-faq';
+export { ResidentialCorpStrip } from './residential-corp-strip';
+export { ResidentialCta } from './residential-cta';
+export { ResidentialFooter } from './residential-footer';
+export { ResidentialContactModal } from './residential-contact-modal';
