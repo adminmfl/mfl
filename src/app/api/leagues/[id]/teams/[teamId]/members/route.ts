@@ -73,7 +73,6 @@ export async function GET(
         { status: 403 },
       );
     }
-    console.log('[Team Members API] Fetched members:', members);
 
     return NextResponse.json({
       success: true,
@@ -101,6 +100,9 @@ export async function POST(
 
     const userId = authUser.id;
 
+    // Declare supabase at the top to avoid reference errors
+    const supabase = getSupabaseServiceRole();
+
     // Check permissions (host, governor, or captain of this specific team)
     const isHostOrGovernor = await userHasAnyRole(userId, leagueId, [
       'host',
@@ -117,8 +119,7 @@ export async function POST(
       ]);
       if (isCaptainLevel) {
         // Verify the captain/VC is on this specific team
-        const supabaseCheck = getSupabaseServiceRole();
-        const { data: captainMembership } = await supabaseCheck
+        const { data: captainMembership } = await supabase
           .from('leaguemembers')
           .select('team_id')
           .eq('user_id', userId)
@@ -162,14 +163,44 @@ export async function POST(
     const body = await request.json();
     const validated = addMemberSchema.parse(body);
 
+    // Verify the team exists and belongs to this league
+    const { data: team, error: teamError } = await supabase
+      .from('teamleagues')
+      .select('team_id')
+      .eq('team_id', teamId)
+      .eq('league_id', leagueId)
+      .maybeSingle();
+
+    if (teamError) {
+      console.error('Error verifying team:', teamError);
+      return NextResponse.json(
+        { error: 'Failed to verify team' },
+        { status: 500 },
+      );
+    }
+
+    if (!team) {
+      return NextResponse.json(
+        { error: 'Team not found in this league' },
+        { status: 404 },
+      );
+    }
+
     // Verify the member exists and belongs to this league
-    const supabase = getSupabaseServiceRole();
-    const { data: member } = await supabase
+    const { data: member, error: memberError } = await supabase
       .from('leaguemembers')
       .select('league_member_id, team_id, league_id')
       .eq('league_member_id', validated.league_member_id)
       .eq('league_id', leagueId)
       .maybeSingle();
+
+    if (memberError) {
+      console.error('Error verifying member:', memberError);
+      return NextResponse.json(
+        { error: 'Failed to verify member' },
+        { status: 500 },
+      );
+    }
 
     if (!member) {
       return NextResponse.json(
@@ -185,15 +216,15 @@ export async function POST(
       );
     }
 
-    const success = await assignMemberToTeam(
+    const assignResult = await assignMemberToTeam(
       validated.league_member_id,
       teamId,
       userId,
     );
 
-    if (!success) {
+    if (!assignResult.success) {
       return NextResponse.json(
-        { error: 'Failed to assign member to team' },
+        { error: assignResult.error || 'Failed to assign member to team' },
         { status: 500 },
       );
     }
@@ -272,7 +303,7 @@ export async function DELETE(
       );
     }
 
-    if (targetMember.team_id !== teamId) {
+    if (!targetMember.team_id || targetMember.team_id !== teamId) {
       return NextResponse.json(
         { error: 'Member is not assigned to this team' },
         { status: 400 },

@@ -511,9 +511,7 @@ export async function getTeamMembers(
  * Get all league members with their team assignments
  * Returns both allocated and unallocated members
  */
-export async function getLeagueMembersWithTeams(
-  leagueId: string,
-): Promise<{
+export async function getLeagueMembersWithTeams(leagueId: string): Promise<{
   allocated: LeagueMemberWithDetails[];
   unallocated: LeagueMemberWithDetails[];
 }> {
@@ -581,21 +579,31 @@ export async function assignMemberToTeam(
   leagueMemberId: string,
   teamId: string,
   modifiedBy: string,
-): Promise<boolean> {
+): Promise<{ success: boolean; error?: string }> {
   try {
-    const { error } = await getSupabaseServiceRole()
+    const { data, error } = await getSupabaseServiceRole()
       .from('leaguemembers')
       .update({
         team_id: teamId,
         modified_by: modifiedBy,
         modified_date: new Date().toISOString(),
       })
-      .eq('league_member_id', leagueMemberId);
+      .eq('league_member_id', leagueMemberId)
+      .select();
 
-    return !error;
+    if (error) {
+      console.error('Error assigning member to team:', error);
+      return { success: false, error: 'Failed to assign member to team' };
+    }
+
+    if (!data || data.length === 0) {
+      return { success: false, error: 'Member not found' };
+    }
+
+    return { success: true };
   } catch (err) {
-    console.error('Error assigning member to team:', err);
-    return false;
+    console.error('Error in assignMemberToTeam:', err);
+    return { success: false, error: 'Failed to assign member to team' };
   }
 }
 
