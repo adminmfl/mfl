@@ -7,6 +7,7 @@ import {
   useEffect,
   useCallback,
   useMemo,
+  useRef,
   ReactNode,
 } from 'react';
 import { useSession } from 'next-auth/react';
@@ -15,56 +16,7 @@ import { useSession } from 'next-auth/react';
 // Types
 // ============================================================================
 
-export type LeagueRole =
-  | 'host'
-  | 'governor'
-  | 'captain'
-  | 'vice_captain'
-  | 'player';
-export type LeagueStatus = 'draft' | 'launched' | 'active' | 'completed';
-
-export interface LeagueBranding {
-  display_name?: string;
-  tagline?: string;
-  primary_color?: string;
-  logo_url?: string;
-  powered_by_visible?: boolean;
-}
-
-export interface LeagueRRConfig {
-  formula: 'standard' | 'simple' | 'points_only';
-  base_duration?: number;
-  distance_divisor?: number;
-  steps_min?: number;
-  steps_max?: number;
-  age_adjustments?: boolean;
-}
-
-export interface LeagueWithRoles {
-  league_id: string;
-  name: string;
-  description: string | null;
-  status: LeagueStatus;
-  start_date: string | null;
-  end_date: string | null;
-  num_teams: number;
-  league_capacity: number;
-  is_public: boolean;
-  is_exclusive: boolean;
-  invite_code: string | null;
-  logo_url?: string | null;
-  roles: LeagueRole[];
-  team_id: string | null;
-  team_name: string | null;
-  team_logo_url: string | null;
-  is_host: boolean;
-  creator_name?: string | null;
-  branding?: LeagueBranding | null;
-  rr_config?: LeagueRRConfig | null;
-  rest_days?: number;
-  player_team_workout_visibility?: boolean;
-  player_league_workout_visibility?: boolean;
-}
+import { LeagueRole, LeagueWithRoles } from '@/lib/types/leagues';
 
 interface LeagueContextType {
   // League state
@@ -138,6 +90,7 @@ function sortRolesByHierarchy(roles: LeagueRole[]): LeagueRole[] {
 
 interface LeagueProviderProps {
   children: ReactNode;
+  initialLeagues?: LeagueWithRoles[];
 }
 
 /**
@@ -149,15 +102,21 @@ interface LeagueProviderProps {
  * - Supports role switching within a league
  * - Tracks whether user is participating as a player
  */
-export function LeagueProvider({ children }: LeagueProviderProps) {
+export function LeagueProvider({
+  children,
+  initialLeagues,
+}: LeagueProviderProps) {
   const { data: session, status: sessionStatus } = useSession();
   const [activeLeague, setActiveLeagueState] = useState<LeagueWithRoles | null>(
     null,
   );
-  const [userLeagues, setUserLeagues] = useState<LeagueWithRoles[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [userLeagues, setUserLeagues] = useState<LeagueWithRoles[]>(
+    initialLeagues || [],
+  );
+  const [isLoading, setIsLoading] = useState(!initialLeagues);
   const [error, setError] = useState<string | null>(null);
   const [currentRole, setCurrentRoleState] = useState<LeagueRole | null>(null);
+  const hydratedRef = useRef(!!initialLeagues);
 
   // Fetch user's leagues with roles
   const fetchUserLeagues = useCallback(async () => {
@@ -252,8 +211,35 @@ export function LeagueProvider({ children }: LeagueProviderProps) {
   // Fetch on mount and session change
   useEffect(() => {
     if (sessionStatus === 'loading') return;
+
+    // If we have initialLeagues, we skip the first fetch and just handle the active league restoration
+    if (hydratedRef.current && userLeagues.length > 0) {
+      hydratedRef.current = false; // Only skip once
+
+      const leagues = userLeagues;
+      const savedLeagueId = localStorage.getItem('activeLeagueId');
+      let selectedLeague: LeagueWithRoles | null = null;
+
+      if (savedLeagueId) {
+        selectedLeague =
+          leagues.find((l) => l.league_id === savedLeagueId) || null;
+      }
+
+      if (!selectedLeague && leagues.length > 0) {
+        selectedLeague = leagues[0];
+      }
+
+      if (selectedLeague) {
+        setActiveLeagueState(selectedLeague);
+        // ... rest of the role restoration logic below is already handled by setActiveLeague
+
+        setActiveLeague(selectedLeague);
+      }
+      return;
+    }
+
     fetchUserLeagues();
-  }, [sessionStatus, fetchUserLeagues]);
+  }, [sessionStatus, fetchUserLeagues, initialLeagues]);
 
   // Set active league with persistence
   const setActiveLeague = useCallback((league: LeagueWithRoles | null) => {

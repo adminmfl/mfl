@@ -7,6 +7,10 @@
 import { getSupabaseServiceRole } from '@/lib/supabase/client';
 import { getTeamsForLeague } from '@/lib/services/teams';
 import { TierPricingService } from '@/lib/services/tier-pricing';
+import { LeagueWithRoles } from '@/lib/types/leagues';
+import { cache } from 'react';
+
+
 
 export interface LeagueInput {
   league_name: string;
@@ -819,3 +823,186 @@ export async function removeRoleFromUser(
     return false;
   }
 }
+
+/**
+ * Get all leagues for a user with their roles and team associations.
+ * Replicates the logic from /api/user/leagues for server-side use.
+ */
+export const getUserLeaguesWithRoles = cache(async (userId: string): Promise<LeagueWithRoles[]> => {
+
+  try {
+    const supabase = getSupabaseServiceRole();
+
+    // 1. Get all league memberships for the user.
+    const { data: memberships, error: membershipError } = await supabase
+      .from('leaguemembers')
+      .select('league_id, team_id')
+      .eq('user_id', userId);
+
+    if (membershipError) throw membershipError;
+
+    const leagueIds = Array.from(
+      new Set((memberships || []).map((m: any) => m.league_id).filter(Boolean))
+    );
+    const teamIds = Array.from(
+      new Set((memberships || []).map((m: any) => m.team_id).filter(Boolean))
+    );
+
+    if (leagueIds.length === 0) return [];
+
+    // 2. Fetch leagues
+    const { data: leaguesData, error: leaguesError } = await supabase
+      .from('leagues')
+      .select('league_id, league_name, description, status, start_date, end_date, num_teams, tier_id, is_public, is_exclusive, invite_code, created_by, logo_url, branding, rr_config, rest_days, league_mode, player_team_workout_visibility, player_league_workout_visibility')
+      .in('league_id', leagueIds);
+
+    if (leaguesError) throw leaguesError;
+
+    // 3. Fetch creator usernames
+    const creatorIds = Array.from(
+      new Set((leaguesData || []).map((l: any) => l.created_by).filter(Boolean))
+    );
+
+    let creatorNameMap = new Map<string, string>();
+    if (creatorIds.length > 0) {
+      const { data: usersData } = await supabase
+        .from('users')
+        .select('user_id, username')
+        .in('user_id', creatorIds);
+
+      (usersData || []).forEach((u: any) => {
+        creatorNameMap.set(u.user_id, u.username);
+      });
+    }
+
+    // 4. Fetch tier capacities
+    const tierIds = Array.from(
+      new Set((leaguesData || []).map((l: any) => l.tier_id).filter(Boolean))
+    );
+
+    let tierCapacityMap = new Map<string, number>();
+    if (tierIds.length > 0) {
+      const { data: tiersData } = await supabase
+        .from('league_tiers')
+        .select('tier_id, league_capacity')
+        .in('tier_id', tierIds);
+
+      (tiersData || []).forEach((t: any) => {
+        tierCapacityMap.set(t.tier_id, t.league_capacity || 20);
+      });
+    }
+
+    // 5. Fetch teams and logos
+    let teamsData: any[] = [];
+    let teamLogoMap = new Map<string, string | null>();
+    if (teamIds.length > 0) {
+      const { data: tData, error: teamsError } = await supabase
+        .from('teams')
+        .select('team_id, team_name')
+        .in('team_id', teamIds);
+
+      if (teamsError) throw teamsError;
+      teamsData = tData || [];
+
+      const { data: teamLeaguesData } = await supabase
+        .from('teamleagues')
+        .select('team_id, league_id, logo_url')
+        .in('team_id', teamIds)
+        .in('league_id', leagueIds);
+
+      for (const tl of (teamLeaguesData || [])) {
+        teamLogoMap.set(`${tl.team_id}_${tl.league_id}`, tl.logo_url || null);
+      }
+    }
+
+    const leagueById = new Map((leaguesData || []).map((l: any) => [l.league_id, l] as const));
+    const teamById = new Map(teamsData.map((t: any) => [t.team_id, t] as const));
+
+    // 6. Fetch roles
+    const { data: roleAssignments, error: roleError } = await supabase
+      .from('assignedrolesforleague')
+      .select(`
+        league_id,
+        roles (
+          role_name
+        )
+      `)
+      .eq('user_id', userId);
+
+    if (roleError) throw roleError;
+
+    const rolesMap = new Map<string, string[]>();
+    (roleAssignments || []).forEach((assignment: any) => {
+      const lId = assignment.league_id;
+      const rName = assignment.roles?.role_name;
+      if (lId && rName) {
+        if (!rolesMap.has(lId)) rolesMap.set(lId, []);
+        rolesMap.get(lId)!.push(rName);
+      }
+    });
+
+    const pendingStatusUpdates: Promise<boolean>[] = [];
+
+    // 7. Assemble
+    const leagues = (memberships || []).map((membership: any) => {
+      const lId = membership.league_id;
+      const league = leagueById.get(lId);
+      const team = membership.team_id ? teamById.get(membership.team_id) : null;
+      const roles = rolesMap.get(lId) || [];
+
+      const isH = league?.created_by === userId || roles.includes('host');
+      if (roles.length === 0) roles.push('player');
+
+      const lCapacity = league?.tier_id ? (tierCapacityMap.get(league.tier_id) || 20) : 20;
+
+      const { derivedStatus, shouldPersist } = deriveLeagueStatus(league || {});
+
+      if (shouldPersist && lId) {
+        pendingStatusUpdates.push(
+          persistLeagueStatusIfNeeded(lId, league?.status || null, derivedStatus)
+        );
+      }
+
+      return {
+        league_id: lId,
+        name: league?.league_name || 'Unknown League',
+        description: league?.description || null,
+        logo_url: league?.logo_url || null,
+        status: derivedStatus as any,
+        start_date: league?.start_date || null,
+        end_date: league?.end_date || null,
+        num_teams: league?.num_teams || 4,
+        league_capacity: lCapacity,
+        is_public: league?.is_public || false,
+        is_exclusive: league?.is_exclusive || true,
+        invite_code: league?.invite_code || null,
+        roles: roles as any[],
+        team_id: team?.team_id || membership.team_id || null,
+        team_name: team?.team_name || null,
+        team_logo_url: membership.team_id ? teamLogoMap.get(`${membership.team_id}_${lId}`) || null : null,
+        is_host: isH,
+        creator_name: league?.created_by ? creatorNameMap.get(league.created_by) || null : null,
+        branding: (league as any)?.branding || null,
+        rr_config: (league as any)?.rr_config || null,
+        rest_days: (league as any)?.rest_days ?? 1,
+        league_mode: (league as any)?.league_mode || 'standard',
+        player_team_workout_visibility: (league as any)?.player_team_workout_visibility ?? false,
+        player_league_workout_visibility: (league as any)?.player_league_workout_visibility ?? false,
+      };
+    });
+
+    const uniqueLeagues = Array.from(
+      new Map(leagues.map((l: any) => [l.league_id, l])).values()
+    );
+
+    if (pendingStatusUpdates.length > 0) {
+      await Promise.allSettled(pendingStatusUpdates);
+    }
+
+    return uniqueLeagues as LeagueWithRoles[];
+  } catch (err) {
+    console.error('Error in getUserLeaguesWithRoles:', err);
+    return [];
+  }
+});
+
