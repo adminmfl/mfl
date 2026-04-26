@@ -289,10 +289,12 @@ export async function getLeagueById(leagueId: string): Promise<League | null> {
   try {
     const supabase = getSupabaseServiceRole();
 
-    // Fetch league without embedded join
+    // Fetch league with specific columns to avoid large payloads
     const { data, error } = await supabase
       .from('leagues')
-      .select('*')
+      .select(
+        'league_id, league_name, description, status, start_date, end_date, num_teams, tier_id, is_public, is_exclusive, invite_code, created_by, logo_url, branding, rr_config, rest_days, tier_snapshot',
+      )
       .eq('league_id', leagueId)
       .single();
 
@@ -455,7 +457,9 @@ export async function getLeaguesForUser(userId: string): Promise<League[]> {
   try {
     const { data, error } = await getSupabaseServiceRole()
       .from('leaguemembers')
-      .select('league_id, leagues(*)')
+      .select(
+        'league_id, leagues(league_id, league_name, description, status, start_date, end_date, logo_url)',
+      )
       .eq('user_id', userId);
 
     if (error) {

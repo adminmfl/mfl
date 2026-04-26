@@ -73,6 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add Log In and Sign Up buttons to corporate landing page nav bar
 - Fix rest day donation sync, availability, and donor balance logic (#152)
 - Fix auto-assignment inconsistencies and submission conflicts (#152)
+- Optimize major API endpoints to reduce TTFB and achieve sub-2s response times (#127)
 - Fix chat workout links to display readable labels (#132)
 
 ## [2.0.0] — 2026-04-01

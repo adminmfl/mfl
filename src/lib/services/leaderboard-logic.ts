@@ -146,52 +146,54 @@ export async function calculateLeaderboard(
         : null,
   });
 
-  // 1. Fetch data in parallel
-  const [
-    leagueRes,
-    teamsRes,
-    membersRes,
-    activityConfigRes,
-    challengeSubmissionsRes,
-    challengeScoresRes,
-  ] = await Promise.all([
-    supabase
-      .from('leagues')
-      .select(
-        'league_id, league_name, start_date, end_date, status, rr_config, rest_days',
-      )
-      .eq('league_id', leagueId)
-      .single(),
-    supabase
-      .from('teamleagues')
-      .select('team_id, teams(team_id, team_name)')
-      .eq('league_id', leagueId),
-    supabase
-      .from('leaguemembers')
-      .select(
-        'league_member_id, user_id, team_id, users!leaguemembers_user_id_fkey(user_id, username, profile_picture_url)',
-      )
-      .eq('league_id', leagueId),
-    supabase
-      .from('leagueactivities')
-      .select(
-        'activity_id, custom_activity_id, points_per_session, outcome_config, activities(activity_name)',
-      )
-      .eq('league_id', leagueId),
+  // 1. Fetch initial metadata in parallel
+  const [leagueRes, teamsRes, membersRes, activityConfigRes] =
+    await Promise.all([
+      supabase
+        .from('leagues')
+        .select(
+          'league_id, league_name, start_date, end_date, status, rr_config, rest_days',
+        )
+        .eq('league_id', leagueId)
+        .single(),
+      supabase
+        .from('teamleagues')
+        .select('team_id, teams(team_id, team_name)')
+        .eq('league_id', leagueId),
+      supabase
+        .from('leaguemembers')
+        .select(
+          'league_member_id, user_id, team_id, users!leaguemembers_user_id_fkey(user_id, username, profile_picture_url)',
+        )
+        .eq('league_id', leagueId),
+      supabase
+        .from('leagueactivities')
+        .select(
+          'activity_id, custom_activity_id, points_per_session, outcome_config, activities(activity_name)',
+        )
+        .eq('league_id', leagueId),
+    ]);
+
+  const league = leagueRes.data;
+  if (!league) return null;
+
+  const members = membersRes.data || [];
+  const memberIds = members.map((m) => m.league_member_id);
+
+  // 2. Fetch scoped submissions in parallel
+  const [challengeSubmissionsRes, challengeScoresRes] = await Promise.all([
     supabase
       .from('challenge_submissions')
       .select(
         'id, league_member_id, league_challenge_id, team_id, sub_team_id, status, created_at, awarded_points, leagueschallenges(id, name, total_points, challenge_type, start_date, end_date, league_id)',
       )
+      .in('league_member_id', memberIds)
       .eq('status', 'approved'),
     supabase
       .from('specialchallengeteamscore')
       .select('team_id, score, specialchallenges(challenge_id, name)')
       .eq('league_id', leagueId),
   ]);
-
-  const league = leagueRes.data;
-  if (!league) return null;
 
   const filterStartDate = startDate || league.start_date;
   const filterEndDate = endDate || league.end_date;
@@ -223,8 +225,6 @@ export async function calculateLeaderboard(
 
   const teams = teamsRes.data || [];
   const validTeamIds = new Set(teams.map((t) => (t as any).team_id));
-  const members = membersRes.data || [];
-  const memberIds = members.map((m) => m.league_member_id);
   const memberToUser = new Map();
   const teamMembers = new Map();
   members.forEach((m) => {
@@ -244,24 +244,53 @@ export async function calculateLeaderboard(
 
   const PAGE_SIZE = 1000;
   let entries: any[] = [];
-  {
-    let page = 0;
-    let hasMore = true;
-    while (hasMore) {
-      let q = supabase
-        .from('effortentry')
-        .select(
-          'id, league_member_id, date, type, workout_type, outcome, rr_value, status',
-        )
-        .in('league_member_id', memberIds)
-        .gte('date', filterStartDate)
-        .lte('date', effectiveEndDate)
-        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
-      const { data, error } = await q;
-      if (error) break;
-      entries = entries.concat(data || []);
-      hasMore = (data?.length || 0) === PAGE_SIZE;
-      page++;
+
+  // Fetch first page to get count and initial data
+  const firstPageRes = await supabase
+    .from('effortentry')
+    .select(
+      'id, league_member_id, date, type, workout_type, outcome, rr_value, status, leaguemembers!inner(league_id)',
+      { count: 'exact' },
+    )
+    .eq('leaguemembers.league_id', leagueId)
+    .gte('date', filterStartDate)
+    .lte('date', effectiveEndDate)
+    .range(0, PAGE_SIZE - 1);
+
+  if (firstPageRes.error) {
+    console.error('Error fetching effort entries:', firstPageRes.error);
+  } else {
+    entries = firstPageRes.data || [];
+    const totalCount = firstPageRes.count || 0;
+
+    if (totalCount > PAGE_SIZE) {
+      const remainingPages = Math.ceil((totalCount - PAGE_SIZE) / PAGE_SIZE);
+      const pagePromises = [];
+
+      for (let i = 1; i <= remainingPages; i++) {
+        pagePromises.push(
+          supabase
+            .from('effortentry')
+            .select(
+              'id, league_member_id, date, type, workout_type, outcome, rr_value, status, leaguemembers!inner(league_id)',
+            )
+            .eq('leaguemembers.league_id', leagueId)
+            .gte('date', filterStartDate)
+            .lte('date', effectiveEndDate)
+            .range(i * PAGE_SIZE, (i + 1) * PAGE_SIZE - 1),
+        );
+      }
+
+      const additionalPages = await Promise.all(pagePromises);
+      additionalPages.forEach((res, index) => {
+        if (res.error) {
+          console.error(
+            `Error fetching effort entries page ${index + 1}:`,
+            res.error,
+          );
+        }
+        if (res.data) entries = entries.concat(res.data);
+      });
     }
   }
 
@@ -415,7 +444,11 @@ export async function calculateLeaderboard(
   Array.from(uniqueEntriesMap.values()).forEach((entry) => {
     const teamId = memberToUser.get(entry.league_member_id)?.team_id;
     const teamStat = teamStats.get(teamId);
-    if (!teamStat) return;
+    if (
+      !teamStat ||
+      (league.status !== 'completed' && pendingWindowDates.includes(entry.date))
+    )
+      return;
     teamStat.submission_count++;
     teamStat.points += getEntryPoints(entry);
     if (entry.rr_value > 0) {

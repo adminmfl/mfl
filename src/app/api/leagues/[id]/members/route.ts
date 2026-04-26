@@ -5,12 +5,8 @@
  * DELETE /api/leagues/[id]/members - Remove member from league (Host only)
  */
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  addLeagueMember,
-} from '@/lib/services/memberships';
-import { getUserRolesInLeague } from '@/lib/services/leagues';
+import { addLeagueMember } from '@/lib/services/memberships';
 import { userHasAnyRole } from '@/lib/services/roles';
-import { getLeagueMembersWithTeams, assignMemberToTeam } from '@/lib/services/teams';
 import { getAuthUser } from '@/lib/auth/get-auth-user';
 import { z } from 'zod';
 import { getSupabaseServiceRole } from '@/lib/supabase/client';
@@ -27,7 +23,7 @@ const moveMemberSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -36,61 +32,84 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Fetch members using service role (bypasses RLS since we use NextAuth, not Supabase Auth)
+    // 1. Initial parallel fetches: Members and User Info
     const supabase = getSupabaseServiceRole();
     const { data: membersRaw, error: membersError } = await supabase
       .from('leaguemembers')
-      .select('*')
+      .select('league_member_id, user_id, league_id, team_id')
       .eq('league_id', id);
 
     if (membersError) {
       console.error('Error fetching league members:', membersError);
-      return NextResponse.json({ error: 'Failed to fetch members' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to fetch members' },
+        { status: 500 },
+      );
     }
 
     const members = membersRaw || [];
+    const userIds = members.map((m: any) => m.user_id);
 
-    // Check if user is member of league
+    // 2. Fetch Usernames and Roles in parallel
+    const [usersRes, rolesRes] = await Promise.all([
+      supabase.from('users').select('user_id, username').in('user_id', userIds),
+      supabase
+        .from('assignedrolesforleague')
+        .select('user_id, roles(role_name)')
+        .eq('league_id', id)
+        .in('user_id', userIds),
+    ]);
+
+    const usernameMap = new Map(
+      (usersRes.data || []).map((u: any) => [u.user_id, u.username]),
+    );
+
+    // Build a map of user_id -> roles[]
+    const roleMap = new Map<string, string[]>();
+    (rolesRes.data || []).forEach((row: any) => {
+      const uid = row.user_id;
+      const roleName = row.roles?.role_name;
+      if (uid && roleName) {
+        if (!roleMap.has(uid)) roleMap.set(uid, []);
+        roleMap.get(uid)!.push(roleName);
+      }
+    });
+
+    // Check if user is member of league (using in-memory check)
     const isUserMember = members.some((m: any) => m.user_id === authUser.id);
     if (!isUserMember) {
       return NextResponse.json(
         { error: 'You are not a member of this league' },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
-    // Fetch usernames for all members
-    const userIds = members.map((m: any) => m.user_id);
-    const { data: users } = await supabase
-      .from('users')
-      .select('user_id, username')
-      .in('user_id', userIds);
-    const usernameMap = new Map(
-      (users || []).map((u: any) => [u.user_id, u.username])
-    );
+    // Combine everything
+    const membersWithRoles = members.map((member) => {
+      const roles = roleMap.get(member.user_id) || [];
+      // Default to player if no explicit roles found
+      if (roles.length === 0) roles.push('player');
 
-    // Fetch members with their roles and usernames
-    const membersWithRoles = await Promise.all(
-      members.map(async (member) => ({
+      return {
         ...member,
         username: usernameMap.get(member.user_id) || null,
-        roles: await getUserRolesInLeague(member.user_id, id),
-      }))
-    );
+        roles: roles,
+      };
+    });
 
     return NextResponse.json({ data: membersWithRoles, success: true });
   } catch (error) {
     console.error('Error fetching league members:', error);
     return NextResponse.json(
       { error: 'Failed to fetch members' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -100,14 +119,11 @@ export async function POST(
     }
 
     // Check permissions (must be host or governor)
-    const canAdd = await userHasAnyRole(authUser.id, id, [
-      'host',
-      'governor',
-    ]);
+    const canAdd = await userHasAnyRole(authUser.id, id, ['host', 'governor']);
     if (!canAdd) {
       return NextResponse.json(
         { error: 'Only host or governor can add members' },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -118,31 +134,28 @@ export async function POST(
       validated.user_id,
       id,
       validated.team_id,
-      authUser.id
+      authUser.id,
     );
 
     if (!member) {
       return NextResponse.json(
         { error: 'Failed to add member' },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
-    return NextResponse.json(
-      { data: member, success: true },
-      { status: 201 }
-    );
+    return NextResponse.json({ data: member, success: true }, { status: 201 });
   } catch (error) {
     console.error('Error adding member:', error);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Validation failed', details: error.errors },
-        { status: 400 }
+        { status: 400 },
       );
     }
     return NextResponse.json(
       { error: 'Failed to add member' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -153,7 +166,7 @@ export async function POST(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id: leagueId } = await params;
@@ -167,7 +180,7 @@ export async function PATCH(
     if (!isHost) {
       return NextResponse.json(
         { error: 'Only league host can move members' },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -187,7 +200,7 @@ export async function PATCH(
     if (memberError || !member) {
       return NextResponse.json(
         { error: 'Member not found in league' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -202,7 +215,7 @@ export async function PATCH(
     if (teamError || !teamLink) {
       return NextResponse.json(
         { error: 'Team not found in league' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -212,21 +225,23 @@ export async function PATCH(
     if (!success) {
       return NextResponse.json(
         { error: 'Failed to move member' },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
     // Fetch and return updated member
     const { data: updatedMember } = await supabase
       .from('leaguemembers')
-      .select(`
+      .select(
+        `
         league_member_id,
         user_id,
         team_id,
         league_id,
         users!leaguemembers_user_id_fkey(username, email),
         teams(team_name)
-      `)
+      `,
+      )
       .eq('league_member_id', memberId)
       .single();
 
@@ -247,12 +262,12 @@ export async function PATCH(
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Validation failed', details: error.errors },
-        { status: 400 }
+        { status: 400 },
       );
     }
     return NextResponse.json(
       { error: 'Failed to move member' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -263,7 +278,7 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id: leagueId } = await params;
@@ -277,7 +292,7 @@ export async function DELETE(
     if (!isHost2) {
       return NextResponse.json(
         { error: 'Only league host can remove members' },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -286,7 +301,7 @@ export async function DELETE(
     if (!memberId) {
       return NextResponse.json(
         { error: 'Member ID required' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -303,7 +318,7 @@ export async function DELETE(
     if (memberError || !member) {
       return NextResponse.json(
         { error: 'Member not found in league' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -311,7 +326,7 @@ export async function DELETE(
     if (member.user_id === authUser.id) {
       return NextResponse.json(
         { error: 'You cannot remove yourself from the league' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -325,7 +340,7 @@ export async function DELETE(
       console.error('Error deleting member:', deleteError);
       return NextResponse.json(
         { error: 'Failed to remove member' },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -345,8 +360,7 @@ export async function DELETE(
     console.error('Error removing member from league:', error);
     return NextResponse.json(
       { error: 'Failed to remove member' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-
