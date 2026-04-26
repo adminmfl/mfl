@@ -57,6 +57,11 @@ export interface PendingTeamWindowRanking {
   pointsByDate: Record<string, number>;
 }
 
+/**
+ * Pending Window
+ * NOTE: Pending window points are already integrated into the main team and individual totals.
+ * DO NOT add these points on top of the primary rankings to avoid double-counting.
+ */
 export interface PendingWindow {
   dates: string[];
   teams: PendingTeamWindowRanking[];
@@ -600,8 +605,13 @@ export async function calculateLeaderboard(
 
   return {
     teams: teamRankings,
+    /**
+     * NOTE: Pending window points are already integrated into the main team and individual totals.
+     * DO NOT add these points on top of the primary rankings to avoid double-counting.
+     */
     pendingWindow: { dates: pendingWindowDates, teams: pendingWindowTeams },
     individuals: individualRankings,
+
     stats,
     dateRange: { startDate: filterStartDate, endDate: effectiveEndDate },
     league: {

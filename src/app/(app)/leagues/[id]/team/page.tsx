@@ -1,12 +1,7 @@
 'use client';
 
 import React, { use, useState, useEffect } from 'react';
-import {
-  Users,
-  Trophy,
-  Target,
-  Crown,
-} from 'lucide-react';
+import { Users, Trophy, Target, Crown } from 'lucide-react';
 
 import { useLeague } from '@/contexts/league-context';
 import { useRole } from '@/contexts/role-context';
@@ -89,7 +84,7 @@ function TeamMemberView({
     async function fetchData() {
       try {
         const membersRes = await fetch(
-          `/api/leagues/${leagueId}/teams/${teamId}/members`
+          `/api/leagues/${leagueId}/teams/${teamId}/members`,
         );
         const membersJson = await membersRes.json();
 
@@ -99,7 +94,7 @@ function TeamMemberView({
         }));
 
         const leaderboardRes = await fetch(
-          `/api/leagues/${leagueId}/leaderboard?full=true`
+          `/api/leagues/${leagueId}/leaderboard?full=true`,
         );
         const leaderboardJson = await leaderboardRes.json();
 
@@ -108,7 +103,7 @@ function TeamMemberView({
             leaderboardJson.data.individuals.map((i: any) => [
               String(i.user_id),
               { points: Number(i.points || 0), avg_rr: Number(i.avg_rr || 0) },
-            ])
+            ]),
           );
 
           membersWithPoints = membersWithPoints.map((m: any) => ({
@@ -120,13 +115,11 @@ function TeamMemberView({
 
         if (leaderboardJson?.data?.teams) {
           const team = leaderboardJson.data.teams.find(
-            (t: any) => String(t.team_id) === String(teamId)
+            (t: any) => String(t.team_id) === String(teamId),
           );
           if (team) {
-            const pendingTeam = (leaderboardJson.data?.pendingWindow?.teams || []).find((t: any) => String(t.team_id) === String(teamId));
-            const pendingPts = pendingTeam?.total_points ?? 0;
             setTeamRank(`#${team.rank ?? '--'}`);
-            setTeamPoints(String((team.total_points ?? 0) + pendingPts));
+            setTeamPoints(String(team.total_points ?? 0));
           }
         }
 
@@ -191,7 +184,9 @@ function TeamMemberView({
             <TableRow>
               <TableHead>#</TableHead>
               <TableHead>Member</TableHead>
-              {showRestDays && <TableHead className="text-center">Rest Days</TableHead>}
+              {showRestDays && (
+                <TableHead className="text-center">Rest Days</TableHead>
+              )}
               <TableHead className="text-center">Points</TableHead>
               {showRR && <TableHead className="text-center">RR</TableHead>}
             </TableRow>
@@ -199,40 +194,41 @@ function TeamMemberView({
           <TableBody>
             {members.map((m, i) => (
               <TableRow key={m.league_member_id}>
-                <TableCell>
-                  {i + 1}
-                </TableCell>
+                <TableCell>{i + 1}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <Avatar>
-                      <AvatarImage src={(m as any).profile_picture_url || undefined} />
+                      <AvatarImage
+                        src={(m as any).profile_picture_url || undefined}
+                      />
                       <AvatarFallback>
                         {m.username.slice(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <span>{capitalizeName(m.username)}</span>
-                    {m.is_captain && <Crown className="size-4 text-yellow-500" />}
+                    {m.is_captain && (
+                      <Crown className="size-4 text-yellow-500" />
+                    )}
                   </div>
                 </TableCell>
                 {showRestDays && (
-                <TableCell className="text-center text-muted-foreground text-sm">
-                  {(m as any).rest_days_used ?? 0}
-                </TableCell>
+                  <TableCell className="text-center text-muted-foreground text-sm">
+                    {(m as any).rest_days_used ?? 0}
+                  </TableCell>
                 )}
                 <TableCell className="text-center font-medium">
                   {m.points}
                 </TableCell>
                 {showRR && (
-                <TableCell className="text-center font-medium">
-                  {(m.avg_rr ?? 0).toFixed(2)}
-                </TableCell>
+                  <TableCell className="text-center font-medium">
+                    {(m.avg_rr ?? 0).toFixed(2)}
+                  </TableCell>
                 )}
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </div>
-
     </div>
   );
 }
@@ -267,7 +263,11 @@ function StatCard({
    Team Page (Router)
 ============================================================================ */
 
-export default function TeamPage({ params }: { params: Promise<{ id: string }> }) {
+export default function TeamPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id: leagueId } = use(params);
   const { activeLeague } = useLeague();
   const { isHost, isGovernor, isCaptain } = useRole();
