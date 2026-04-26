@@ -57,6 +57,11 @@ export interface PendingTeamWindowRanking {
   pointsByDate: Record<string, number>;
 }
 
+/**
+ * Pending Window
+ * NOTE: Pending window points are already integrated into the main team and individual totals.
+ * DO NOT add these points on top of the primary rankings to avoid double-counting.
+ */
 export interface PendingWindow {
   dates: string[];
   teams: PendingTeamWindowRanking[];
@@ -118,15 +123,27 @@ function uniqueStringsPreserveOrder(values: string[]): string[] {
  * This logic is extracted from the API route to be callable from both
  * the API and directly from RSCs.
  */
-export async function calculateLeaderboard(leagueId: string, options: LeaderboardCalculationOptions = {}) {
+export async function calculateLeaderboard(
+  leagueId: string,
+  options: LeaderboardCalculationOptions = {},
+) {
   const supabase = getSupabaseServiceRole();
-  const { startDate, endDate, tzOffsetMinutes, ianaTimezone, full = false } = options;
+  const {
+    startDate,
+    endDate,
+    tzOffsetMinutes,
+    ianaTimezone,
+    full = false,
+  } = options;
 
   // Compute today's date string in user's timezone
   const todayYmd = getUserLocalDateYMD({
     now: new Date(),
     ianaTimezone: ianaTimezone || null,
-    tzOffsetMinutes: typeof tzOffsetMinutes === 'number' && Number.isFinite(tzOffsetMinutes) ? tzOffsetMinutes : null,
+    tzOffsetMinutes:
+      typeof tzOffsetMinutes === 'number' && Number.isFinite(tzOffsetMinutes)
+        ? tzOffsetMinutes
+        : null,
   });
 
   // 1. Fetch data in parallel
@@ -136,14 +153,41 @@ export async function calculateLeaderboard(leagueId: string, options: Leaderboar
     membersRes,
     activityConfigRes,
     challengeSubmissionsRes,
-    challengeScoresRes
+    challengeScoresRes,
   ] = await Promise.all([
-    supabase.from('leagues').select('league_id, league_name, start_date, end_date, status, rr_config, rest_days').eq('league_id', leagueId).single(),
-    supabase.from('teamleagues').select('team_id, teams(team_id, team_name)').eq('league_id', leagueId),
-    supabase.from('leaguemembers').select('league_member_id, user_id, team_id, users!leaguemembers_user_id_fkey(user_id, username, profile_picture_url)').eq('league_id', leagueId),
-    supabase.from('leagueactivities').select('activity_id, custom_activity_id, points_per_session, outcome_config, activities(activity_name)').eq('league_id', leagueId),
-    supabase.from('challenge_submissions').select('id, league_member_id, league_challenge_id, team_id, sub_team_id, status, created_at, awarded_points, leagueschallenges(id, name, total_points, challenge_type, start_date, end_date, league_id)').eq('status', 'approved'),
-    supabase.from('specialchallengeteamscore').select('team_id, score, specialchallenges(challenge_id, name)').eq('league_id', leagueId)
+    supabase
+      .from('leagues')
+      .select(
+        'league_id, league_name, start_date, end_date, status, rr_config, rest_days',
+      )
+      .eq('league_id', leagueId)
+      .single(),
+    supabase
+      .from('teamleagues')
+      .select('team_id, teams(team_id, team_name)')
+      .eq('league_id', leagueId),
+    supabase
+      .from('leaguemembers')
+      .select(
+        'league_member_id, user_id, team_id, users!leaguemembers_user_id_fkey(user_id, username, profile_picture_url)',
+      )
+      .eq('league_id', leagueId),
+    supabase
+      .from('leagueactivities')
+      .select(
+        'activity_id, custom_activity_id, points_per_session, outcome_config, activities(activity_name)',
+      )
+      .eq('league_id', leagueId),
+    supabase
+      .from('challenge_submissions')
+      .select(
+        'id, league_member_id, league_challenge_id, team_id, sub_team_id, status, created_at, awarded_points, leagueschallenges(id, name, total_points, challenge_type, start_date, end_date, league_id)',
+      )
+      .eq('status', 'approved'),
+    supabase
+      .from('specialchallengeteamscore')
+      .select('team_id, score, specialchallenges(challenge_id, name)')
+      .eq('league_id', leagueId),
   ]);
 
   const league = leagueRes.data;
@@ -168,7 +212,10 @@ export async function calculateLeaderboard(leagueId: string, options: Leaderboar
     effectiveEndDate = minDateString(String(filterEndDate), todayYYYYMMDD);
     const pendingWindowEnd = effectiveEndDate;
     const pendingWindowStart = addDaysYYYYMMDD(pendingWindowEnd, -1);
-    pendingWindowDates = uniqueStringsPreserveOrder([pendingWindowEnd, pendingWindowStart])
+    pendingWindowDates = uniqueStringsPreserveOrder([
+      pendingWindowEnd,
+      pendingWindowStart,
+    ])
       .filter((d) => d >= filterStartDate && d <= String(filterEndDate))
       .filter((d) => d > cutoff)
       .sort();
@@ -182,7 +229,12 @@ export async function calculateLeaderboard(leagueId: string, options: Leaderboar
   const teamMembers = new Map();
   members.forEach((m) => {
     const user = m.users as any;
-    memberToUser.set(m.league_member_id, { user_id: m.user_id, username: user?.username || 'Unknown', team_id: m.team_id, profile_picture_url: user?.profile_picture_url });
+    memberToUser.set(m.league_member_id, {
+      user_id: m.user_id,
+      username: user?.username || 'Unknown',
+      team_id: m.team_id,
+      profile_picture_url: user?.profile_picture_url,
+    });
     if (m.team_id) {
       const existing = teamMembers.get(m.team_id) || [];
       existing.push(m.league_member_id);
@@ -196,7 +248,15 @@ export async function calculateLeaderboard(leagueId: string, options: Leaderboar
     let page = 0;
     let hasMore = true;
     while (hasMore) {
-      let q = supabase.from('effortentry').select('id, league_member_id, date, type, workout_type, outcome, rr_value, status').in('league_member_id', memberIds).gte('date', filterStartDate).lte('date', effectiveEndDate).range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+      let q = supabase
+        .from('effortentry')
+        .select(
+          'id, league_member_id, date, type, workout_type, outcome, rr_value, status',
+        )
+        .in('league_member_id', memberIds)
+        .gte('date', filterStartDate)
+        .lte('date', effectiveEndDate)
+        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
       const { data, error } = await q;
       if (error) break;
       entries = entries.concat(data || []);
@@ -207,16 +267,23 @@ export async function calculateLeaderboard(leagueId: string, options: Leaderboar
 
   const activityPointsMap = new Map();
   (activityConfigRes.data || []).forEach((row: any) => {
-    const config = { points_per_session: row.points_per_session ?? 1, outcome_config: row.outcome_config ?? null };
-    if (row.activities?.activity_name) activityPointsMap.set(row.activities.activity_name, config);
-    if (row.custom_activity_id) activityPointsMap.set(row.custom_activity_id, config);
+    const config = {
+      points_per_session: row.points_per_session ?? 1,
+      outcome_config: row.outcome_config ?? null,
+    };
+    if (row.activities?.activity_name)
+      activityPointsMap.set(row.activities.activity_name, config);
+    if (row.custom_activity_id)
+      activityPointsMap.set(row.custom_activity_id, config);
   });
 
   const getEntryPoints = (entry: any) => {
     const config = activityPointsMap.get(entry.workout_type || '');
     if (!config) return 1;
     if (config.outcome_config && entry.outcome) {
-      const match = config.outcome_config.find((o: any) => o.label === entry.outcome);
+      const match = config.outcome_config.find(
+        (o: any) => o.label === entry.outcome,
+      );
       if (match) return match.points;
     }
     return config.points_per_session;
@@ -230,36 +297,73 @@ export async function calculateLeaderboard(leagueId: string, options: Leaderboar
   teamMembers.forEach((m, tid) => teamSizes.set(tid, m.length));
 
   const uniqueSubmissionsMap = new Map();
-  (challengeSubmissionsRes.data || []).filter(sub => (sub.leagueschallenges as any)?.league_id === leagueId).forEach((sub) => {
-    const chal = sub.leagueschallenges as any;
-    const key = `${sub.league_member_id}_${chal.id}`;
-    const points = sub.awarded_points !== null ? Number(sub.awarded_points) : (Number(chal.total_points) || 0);
-    const existing = uniqueSubmissionsMap.get(key);
-    if (!existing || points > (existing.awarded_points !== null ? Number(existing.awarded_points) : (Number(existing.leagueschallenges.total_points) || 0))) {
-      uniqueSubmissionsMap.set(key, sub);
-    }
-  });
+  (challengeSubmissionsRes.data || [])
+    .filter((sub) => (sub.leagueschallenges as any)?.league_id === leagueId)
+    .forEach((sub) => {
+      const chal = sub.leagueschallenges as any;
+      const key = `${sub.league_member_id}_${chal.id}`;
+      const points =
+        sub.awarded_points !== null
+          ? Number(sub.awarded_points)
+          : Number(chal.total_points) || 0;
+      const existing = uniqueSubmissionsMap.get(key);
+      if (
+        !existing ||
+        points >
+          (existing.awarded_points !== null
+            ? Number(existing.awarded_points)
+            : Number(existing.leagueschallenges.total_points) || 0)
+      ) {
+        uniqueSubmissionsMap.set(key, sub);
+      }
+    });
 
   uniqueSubmissionsMap.forEach((sub) => {
     const chal = sub.leagueschallenges as any;
-    const subDate = (typeof sub.created_at === 'string' && sub.created_at.includes('T') ? sub.created_at.split('T')[0] : (chal.end_date || chal.start_date || todayYmd));
+    const subDate =
+      typeof sub.created_at === 'string' && sub.created_at.includes('T')
+        ? sub.created_at.split('T')[0]
+        : chal.end_date || chal.start_date || todayYmd;
     if (subDate < filterStartDate || subDate > effectiveEndDate) return;
-    const points = sub.awarded_points !== null ? Number(sub.awarded_points) : (Number(chal.total_points) || 0);
+    const points =
+      sub.awarded_points !== null
+        ? Number(sub.awarded_points)
+        : Number(chal.total_points) || 0;
     const memberInfo = memberToUser.get(sub.league_member_id);
     const teamId = memberInfo?.team_id;
     if (teamId && validTeamIds.has(teamId)) {
       if (chal.challenge_type === 'team') {
         const size = Math.max(1, teamSizes.get(teamId) || 1);
-        teamChallengePoints.set(teamId, (teamChallengePoints.get(teamId) || 0) + Math.min(points, Number(chal.total_points || 0) / size));
+        teamChallengePoints.set(
+          teamId,
+          (teamChallengePoints.get(teamId) || 0) +
+            Math.min(points, Number(chal.total_points || 0) / size),
+        );
       } else if (chal.challenge_type === 'sub_team' && sub.sub_team_id) {
-        subTeamChallengePoints.set(String(sub.sub_team_id), (subTeamChallengePoints.get(String(sub.sub_team_id)) || 0) + points);
-        subTeamSubmissionCounts.set(String(sub.sub_team_id), (subTeamSubmissionCounts.get(String(sub.sub_team_id)) || 0) + 1);
+        subTeamChallengePoints.set(
+          String(sub.sub_team_id),
+          (subTeamChallengePoints.get(String(sub.sub_team_id)) || 0) + points,
+        );
+        subTeamSubmissionCounts.set(
+          String(sub.sub_team_id),
+          (subTeamSubmissionCounts.get(String(sub.sub_team_id)) || 0) + 1,
+        );
         const size = Math.max(1, teamSizes.get(teamId) || 1);
-        teamChallengePoints.set(teamId, (teamChallengePoints.get(teamId) || 0) + Math.min(points, Number(chal.total_points || 0) / size));
+        teamChallengePoints.set(
+          teamId,
+          (teamChallengePoints.get(teamId) || 0) +
+            Math.min(points, Number(chal.total_points || 0) / size),
+        );
       } else {
-        teamChallengePoints.set(teamId, (teamChallengePoints.get(teamId) || 0) + points);
+        teamChallengePoints.set(
+          teamId,
+          (teamChallengePoints.get(teamId) || 0) + points,
+        );
         if (chal.challenge_type === 'individual') {
-          memberChallengePoints.set(sub.league_member_id, (memberChallengePoints.get(sub.league_member_id) || 0) + points);
+          memberChallengePoints.set(
+            sub.league_member_id,
+            (memberChallengePoints.get(sub.league_member_id) || 0) + points,
+          );
         }
       }
     }
@@ -267,7 +371,10 @@ export async function calculateLeaderboard(leagueId: string, options: Leaderboar
 
   const specialChallengeBonus = new Map<string, number>();
   (challengeScoresRes.data || []).forEach((cs) => {
-    specialChallengeBonus.set(cs.team_id, (specialChallengeBonus.get(cs.team_id) || 0) + (cs.score || 0));
+    specialChallengeBonus.set(
+      cs.team_id,
+      (specialChallengeBonus.get(cs.team_id) || 0) + (cs.score || 0),
+    );
   });
 
   const stats: LeaderboardStats = {
@@ -275,90 +382,212 @@ export async function calculateLeaderboard(leagueId: string, options: Leaderboar
     approved: entries.filter((e) => e.status === 'approved').length,
     pending: entries.filter((e) => e.status === 'pending').length,
     rejected: entries.filter((e) => e.status === 'rejected').length,
-    total_rr: entries.filter((e) => e.status === 'approved' && e.rr_value).reduce((sum, e) => sum + (e.rr_value || 0), 0),
+    total_rr: entries
+      .filter((e) => e.status === 'approved' && e.rr_value)
+      .reduce((sum, e) => sum + (e.rr_value || 0), 0),
   };
 
   const teamStats = new Map();
   teams.forEach((t: any) => {
     const tid = t.teams?.team_id || t.team_id;
     const tname = t.teams?.team_name || 'Unknown';
-    teamStats.set(tid, { team_id: tid, team_name: tname, points: 0, total_rr: 0, rr_count: 0, member_count: (teamMembers.get(tid) || []).length, submission_count: 0 });
+    teamStats.set(tid, {
+      team_id: tid,
+      team_name: tname,
+      points: 0,
+      total_rr: 0,
+      rr_count: 0,
+      member_count: (teamMembers.get(tid) || []).length,
+      submission_count: 0,
+    });
   });
 
   const uniqueEntriesMap = new Map();
-  entries.filter(e => e.status === 'approved').forEach((e) => {
-    const key = `${e.league_member_id}_${e.date}_${e.workout_type || ''}`;
-    const existing = uniqueEntriesMap.get(key);
-    if (!existing || (!existing.rr_value && e.rr_value)) uniqueEntriesMap.set(key, e);
-  });
+  entries
+    .filter((e) => e.status === 'approved')
+    .forEach((e) => {
+      const key = `${e.league_member_id}_${e.date}_${e.workout_type || ''}`;
+      const existing = uniqueEntriesMap.get(key);
+      if (!existing || (!existing.rr_value && e.rr_value))
+        uniqueEntriesMap.set(key, e);
+    });
 
   Array.from(uniqueEntriesMap.values()).forEach((entry) => {
     const teamId = memberToUser.get(entry.league_member_id)?.team_id;
     const teamStat = teamStats.get(teamId);
-    if (!teamStat || (league.status !== 'completed' && pendingWindowDates.includes(entry.date))) return;
+    if (!teamStat) return;
     teamStat.submission_count++;
     teamStat.points += getEntryPoints(entry);
-    if (entry.rr_value > 0) { teamStat.total_rr += entry.rr_value; teamStat.rr_count++; }
+    if (entry.rr_value > 0) {
+      teamStat.total_rr += entry.rr_value;
+      teamStat.rr_count++;
+    }
   });
 
-  const teamRankings: TeamRanking[] = Array.from(teamStats.values()).map((ts) => {
-    const totalBonus = (specialChallengeBonus.get(ts.team_id) || 0) + (teamChallengePoints.get(ts.team_id) || 0);
-    return { rank: 0, team_id: ts.team_id, team_name: ts.team_name, points: ts.points, challenge_bonus: totalBonus, total_points: ts.points + totalBonus, avg_rr: ts.rr_count > 0 ? Math.round((ts.total_rr / ts.rr_count) * 100) / 100 : 0, member_count: ts.member_count, submission_count: ts.submission_count };
-  }).sort((a, b) => (b.total_points !== a.total_points ? b.total_points - a.total_points : b.avg_rr - a.avg_rr)).map((t, index) => ({ ...t, rank: index + 1 }));
+  const teamRankings: TeamRanking[] = Array.from(teamStats.values())
+    .map((ts) => {
+      const totalBonus =
+        (specialChallengeBonus.get(ts.team_id) || 0) +
+        (teamChallengePoints.get(ts.team_id) || 0);
+      return {
+        rank: 0,
+        team_id: ts.team_id,
+        team_name: ts.team_name,
+        points: ts.points,
+        challenge_bonus: totalBonus,
+        total_points: ts.points + totalBonus,
+        avg_rr:
+          ts.rr_count > 0
+            ? Math.round((ts.total_rr / ts.rr_count) * 100) / 100
+            : 0,
+        member_count: ts.member_count,
+        submission_count: ts.submission_count,
+      };
+    })
+    .sort((a, b) =>
+      b.total_points !== a.total_points
+        ? b.total_points - a.total_points
+        : b.avg_rr - a.avg_rr,
+    )
+    .map((t, index) => ({ ...t, rank: index + 1 }));
 
   const pendingWindowTeams: PendingTeamWindowRanking[] = (() => {
     if (pendingWindowDates.length === 0) return [];
     const pointsByTeamDate = new Map();
     const rrAggByTeam = new Map();
     for (const ts of teamStats.values()) {
-      const dm = new Map(); pendingWindowDates.forEach(d => dm.set(d, 0));
+      const dm = new Map();
+      pendingWindowDates.forEach((d) => dm.set(d, 0));
       pointsByTeamDate.set(ts.team_id, dm);
       rrAggByTeam.set(ts.team_id, { total_rr: 0, rr_count: 0 });
     }
-    entries.filter(e => pendingWindowDates.includes(e.date) && e.status === 'approved').forEach(e => {
-      const key = `${e.league_member_id}_${e.date}_${e.workout_type || ''}`;
-      if (uniqueEntriesMap.get(key)?.id !== e.id) return;
-      const tid = memberToUser.get(e.league_member_id)?.team_id;
-      if (!tid) return;
-      const tdm = pointsByTeamDate.get(tid);
-      if (tdm) tdm.set(e.date, (tdm.get(e.date) || 0) + getEntryPoints(e));
-      if (e.rr_value > 0) { const agg = rrAggByTeam.get(tid); agg.total_rr += e.rr_value; agg.rr_count++; }
-    });
-    return Array.from(teamStats.values()).map((ts) => {
-      const dm = pointsByTeamDate.get(ts.team_id);
-      const res: Record<string, number> = {}; let total = 0;
-      pendingWindowDates.forEach(d => { const v = dm.get(d) || 0; res[d] = v; total += v; });
-      const rr = rrAggByTeam.get(ts.team_id);
-      return { rank: 0, team_id: ts.team_id, team_name: ts.team_name, total_points: total, avg_rr: rr.rr_count > 0 ? Math.round((rr.total_rr / rr.rr_count) * 100) / 100 : 0, pointsByDate: res };
-    }).sort((a, b) => (b.total_points !== a.total_points ? b.total_points - a.total_points : b.avg_rr - a.avg_rr)).map((t, idx) => ({ ...t, rank: idx + 1 }));
+    entries
+      .filter(
+        (e) => pendingWindowDates.includes(e.date) && e.status === 'approved',
+      )
+      .forEach((e) => {
+        const key = `${e.league_member_id}_${e.date}_${e.workout_type || ''}`;
+        if (uniqueEntriesMap.get(key)?.id !== e.id) return;
+        const tid = memberToUser.get(e.league_member_id)?.team_id;
+        if (!tid) return;
+        const tdm = pointsByTeamDate.get(tid);
+        if (tdm) tdm.set(e.date, (tdm.get(e.date) || 0) + getEntryPoints(e));
+        if (e.rr_value > 0) {
+          const agg = rrAggByTeam.get(tid);
+          agg.total_rr += e.rr_value;
+          agg.rr_count++;
+        }
+      });
+    return Array.from(teamStats.values())
+      .map((ts) => {
+        const dm = pointsByTeamDate.get(ts.team_id);
+        const res: Record<string, number> = {};
+        let total = 0;
+        pendingWindowDates.forEach((d) => {
+          const v = dm.get(d) || 0;
+          res[d] = v;
+          total += v;
+        });
+        const rr = rrAggByTeam.get(ts.team_id);
+        return {
+          rank: 0,
+          team_id: ts.team_id,
+          team_name: ts.team_name,
+          total_points: total,
+          avg_rr:
+            rr.rr_count > 0
+              ? Math.round((rr.total_rr / rr.rr_count) * 100) / 100
+              : 0,
+          pointsByDate: res,
+        };
+      })
+      .sort((a, b) =>
+        b.total_points !== a.total_points
+          ? b.total_points - a.total_points
+          : b.avg_rr - a.avg_rr,
+      )
+      .map((t, idx) => ({ ...t, rank: idx + 1 }));
   })();
 
   const individualStats = new Map();
   members.forEach((m) => {
     const user = m.users as any;
-    const team = teams.find((t: any) => (t.teams?.team_id || t.team_id) === m.team_id);
-    individualStats.set(m.league_member_id, { user_id: m.user_id, username: user?.username || 'Unknown', team_id: m.team_id, team_name: (team as any)?.teams?.team_name || (team as any)?.team_name || null, points: 0, challenge_points: 0, total_rr: 0, rr_count: 0, submission_count: 0, profile_picture_url: user?.profile_picture_url });
+    const team = teams.find(
+      (t: any) => (t.teams?.team_id || t.team_id) === m.team_id,
+    );
+    individualStats.set(m.league_member_id, {
+      user_id: m.user_id,
+      username: user?.username || 'Unknown',
+      team_id: m.team_id,
+      team_name:
+        (team as any)?.teams?.team_name || (team as any)?.team_name || null,
+      points: 0,
+      challenge_points: 0,
+      total_rr: 0,
+      rr_count: 0,
+      submission_count: 0,
+      profile_picture_url: user?.profile_picture_url,
+    });
   });
 
   entries.forEach((e) => {
     const is = individualStats.get(e.league_member_id);
     if (!is) return;
     is.submission_count++;
-    if (e.status === 'approved' && uniqueEntriesMap.get(`${e.league_member_id}_${e.date}_${e.workout_type || ''}`)?.id === e.id) {
+    if (
+      e.status === 'approved' &&
+      uniqueEntriesMap.get(
+        `${e.league_member_id}_${e.date}_${e.workout_type || ''}`,
+      )?.id === e.id
+    ) {
       is.points += getEntryPoints(e);
-      if (e.rr_value > 0) { is.total_rr += e.rr_value; is.rr_count++; }
+      if (e.rr_value > 0) {
+        is.total_rr += e.rr_value;
+        is.rr_count++;
+      }
     }
   });
 
-  let individualRankings: IndividualRanking[] = Array.from(individualStats.values()).map((is) => ({ rank: 0, user_id: is.user_id, username: is.username, team_id: is.team_id, team_name: is.team_name, points: is.points, challenge_points: is.challenge_points, avg_rr: is.rr_count > 0 ? Number((is.total_rr / is.rr_count).toFixed(2)) : 0, submission_count: is.submission_count, profile_picture_url: is.profile_picture_url })).sort((a, b) => (b.points !== a.points ? b.points - a.points : b.avg_rr - a.avg_rr)).map((i, idx) => ({ ...i, rank: idx + 1 }));
+  let individualRankings: IndividualRanking[] = Array.from(
+    individualStats.values(),
+  )
+    .map((is) => ({
+      rank: 0,
+      user_id: is.user_id,
+      username: is.username,
+      team_id: is.team_id,
+      team_name: is.team_name,
+      points: is.points,
+      challenge_points: is.challenge_points,
+      avg_rr:
+        is.rr_count > 0 ? Number((is.total_rr / is.rr_count).toFixed(2)) : 0,
+      submission_count: is.submission_count,
+      profile_picture_url: is.profile_picture_url,
+    }))
+    .sort((a, b) =>
+      b.points !== a.points ? b.points - a.points : b.avg_rr - a.avg_rr,
+    )
+    .map((i, idx) => ({ ...i, rank: idx + 1 }));
   if (!full) individualRankings = individualRankings.slice(0, 50);
 
   return {
     teams: teamRankings,
+    /**
+     * NOTE: Pending window points are already integrated into the main team and individual totals.
+     * DO NOT add these points on top of the primary rankings to avoid double-counting.
+     */
     pendingWindow: { dates: pendingWindowDates, teams: pendingWindowTeams },
     individuals: individualRankings,
+
     stats,
     dateRange: { startDate: filterStartDate, endDate: effectiveEndDate },
-    league: { league_id: league.league_id, league_name: league.league_name, start_date: league.start_date, end_date: league.end_date, rr_config: league.rr_config || { formula: 'standard' }, rest_days: league.rest_days ?? 0 }
+    league: {
+      league_id: league.league_id,
+      league_name: league.league_name,
+      start_date: league.start_date,
+      end_date: league.end_date,
+      rr_config: league.rr_config || { formula: 'standard' },
+      rest_days: league.rest_days ?? 0,
+    },
   };
 }

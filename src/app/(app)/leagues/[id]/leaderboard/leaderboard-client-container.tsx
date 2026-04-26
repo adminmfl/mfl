@@ -50,18 +50,6 @@ const ChallengeSpecificLeaderboard = dynamic(
     ),
   },
 );
-const RealTimeScoreboardTable = dynamic(
-  () =>
-    import('@/components/leaderboard/realtime-scoreboard-table').then(
-      (mod) => mod.RealTimeScoreboardTable,
-    ),
-  {
-    loading: () => (
-      <div className="h-40 animate-pulse bg-muted/20 rounded-lg" />
-    ),
-  },
-);
-
 import {
   HeaderSkeleton,
   TableSkeleton,
@@ -266,6 +254,11 @@ export function LeaderboardClientContainer({
                   </div>
                   <p className="text-xs sm:text-sm text-muted-foreground">
                     Combined activity + challenge points
+                    {pendingWindow?.dates?.length ? (
+                      <span className="ml-1.5 text-amber-600 dark:text-amber-500 font-medium">
+                        &middot; Scores subject to approval
+                      </span>
+                    ) : null}
                   </p>
                 </div>
                 <p className="text-xs text-muted-foreground mb-2">
@@ -324,25 +317,6 @@ export function LeaderboardClientContainer({
               </TabsContent>
             </Tabs>
 
-            {pendingWindow?.dates?.length ? (
-              <div className="border-t mt-3 pt-3">
-                <div className="mb-3">
-                  <h2 className="text-base sm:text-lg font-semibold">
-                    Real-time Scoreboard
-                  </h2>
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    Today's and yesterday's scores (subject to change)
-                  </p>
-                </div>
-                <div className="overflow-hidden">
-                  <RealTimeScoreboardTable
-                    dates={pendingWindow.dates}
-                    teams={pendingWindow.teams || []}
-                    showAvgRR={showRR}
-                  />
-                </div>
-              </div>
-            ) : null}
 
             <div className="border-t mt-3 pt-3">
               <div className="mb-3">
